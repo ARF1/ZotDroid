@@ -1,0 +1,3 @@
+[submodule "app/libs/signpost"]
+	path = app/libs/signpost
+	url = https://github.com/mttkay/signpost.git

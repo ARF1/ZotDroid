@@ -1,8 +1,6 @@
 package uk.co.section9.zotdroid;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.annotation.TargetApi;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 
@@ -11,78 +9,60 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
-
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
-import android.text.TextUtils;
-import android.view.KeyEvent;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
+
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.TextView;
+import android.widget.Toast;
+
+
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.appindexing.Thing;
+import com.google.android.gms.common.api.GoogleApiClient;
 
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
- * A login screen that offers login via email/password.
+ * A screen that fires up the OAuth we need for Zotero
  */
 public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor> {
 
-    /**
-     * A dummy authentication store containing known user names and passwords.
-     * TODO: remove after connecting to a real authentication system.
-     */
-    private static final String[] DUMMY_CREDENTIALS = new String[]{
-            "foo@example.com:hello", "bar@example.com:world"
-    };
-    /**
-     * Keep track of the login task to ensure we can cancel it if requested.
-     */
-    private UserLoginTask mAuthTask = null;
+    protected ZoteroBroker broker;
 
-    // UI references.
-    private AutoCompleteTextView mEmailView;
-    private EditText mPasswordView;
-    private View mProgressView;
-    private View mLoginFormView;
+    private static final String TAG = "zotdroid.LoginActivity";
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.zotero_login);
-        // Set up the login form.
-        mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
-        populateAutoComplete();
 
-        mPasswordView = (EditText) findViewById(R.id.password);
-        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
-                if (id == R.id.login || id == EditorInfo.IME_NULL) {
-                    attemptLogin();
-                    return true;
-                }
-                return false;
-            }
-        });
-
-        Button mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
-        mEmailSignInButton.setOnClickListener(new OnClickListener() {
+        Button mSignInButton = (Button) findViewById(R.id.sign_in_button);
+        mSignInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
                 attemptLogin();
             }
         });
 
-        mLoginFormView = findViewById(R.id.login_form);
-        mProgressView = findViewById(R.id.login_progress);
+    }
+
+    private void toastError(final String message) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(LoginActivity.this, message, Toast.LENGTH_LONG);
+            }
+        });
     }
 
     private void populateAutoComplete() {
@@ -96,65 +76,23 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      * errors are presented and no actual login attempt is made.
      */
     private void attemptLogin() {
-        if (mAuthTask != null) {
-            return;
-        }
 
-        // Reset errors.
-        mEmailView.setError(null);
-        mPasswordView.setError(null);
+        broker = new ZoteroBroker();
+        ZoteroBroker.AuthResult res = broker.getAuthURL();
 
-        // Store values at the time of the login attempt.
-        String email = mEmailView.getText().toString();
-        String password = mPasswordView.getText().toString();
-
-        boolean cancel = false;
-        View focusView = null;
-
-        // Check for a valid password, if the user entered one.
-        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
-            mPasswordView.setError(getString(R.string.error_invalid_password));
-            focusView = mPasswordView;
-            cancel = true;
-        }
-
-        // Check for a valid email address.
-        if (TextUtils.isEmpty(email)) {
-            mEmailView.setError(getString(R.string.error_field_required));
-            focusView = mEmailView;
-            cancel = true;
-        } else if (!isEmailValid(email)) {
-            mEmailView.setError(getString(R.string.error_invalid_email));
-            focusView = mEmailView;
-            cancel = true;
-        }
-
-        if (cancel) {
-            // There was an error; don't attempt login and focus the first
-            // form field with an error.
-            focusView.requestFocus();
+        if (res.result) {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(res.authUrl)));
+            System.out.println(res.authUrl);
         } else {
-            // Show a progress spinner, and kick off a background task to
-            // perform the user login attempt.
-            showProgress(true);
-            mAuthTask = new UserLoginTask(email, password);
-            mAuthTask.execute((Void) null);
+            System.out.println(res.authUrl + "," + res.log);
+            toastError(res.log);
         }
-    }
-
-    private boolean isEmailValid(String email) {
-        //TODO: Replace this with your own logic
-        return email.contains("@");
-    }
-
-    private boolean isPasswordValid(String password) {
-        //TODO: Replace this with your own logic
-        return password.length() > 4;
     }
 
     /**
      * Shows the progress UI and hides the login form.
      */
+/*
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
     private void showProgress(final boolean show) {
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
@@ -187,7 +125,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             mLoginFormView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
     }
-
+*/
     @Override
     public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
         return new CursorLoader(this,
@@ -213,8 +151,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             emails.add(cursor.getString(ProfileQuery.ADDRESS));
             cursor.moveToNext();
         }
-
-        addEmailsToAutoComplete(emails);
     }
 
     @Override
@@ -222,14 +158,30 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
     }
 
-    private void addEmailsToAutoComplete(List<String> emailAddressCollection) {
+
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+
+    }
+
+    /*private void addEmailsToAutoComplete(List<String> emailAddressCollection) {
         //Create adapter to tell the AutoCompleteTextView what to show in its dropdown list.
         ArrayAdapter<String> adapter =
                 new ArrayAdapter<>(LoginActivity.this,
                         android.R.layout.simple_dropdown_item_1line, emailAddressCollection);
 
         mEmailView.setAdapter(adapter);
-    }
+    }*/
 
 
     private interface ProfileQuery {
@@ -258,45 +210,146 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         @Override
         protected Boolean doInBackground(Void... params) {
-            // TODO: attempt authentication against a network service.
 
-            try {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                return false;
-            }
-
-            for (String credential : DUMMY_CREDENTIALS) {
-                String[] pieces = credential.split(":");
-                if (pieces[0].equals(mEmail)) {
-                    // Account exists, return true if the password matches.
-                    return pieces[1].equals(mPassword);
-                }
-            }
-
-            // TODO: register the new account here.
             return true;
         }
 
         @Override
         protected void onPostExecute(final Boolean success) {
-            mAuthTask = null;
-            showProgress(false);
 
-            if (success) {
-                finish();
-            } else {
-                mPasswordView.setError(getString(R.string.error_incorrect_password));
-                mPasswordView.requestFocus();
-            }
         }
 
         @Override
         protected void onCancelled() {
-            mAuthTask = null;
-            showProgress(false);
+
         }
     }
+
+    /**
+     * Receives intents that the app knows how to interpret. These will probably
+     * all be URIs with the protocol "zotero://".
+     *
+     * This is currently only used to receive OAuth responses, but it could be
+     * used with things like zotero://select and zotero://attachment in the
+     * future.
+     */
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        Log.d(TAG, "Got new intent");
+
+        if (intent == null) return;
+
+        // Here's what we do if we get a share request from the browser
+        String action = intent.getAction();
+        if (action != null
+                && action.equals("android.intent.action.SEND")
+                && intent.getExtras() != null) {
+            // Browser sends us no data, just extras
+            Bundle extras = intent.getExtras();
+            for (String s : extras.keySet()) {
+                try {
+                    Log.d("TAG","Got extra: "+s +" => "+extras.getString(s));
+                } catch (ClassCastException e) {
+                    Log.e(TAG, "Not a string, it seems", e);
+                }
+            }
+
+            /*Bundle b = new Bundle();
+            b.putString("url", extras.getString("android.intent.extra.TEXT"));
+            b.putString("title", extras.getString("android.intent.extra.SUBJECT"));
+            this.b=b;*/
+            //showDialog(DIALOG_CHOOSE_COLLECTION);
+            return;
+        }
+
+		/*
+		 * It's possible we've lost these to garbage collection, so we
+		 * reinstantiate them if they turn out to be null at this point.
+		 */
+        /*
+        if (this.httpOAuthConsumer == null)
+            this.httpOAuthConsumer = new CommonsHttpOAuthConsumer(
+                    ServerCredentials.CONSUMERKEY,
+                    ServerCredentials.CONSUMERSECRET);
+        if (this.httpOAuthProvider == null)
+            this.httpOAuthProvider = new DefaultOAuthProvider(
+                    ServerCredentials.OAUTHREQUEST,
+                    ServerCredentials.OAUTHACCESS,
+                    ServerCredentials.OAUTHAUTHORIZE);
+
+                    */
+
+		/*
+		 * Also double-check that intent isn't null, because something here
+		 * caused a NullPointerException for a user.
+		 */
+
+        Uri uri;
+        uri = intent.getData();
+
+        if (uri != null) {
+			/*
+			 * TODO The logic should have cases for the various things coming in
+			 * on this protocol.
+			 */
+            final String verifier = uri
+                    .getQueryParameter(oauth.signpost.OAuth.OAUTH_VERIFIER);
+
+            /*
+				    		 * Here, we're handling the callback from the completed OAuth.
+				    		 * We don't need to do anything highly visible, although it
+				    		 * would be nice to show a Toast or something.
+				    		 */
+            /*
+            new Thread(new Runnable() {
+                public void run() {
+                    try {
+
+                        httpOAuthProvider.retrieveAccessToken(
+                                httpOAuthConsumer, verifier);
+                        HttpParameters params = httpOAuthProvider
+                                .getResponseParameters();
+                        final String userID = params.getFirst("userID");
+                        Log.d(TAG, "uid: " + userID);
+                        final String userKey = httpOAuthConsumer.getToken();
+                        Log.d(TAG, "ukey: " + userKey);
+                        final String userSecret = httpOAuthConsumer.getTokenSecret();
+                        Log.d(TAG, "usecret: " + userSecret);
+
+                        runOnUiThread(new Runnable(){
+                            public void run(){
+					    			//
+					    			// These settings live in the Zotero preferences tree.
+					    			//
+                                SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+                                SharedPreferences.Editor editor = settings.edit();
+                                // For Zotero, the key and secret are identical, it seems
+                                editor.putString("user_key", userKey);
+                                editor.putString("user_secret", userSecret);
+                                editor.putString("user_id", userID);
+
+                                editor.commit();
+
+                                setUpLoggedInUser();
+
+                                doSync();
+
+                            }
+                        });
+                    } catch (OAuthMessageSignerException e) {
+                        toastError(e.getMessage());
+                    } catch (OAuthNotAuthorizedException e) {
+                        toastError(e.getMessage());
+                    } catch (OAuthExpectationFailedException e) {
+                        toastError(e.getMessage());
+                    } catch (OAuthCommunicationException e) {
+                        toastError("Error communicating with server. Check your time settings, network connectivity, and try again. OAuth error: " + e.getMessage());
+                    }
+                }
+            }).start();*/
+        }
+    }
+
 }
 

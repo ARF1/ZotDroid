@@ -16,15 +16,25 @@ import oauth.signpost.exception.OAuthMessageSignerException;
 import oauth.signpost.exception.OAuthNotAuthorizedException;
 import oauth.signpost.http.HttpParameters;
 import android.net.Uri;
+import android.os.StrictMode;
+import android.util.Log;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class ZoteroBroker {
 
-    /** Application key -- available from Zotero */
-    public static final String CONSUMER_KEY = "93a5aac13612aed2a236";
-    public static final String CONSUMER_SECRET = "196d86bd1298cb78511c";
+    public static final String TAG = "zotdroid.ZoteroBroker";
 
-    public static final String ACCESS_TOKEN = "196d86bd1298cb78511c";
-    public static final String TOKEN_SECRET = "196d86bd1298cb78511c";
+    /** Application key -- available from Zotero */
+    public static final String CONSUMER_KEY = "50e538ada5d8c4f40e01";
+    public static final String CONSUMER_SECRET = "ef03b60b207aef632c24";
+
+    public static String ACCESS_TOKEN = "stuffandting";
+    public static String TOKEN_SECRET = "stuffandting";
 
     /** This is the zotero:// protocol we intercept
      * It probably shouldn't be changed. */
@@ -32,14 +42,14 @@ public class ZoteroBroker {
 
     /** This is the Zotero API server. Those who set up independent
      * Zotero installations will need to change this. */
-    public static final String APIBASE = "https://api.zotero.org";
+    public static final String API_BASE = "https://api.zotero.org";
 
     /** These are the API GET-only methods */
-    public static final String ITEMFIELDS = "/itemFields";
-    public static final String ITEMTYPES = "/itemTypes";
-    public static final String ITEMTYPECREATORTYPES = "/itemTypeCreatorTypes";
-    public static final String CREATORFIELDS = "/creatorFields";
-    public static final String ITEMNEW = "/items/new";
+    public static final String ITEM_FIELDS = "/itemFields";
+    public static final String ITEM_TYPES = "/itemTypes";
+    public static final String ITEM_TYPE_CREATOR_TYPES = "/itemTypeCreatorTypes";
+    public static final String CREATOR_FIELDS = "/creatorFields";
+    public static final String ITEM_NEW = "/items/new";
 
     /* These are the manipulation methods */
     // /users/1/items GET, POST, PUT, DELETE
@@ -48,6 +58,15 @@ public class ZoteroBroker {
 
     public static final String TAGS = "/tags";
     public static final String GROUPS = "/groups";
+
+    /**
+     * A small class that returns a full result from any requests
+     */
+    public class AuthResult {
+        public String log;
+        public boolean result;
+        public String authUrl;
+    }
 
     /** And these are the OAuth endpoints we talk to.
      *
@@ -73,45 +92,54 @@ public class ZoteroBroker {
 
     /**
      *
-     * @param authUrl - blank string to be filled with the auth URL we are following
-     * @param log - blank string filled with any messages we need
-     * @return a boolean stating whether or not we succeeded
+     * @return a AuthResult stating whether or not we succeeded
      */
-    public boolean getAuthURL (String authUrl, String log)  {
+    public AuthResult getAuthURL ()  {
 
+        AuthResult res = new AuthResult();
         try {
-            CommonsHttpOAuthConsumer consumer = new CommonsHttpOAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET);
 
+            // https://stackoverflow.com/questions/21183407/linkedin-oauth-signpost-exception-oauthcommunicationexception-communication-w#21673071
+            if (android.os.Build.VERSION.SDK_INT > 9) {
+                StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build(); StrictMode.setThreadPolicy(policy);
+            }
+
+            CommonsHttpOAuthConsumer consumer = new CommonsHttpOAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET);
             OAuthProvider provider = new DefaultOAuthProvider(OAUTH_REQUEST, OAUTH_ACCESS, OAUTH_AUTHORIZE);
 
-            System.out.println("Fetching request token from Zotero...");
+            Log.d(TAG,"Fetching request token from Zotero...");
 
-            authUrl = provider.retrieveRequestToken(consumer, CALLBACK_URL);
-            System.out.println("Request token: " + consumer.getToken());
-            System.out.println("Token secret: " + consumer.getTokenSecret());
+            res.authUrl = provider.retrieveRequestToken(consumer, CALLBACK_URL);
+
+            Log.d(TAG,"Request token: " + consumer.getToken());
+            Log.d(TAG,"Token secret: " + consumer.getTokenSecret());
+
+            ACCESS_TOKEN = consumer.getToken();
+            TOKEN_SECRET = consumer.getTokenSecret();
 
             consumer.setTokenWithSecret(ACCESS_TOKEN, TOKEN_SECRET);
 
-            //startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(authUrl)));
+            res.log = "Success";
 
         } catch (OAuthMessageSignerException e) {
-            log = e.getMessage();
-            System.out.println(log);
-            return false;
+            res.log = "Signer Exception:" + e.getMessage();
+            Log.d(TAG, res.log);
+            res.result = false;
         } catch (OAuthNotAuthorizedException e) {
-            log = e.getMessage();
-            System.out.println(log);
-            return false;
+            res.log = "Not Authorised Exception:" + e.getMessage();
+            System.out.println(res.log);
+            res.result = false;
         } catch (OAuthExpectationFailedException e) {
-            log = e.getMessage();
-            System.out.println(log);
-            return false;
+            res.log = "Expectation Exception:" + e.getMessage();
+            Log.d(TAG, res.log);
+            res.result = false;
         } catch (OAuthCommunicationException e) {
-            log = e.getMessage();
-            System.out.println(log);
-            return false;
+            res.log = "Communication Exception:" + e.getMessage();
+            Log.d(TAG, res.log);
+            res.result = false;
         }
-        return true;
+        return res;
     }
+
 
 }

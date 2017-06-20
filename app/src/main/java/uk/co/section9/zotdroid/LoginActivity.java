@@ -1,6 +1,8 @@
 package uk.co.section9.zotdroid;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.app.LoaderManager.LoaderCallbacks;
 
@@ -54,6 +56,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             }
         });
 
+        broker = new ZoteroBroker();
     }
 
     private void toastError(final String message) {
@@ -77,14 +80,14 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      */
     private void attemptLogin() {
 
-        broker = new ZoteroBroker();
         ZoteroBroker.AuthResult res = broker.getAuthURL();
 
         if (res.result) {
+            Log.d(TAG, "Starting Browser based Auth.");
             startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(res.authUrl)));
-            System.out.println(res.authUrl);
         } else {
             System.out.println(res.authUrl + "," + res.log);
+            Log.d(TAG, "Error: " + res.log);
             toastError(res.log);
         }
     }
@@ -155,23 +158,16 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
     @Override
     public void onLoaderReset(Loader<Cursor> cursorLoader) {
-
     }
-
-
 
     @Override
     public void onStart() {
         super.onStart();
-
-
     }
 
     @Override
     public void onStop() {
         super.onStop();
-
-
     }
 
     /*private void addEmailsToAutoComplete(List<String> emailAddressCollection) {
@@ -210,22 +206,20 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
         @Override
         protected Boolean doInBackground(Void... params) {
-
             return true;
         }
 
         @Override
         protected void onPostExecute(final Boolean success) {
-
         }
 
         @Override
         protected void onCancelled() {
-
         }
     }
 
     /**
+     * Taken from Zandy and adapted.
      * Receives intents that the app knows how to interpret. These will probably
      * all be URIs with the protocol "zotero://".
      *
@@ -264,23 +258,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         }
 
 		/*
-		 * It's possible we've lost these to garbage collection, so we
-		 * reinstantiate them if they turn out to be null at this point.
-		 */
-        /*
-        if (this.httpOAuthConsumer == null)
-            this.httpOAuthConsumer = new CommonsHttpOAuthConsumer(
-                    ServerCredentials.CONSUMERKEY,
-                    ServerCredentials.CONSUMERSECRET);
-        if (this.httpOAuthProvider == null)
-            this.httpOAuthProvider = new DefaultOAuthProvider(
-                    ServerCredentials.OAUTHREQUEST,
-                    ServerCredentials.OAUTHACCESS,
-                    ServerCredentials.OAUTHAUTHORIZE);
-
-                    */
-
-		/*
 		 * Also double-check that intent isn't null, because something here
 		 * caused a NullPointerException for a user.
 		 */
@@ -288,66 +265,23 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         Uri uri;
         uri = intent.getData();
 
+        /*
+         * TODO The logic should have cases for the various things coming in
+         * on this protocol.
+         */
+
         if (uri != null) {
-			/*
-			 * TODO The logic should have cases for the various things coming in
-			 * on this protocol.
-			 */
-            final String verifier = uri
-                    .getQueryParameter(oauth.signpost.OAuth.OAUTH_VERIFIER);
+            ZoteroBroker.AuthResult res = broker.finishOAuth(uri);
 
-            /*
-				    		 * Here, we're handling the callback from the completed OAuth.
-				    		 * We don't need to do anything highly visible, although it
-				    		 * would be nice to show a Toast or something.
-				    		 */
-            /*
-            new Thread(new Runnable() {
-                public void run() {
-                    try {
+            // Do our settings bit
+            SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(LoginActivity.this);
+            SharedPreferences.Editor editor = settings.edit();
+            // For Zotero, the key and secret are identical, it seems
+            editor.putString("settings_user_key", res.userKey);
+            editor.putString("settings_user_secret", res.userSecret);
+            editor.putString("settings_user_id", res.userID);
 
-                        httpOAuthProvider.retrieveAccessToken(
-                                httpOAuthConsumer, verifier);
-                        HttpParameters params = httpOAuthProvider
-                                .getResponseParameters();
-                        final String userID = params.getFirst("userID");
-                        Log.d(TAG, "uid: " + userID);
-                        final String userKey = httpOAuthConsumer.getToken();
-                        Log.d(TAG, "ukey: " + userKey);
-                        final String userSecret = httpOAuthConsumer.getTokenSecret();
-                        Log.d(TAG, "usecret: " + userSecret);
-
-                        runOnUiThread(new Runnable(){
-                            public void run(){
-					    			//
-					    			// These settings live in the Zotero preferences tree.
-					    			//
-                                SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-                                SharedPreferences.Editor editor = settings.edit();
-                                // For Zotero, the key and secret are identical, it seems
-                                editor.putString("user_key", userKey);
-                                editor.putString("user_secret", userSecret);
-                                editor.putString("user_id", userID);
-
-                                editor.commit();
-
-                                setUpLoggedInUser();
-
-                                doSync();
-
-                            }
-                        });
-                    } catch (OAuthMessageSignerException e) {
-                        toastError(e.getMessage());
-                    } catch (OAuthNotAuthorizedException e) {
-                        toastError(e.getMessage());
-                    } catch (OAuthExpectationFailedException e) {
-                        toastError(e.getMessage());
-                    } catch (OAuthCommunicationException e) {
-                        toastError("Error communicating with server. Check your time settings, network connectivity, and try again. OAuth error: " + e.getMessage());
-                    }
-                }
-            }).start();*/
+            editor.commit();
         }
     }
 

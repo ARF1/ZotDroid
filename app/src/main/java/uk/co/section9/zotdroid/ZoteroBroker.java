@@ -15,14 +15,18 @@ import oauth.signpost.exception.OAuthExpectationFailedException;
 import oauth.signpost.exception.OAuthMessageSignerException;
 import oauth.signpost.exception.OAuthNotAuthorizedException;
 import oauth.signpost.http.HttpParameters;
+
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.StrictMode;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 
 public class ZoteroBroker {
@@ -59,6 +63,11 @@ public class ZoteroBroker {
     public static final String TAGS = "/tags";
     public static final String GROUPS = "/groups";
 
+    CommonsHttpOAuthConsumer Consumer;
+    OAuthProvider Provider;
+    boolean IsAuthed;
+
+
     /**
      * A small class that returns a full result from any requests
      */
@@ -66,6 +75,9 @@ public class ZoteroBroker {
         public String log;
         public boolean result;
         public String authUrl;
+        public String userID;
+        public String userKey;
+        public String userSecret;
     }
 
     /** And these are the OAuth endpoints we talk to.
@@ -90,9 +102,23 @@ public class ZoteroBroker {
             "write_access=1&" +
             "all_groups=write";
 
+
+    public ZoteroBroker() {
+        // Create the broker but look for settings that exist already
+    }
+
+    public boolean getIsAuthed() {
+        return IsAuthed;
+    }
+
+    public void setIsAuthed(boolean IsAuthed) {
+        this.IsAuthed = IsAuthed;
+    }
+
+
     /**
      *
-     * @return a AuthResult stating whether or not we succeeded
+     * @return an AuthResult stating whether or not we succeeded
      */
     public AuthResult getAuthURL ()  {
 
@@ -104,22 +130,23 @@ public class ZoteroBroker {
                 StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build(); StrictMode.setThreadPolicy(policy);
             }
 
-            CommonsHttpOAuthConsumer consumer = new CommonsHttpOAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET);
-            OAuthProvider provider = new DefaultOAuthProvider(OAUTH_REQUEST, OAUTH_ACCESS, OAUTH_AUTHORIZE);
+            Consumer = new CommonsHttpOAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET);
+            Provider = new DefaultOAuthProvider(OAUTH_REQUEST, OAUTH_ACCESS, OAUTH_AUTHORIZE);
 
             Log.d(TAG,"Fetching request token from Zotero...");
 
-            res.authUrl = provider.retrieveRequestToken(consumer, CALLBACK_URL);
+            res.authUrl = Provider.retrieveRequestToken(Consumer, CALLBACK_URL);
 
-            Log.d(TAG,"Request token: " + consumer.getToken());
-            Log.d(TAG,"Token secret: " + consumer.getTokenSecret());
+            Log.d(TAG,"Request token: " + Consumer.getToken());
+            Log.d(TAG,"Token secret: " + Consumer.getTokenSecret());
 
-            ACCESS_TOKEN = consumer.getToken();
-            TOKEN_SECRET = consumer.getTokenSecret();
+            ACCESS_TOKEN = Consumer.getToken();
+            TOKEN_SECRET = Consumer.getTokenSecret();
 
-            consumer.setTokenWithSecret(ACCESS_TOKEN, TOKEN_SECRET);
+            Consumer.setTokenWithSecret(ACCESS_TOKEN, TOKEN_SECRET);
 
-            res.log = "Success";
+            res.log = "";
+            res.result = true;
 
         } catch (OAuthMessageSignerException e) {
             res.log = "Signer Exception:" + e.getMessage();
@@ -137,6 +164,49 @@ public class ZoteroBroker {
             res.log = "Communication Exception:" + e.getMessage();
             Log.d(TAG, res.log);
             res.result = false;
+        }
+        return res;
+    }
+
+    /**
+     * Finish our OAuth bit and save the bits to our settings.
+     * @param uri
+     * @return an AuthResult stating whether or not we succeeded
+     */
+
+    AuthResult finishOAuth(Uri uri){
+
+        AuthResult res = new AuthResult();
+
+        if (uri != null) {
+
+            final String verifier = uri.getQueryParameter(oauth.signpost.OAuth.OAUTH_VERIFIER);
+
+            try {
+                Provider.retrieveAccessToken( Consumer, verifier);
+                HttpParameters params = Provider.getResponseParameters();
+                res.userID = params.getFirst("userID");
+                Log.d(TAG, "uid: " + res.userID);
+                res.userKey = Consumer.getToken();
+                Log.d(TAG, "ukey: " + res.userKey);
+                res.userSecret = Consumer.getTokenSecret();
+                Log.d(TAG, "usecret: " + res.userSecret);
+                res.result = true;
+
+            } catch (OAuthMessageSignerException e) {
+                res.log = e.getMessage();
+                res.result = false;
+            } catch (OAuthNotAuthorizedException e) {
+                res.log = e.getMessage();
+                res.result = false;
+            } catch (OAuthExpectationFailedException e) {
+                res.log = e.getMessage();
+                res.result = false;
+            } catch (OAuthCommunicationException e) {
+                res.log = "Error communicating with server. Check your time settings, network connectivity, and try again. OAuth error: " + e.getMessage();
+                res.result = false;
+            }
+
         }
         return res;
     }

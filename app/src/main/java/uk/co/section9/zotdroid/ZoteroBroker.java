@@ -16,6 +16,7 @@ import oauth.signpost.exception.OAuthMessageSignerException;
 import oauth.signpost.exception.OAuthNotAuthorizedException;
 import oauth.signpost.http.HttpParameters;
 
+import android.app.Activity;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.StrictMode;
@@ -63,15 +64,15 @@ public class ZoteroBroker {
     public static final String TAGS = "/tags";
     public static final String GROUPS = "/groups";
 
-    CommonsHttpOAuthConsumer Consumer;
-    OAuthProvider Provider;
-    boolean IsAuthed;
+    static CommonsHttpOAuthConsumer Consumer;
+    static OAuthProvider Provider;
 
+    static boolean IsAuthed = false;
 
     /**
      * A small class that returns a full result from any requests
      */
-    public class AuthResult {
+    public static class AuthResult {
         public String log;
         public boolean result;
         public String authUrl;
@@ -102,25 +103,32 @@ public class ZoteroBroker {
             "write_access=1&" +
             "all_groups=write";
 
-
-    public ZoteroBroker() {
-        // Create the broker but look for settings that exist already
-    }
-
-    public boolean getIsAuthed() {
+    public static boolean isAuthed() {
         return IsAuthed;
     }
 
-    public void setIsAuthed(boolean IsAuthed) {
-        this.IsAuthed = IsAuthed;
-    }
+    public static void passCreds(Activity activity){
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(activity);
+        String user_key = "";
+        String user_secret = "";
+        String user_id = "";
+        settings.getString("settings_user_key",user_key);
+        settings.getString("settings_user_secret",user_secret);
+        settings.getString("settings_user_id",user_id);
 
+        Log.i(TAG,"settings_user_key: " + user_key );
+        Log.i(TAG,"settings_user_secret: " + user_secret );
+        Log.i(TAG,"settings_user_id: " + user_id );
+
+        // TODO - Test to see if we are authed
+        IsAuthed = !user_secret.isEmpty();
+    }
 
     /**
      *
      * @return an AuthResult stating whether or not we succeeded
      */
-    public AuthResult getAuthURL ()  {
+    public static AuthResult getAuthURL ()  {
 
         AuthResult res = new AuthResult();
         try {
@@ -174,14 +182,10 @@ public class ZoteroBroker {
      * @return an AuthResult stating whether or not we succeeded
      */
 
-    AuthResult finishOAuth(Uri uri){
-
+    static AuthResult finishOAuth(Uri uri){
         AuthResult res = new AuthResult();
-
         if (uri != null) {
-
             final String verifier = uri.getQueryParameter(oauth.signpost.OAuth.OAUTH_VERIFIER);
-
             try {
                 Provider.retrieveAccessToken( Consumer, verifier);
                 HttpParameters params = Provider.getResponseParameters();
@@ -191,22 +195,21 @@ public class ZoteroBroker {
                 Log.d(TAG, "ukey: " + res.userKey);
                 res.userSecret = Consumer.getTokenSecret();
                 Log.d(TAG, "usecret: " + res.userSecret);
-                res.result = true;
+                res.result = IsAuthed = true;
 
             } catch (OAuthMessageSignerException e) {
                 res.log = e.getMessage();
-                res.result = false;
+                res.result = IsAuthed = false;
             } catch (OAuthNotAuthorizedException e) {
                 res.log = e.getMessage();
-                res.result = false;
+                res.result = IsAuthed = false;
             } catch (OAuthExpectationFailedException e) {
                 res.log = e.getMessage();
-                res.result = false;
+                res.result = IsAuthed = false;
             } catch (OAuthCommunicationException e) {
                 res.log = "Error communicating with server. Check your time settings, network connectivity, and try again. OAuth error: " + e.getMessage();
-                res.result = false;
+                res.result = IsAuthed = false;
             }
-
         }
         return res;
     }

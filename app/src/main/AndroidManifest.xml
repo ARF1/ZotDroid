@@ -36,9 +36,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:host="token"
-                    android:scheme="yaruapp" />
+                <data android:scheme="appSchema" android:host="ZotDroid" />
             </intent-filter>
 
             <intent-filter>

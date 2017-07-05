@@ -1,8 +1,13 @@
 package uk.co.section9.zotdroid;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -16,9 +21,13 @@ import android.view.MenuItem;
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
+    public static final String TAG = "zotdroid.MainActivity";
+    public static int ZOTERO_LOGIN_REQUEST = 1667;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.i(TAG,"Creating...");
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -40,7 +49,43 @@ public class MainActivity extends AppCompatActivity
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
+
+        // Pass this activity - ZoteroBroker will look for credentials
+        ZoteroBroker.passCreds(this);
+
+        // Now check to see if we need to launch the login process
+        if (!ZoteroBroker.isAuthed()){
+            Log.i(TAG,"Not authed. Performing OAUTH.");
+            Intent loginIntent = new Intent(this, LoginActivity.class);
+            loginIntent.setAction("zotdroid.LoginActivity.LOGIN");
+            this.startActivityForResult(loginIntent,1);
+        }
     }
+
+    /**
+       LoginActivity returns with some data for us, but we write it to the
+        shared preferences here.
+     */
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.i(TAG,"Returned from Zotero Login.");
+        if (requestCode == ZOTERO_LOGIN_REQUEST) {
+            if (resultCode == RESULT_OK) {
+                String user_id = data.getStringExtra("UserID");
+                String user_key = data.getStringExtra("UserKey");
+                String user_secret = data.getStringExtra("UserSecret");
+
+                SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+                SharedPreferences.Editor editor = settings.edit();
+                // For Zotero, the key and secret are identical, it seems
+                editor.putString("settings_user_key", user_key);
+                editor.putString("settings_user_secret", user_secret);
+                editor.putString("settings_user_id",user_id);
+                editor.commit();
+            }
+            finishActivity(ZOTERO_LOGIN_REQUEST);
+        }
+    }
+
 
     @Override
     public void onBackPressed() {
@@ -50,6 +95,26 @@ public class MainActivity extends AppCompatActivity
         } else {
             super.onBackPressed();
         }
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        // Do our settings bit
+       /* SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
+        SharedPreferences.Editor editor = settings.edit();
+        // For Zotero, the key and secret are identical, it seems
+        editor.putString("settings_user_key", res.userKey);
+        editor.putString("settings_user_secret", res.userSecret);
+        editor.putString("settings_user_id", res.userID);
+
+        editor.commit();
+
+        LoginResult rval = new LoginResult();
+        rval.UserID = res.userID;
+        rval.UserSecret = res.userSecret;
+        rval.UserKey = res.userKey;*/
+
     }
 
     @Override

@@ -68,6 +68,7 @@ public class LoginActivity extends AppCompatActivity  {
 
         // Just make sure we are returning from the browser
         // This is perhaps a little tricky and may not always work
+        // Seems not to when we actually need to get authed :/
         String action = intent.getAction();
 
         Log.i(TAG,"Action: " + action);

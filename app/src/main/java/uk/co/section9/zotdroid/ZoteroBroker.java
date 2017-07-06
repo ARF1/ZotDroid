@@ -41,6 +41,8 @@ public class ZoteroBroker {
     public static String ACCESS_TOKEN = "stuffandting";
     public static String TOKEN_SECRET = "stuffandting";
 
+    public static String USER_ID = "toast";
+
     /** This is the zotero:// protocol we intercept
      * It probably shouldn't be changed. */
     public static final String CALLBACK_URL = "zotero://";
@@ -67,7 +69,8 @@ public class ZoteroBroker {
     static CommonsHttpOAuthConsumer Consumer;
     static OAuthProvider Provider;
 
-    static boolean IsAuthed = false;
+    // TODO - replace this with actually testing the tokens and such (they may be outtdated or filled in wrong)
+    private static boolean IsAuthed = false;
 
     /**
      * A small class that returns a full result from any requests
@@ -120,8 +123,19 @@ public class ZoteroBroker {
         Log.i(TAG,"settings_user_secret: " + user_secret );
         Log.i(TAG,"settings_user_id: " + user_id );
 
-        // TODO - Test to see if we are authed
+        // TODO - Test to see if we are authed - we need to call isAuthed() with the values here
         IsAuthed = !user_secret.isEmpty();
+    }
+
+    public static void setCreds(Activity activity){
+
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(activity);
+        SharedPreferences.Editor editor = settings.edit();
+        // For Zotero, the key and secret are identical, it seems
+        editor.putString("settings_user_key", ACCESS_TOKEN);
+        editor.putString("settings_user_secret", TOKEN_SECRET);
+        editor.putString("settings_user_id", USER_ID);
+        editor.commit();
     }
 
     /**
@@ -191,11 +205,12 @@ public class ZoteroBroker {
                 HttpParameters params = Provider.getResponseParameters();
                 res.userID = params.getFirst("userID");
                 Log.d(TAG, "uid: " + res.userID);
-                res.userKey = Consumer.getToken();
+                res.userKey = ACCESS_TOKEN = Consumer.getToken();
                 Log.d(TAG, "ukey: " + res.userKey);
-                res.userSecret = Consumer.getTokenSecret();
+                res.userSecret = TOKEN_SECRET = Consumer.getTokenSecret();
                 Log.d(TAG, "usecret: " + res.userSecret);
                 res.result = IsAuthed = true;
+                USER_ID = res.userID;
 
             } catch (OAuthMessageSignerException e) {
                 res.log = e.getMessage();

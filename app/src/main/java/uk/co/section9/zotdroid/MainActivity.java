@@ -1,12 +1,16 @@
 package uk.co.section9.zotdroid;
 
 import android.app.Activity;
+import android.app.Dialog;
+import android.app.FragmentManager;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.support.design.widget.NavigationView;
@@ -17,6 +21,10 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.Window;
+import android.widget.Button;
+
+import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -54,12 +62,63 @@ public class MainActivity extends AppCompatActivity
         ZoteroBroker.passCreds(this);
 
         // Now check to see if we need to launch the login process
-        if (!ZoteroBroker.isAuthed()){
+        /*if (!ZoteroBroker.isAuthed()){
             Log.i(TAG,"Not authed. Performing OAUTH.");
             Intent loginIntent = new Intent(this, LoginActivity.class);
             loginIntent.setAction("zotdroid.LoginActivity.LOGIN");
             this.startActivityForResult(loginIntent,1);
+        }*/
+    }
+
+    /**
+     * A handy function that loads our dialog to show we are loading.
+     * TODO - needs messages to show what we are doing.
+     * https://stackoverflow.com/questions/37038835/how-do-i-create-a-popup-overlay-view-in-an-activity-without-fragment
+     * @return
+     */
+    private Dialog launchLoadingDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.fragment_loading);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setCancelable(true);
+
+        DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
+        int dialogWidth = (int)(displayMetrics.widthPixels * 0.85);
+        int dialogHeight = (int)(displayMetrics.heightPixels * 0.85);
+        dialog.getWindow().setLayout(dialogWidth, dialogHeight);
+
+        Button cancelButton = (Button) dialog.findViewById(R.id.buttonCancel);
+
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // do whatever you want here
+            }
+        });
+
+        dialog.show();
+        return dialog;
+    }
+
+
+    protected void sync(){
+
+        Dialog dialog = launchLoadingDialog();
+
+        Vector<ZoteroOps.ZoteroRecord> records =  ZoteroOps.getItems();
+        for (ZoteroOps.ZoteroRecord record : records){
+            Log.i(TAG,record.toString());
         }
+
+        dialog.dismiss();
     }
 
     /**
@@ -70,17 +129,7 @@ public class MainActivity extends AppCompatActivity
         Log.i(TAG,"Returned from Zotero Login.");
         if (requestCode == ZOTERO_LOGIN_REQUEST) {
             if (resultCode == RESULT_OK) {
-                String user_id = data.getStringExtra("UserID");
-                String user_key = data.getStringExtra("UserKey");
-                String user_secret = data.getStringExtra("UserSecret");
-
-                SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-                SharedPreferences.Editor editor = settings.edit();
-                // For Zotero, the key and secret are identical, it seems
-                editor.putString("settings_user_key", user_key);
-                editor.putString("settings_user_secret", user_secret);
-                editor.putString("settings_user_id",user_id);
-                editor.commit();
+              ZoteroBroker.setCreds(this);
             }
             finishActivity(ZOTERO_LOGIN_REQUEST);
         }
@@ -100,21 +149,11 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onResume(){
         super.onResume();
-        // Do our settings bit
-       /* SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(MainActivity.this);
-        SharedPreferences.Editor editor = settings.edit();
-        // For Zotero, the key and secret are identical, it seems
-        editor.putString("settings_user_key", res.userKey);
-        editor.putString("settings_user_secret", res.userSecret);
-        editor.putString("settings_user_id", res.userID);
 
-        editor.commit();
-
-        LoginResult rval = new LoginResult();
-        rval.UserID = res.userID;
-        rval.UserSecret = res.userSecret;
-        rval.UserKey = res.userKey;*/
-
+        // If we are now authed, lets sync
+        //if (ZoteroBroker.isAuthed()){
+        //    sync();
+        //}
     }
 
     @Override
@@ -131,12 +170,24 @@ public class MainActivity extends AppCompatActivity
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        switch (id) {
+            case R.id.action_settings:
+                this.startActivityForResult(new Intent(this, SettingsActivity.class),1);
+                return true;
+            case R.id.action_sync:
+                if (ZoteroBroker.isAuthed()) {
+                    sync();
+                } else {
+                    Log.i(TAG,"Not authed. Performing OAUTH.");
+                    Intent loginIntent = new Intent(this, LoginActivity.class);
+                    loginIntent.setAction("zotdroid.LoginActivity.LOGIN");
+                    this.startActivityForResult(loginIntent,1);
+                }
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
 
-        return super.onOptionsItemSelected(item);
     }
 
     @SuppressWarnings("StatementWithEmptyBody")

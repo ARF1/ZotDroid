@@ -19,24 +19,32 @@ import oauth.signpost.http.HttpParameters;
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+
+import javax.net.ssl.HttpsURLConnection;
 
 public class ZoteroBroker {
 
     public static final String TAG = "zotdroid.ZoteroBroker";
 
     /** Application key -- available from Zotero */
-    public static final String CONSUMER_KEY = "50e538ada5d8c4f40e01";
-    public static final String CONSUMER_SECRET = "ef03b60b207aef632c24";
+    public static String CONSUMER_KEY = "50e538ada5d8c4f40e01";
+    public static String CONSUMER_SECRET = "ef03b60b207aef632c24";
 
     public static String ACCESS_TOKEN = "stuffandting";
     public static String TOKEN_SECRET = "stuffandting";
@@ -70,7 +78,7 @@ public class ZoteroBroker {
     static OAuthProvider Provider;
 
     // TODO - replace this with actually testing the tokens and such (they may be outtdated or filled in wrong)
-    private static boolean IsAuthed = false;
+    private static boolean Authed = false;
 
     /**
      * A small class that returns a full result from any requests
@@ -107,24 +115,54 @@ public class ZoteroBroker {
             "all_groups=write";
 
     public static boolean isAuthed() {
-        return IsAuthed;
+        return Authed;
     }
 
-    public static void passCreds(Activity activity){
+    public interface ZoteroAuthCallback {
+        void onAuthCompletion(boolean result);
+    }
+
+
+    public static void passCreds(Activity activity, ZoteroAuthCallback callback){
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(activity);
-        String user_key = "";
-        String user_secret = "";
-        String user_id = "";
-        settings.getString("settings_user_key",user_key);
-        settings.getString("settings_user_secret",user_secret);
-        settings.getString("settings_user_id",user_id);
+        ACCESS_TOKEN = settings.getString("settings_user_key",ACCESS_TOKEN);
+        TOKEN_SECRET = settings.getString("settings_user_secret",TOKEN_SECRET);
+        USER_ID = settings.getString("settings_user_id",USER_ID);
 
-        Log.i(TAG,"settings_user_key: " + user_key );
-        Log.i(TAG,"settings_user_secret: " + user_secret );
-        Log.i(TAG,"settings_user_id: " + user_id );
+        Thread thread = new Thread()  {
+            public void run() {
+                // Only one address please
+                boolean result = false;
+                URL url = null;
+                try {
+                    url = new URL("https://api.zotero.org/keys/" + TOKEN_SECRET);
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
 
-        // TODO - Test to see if we are authed - we need to call isAuthed() with the values here
-        IsAuthed = !user_secret.isEmpty();
+                HttpsURLConnection urlConnection = null;
+                try {
+                    urlConnection = (HttpsURLConnection) url.openConnection();
+                    try {
+                        BufferedReader r = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+                        StringBuilder total = new StringBuilder();
+                        String line;
+                        while ((line = r.readLine()) != null) {
+                            total.append(line).append('\n');
+                        }
+                        Authed = true;
+                    } catch (IOException e) {
+                        Authed = false;
+                    } finally {
+                        urlConnection.disconnect();
+                    }
+                } catch (IOException e) {
+                    Authed = false;
+                }
+
+            }
+        };
+        thread.start();
     }
 
     public static void setCreds(Activity activity){
@@ -196,7 +234,7 @@ public class ZoteroBroker {
      * @return an AuthResult stating whether or not we succeeded
      */
 
-    static AuthResult finishOAuth(Uri uri){
+    public static AuthResult finishOAuth(Uri uri){
         AuthResult res = new AuthResult();
         if (uri != null) {
             final String verifier = uri.getQueryParameter(oauth.signpost.OAuth.OAUTH_VERIFIER);
@@ -209,25 +247,23 @@ public class ZoteroBroker {
                 Log.d(TAG, "ukey: " + res.userKey);
                 res.userSecret = TOKEN_SECRET = Consumer.getTokenSecret();
                 Log.d(TAG, "usecret: " + res.userSecret);
-                res.result = IsAuthed = true;
+                res.result = Authed = true;
                 USER_ID = res.userID;
 
             } catch (OAuthMessageSignerException e) {
                 res.log = e.getMessage();
-                res.result = IsAuthed = false;
+                res.result = Authed = false;
             } catch (OAuthNotAuthorizedException e) {
                 res.log = e.getMessage();
-                res.result = IsAuthed = false;
+                res.result = Authed = false;
             } catch (OAuthExpectationFailedException e) {
                 res.log = e.getMessage();
-                res.result = IsAuthed = false;
+                res.result = Authed = false;
             } catch (OAuthCommunicationException e) {
                 res.log = "Error communicating with server. Check your time settings, network connectivity, and try again. OAuth error: " + e.getMessage();
-                res.result = IsAuthed = false;
+                res.result = Authed = false;
             }
         }
         return res;
     }
-
-
 }

@@ -1,5 +1,6 @@
 package uk.co.section9.zotdroid;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.net.Uri;
@@ -79,14 +80,20 @@ public class LoginActivity extends AppCompatActivity  {
                 resultIntent.putExtra("UserID", res.userID);
                 resultIntent.putExtra("UserKey", res.userKey);
                 resultIntent.putExtra("UserSecret", res.userSecret);
-                setResult(RESULT_OK, resultIntent);
-
+                setResult(Activity.RESULT_OK, resultIntent);
+                finish();
             } else {
-                setResult(RESULT_CANCELED);
+                setResult(Activity.RESULT_CANCELED);
+                finish();
             }
-            finish();
         } else if (action == "zotdroid.LoginActivity.LOGIN" && ZoteroBroker.isAuthed()) {
             // This is the original call resuming that we need to stop
+            // For some reason we are ignoring this one :/
+            Intent resultIntent = new Intent();
+            resultIntent.putExtra("UserID", ZoteroBroker.USER_ID);
+            resultIntent.putExtra("UserKey", ZoteroBroker.ACCESS_TOKEN);
+            resultIntent.putExtra("UserSecret", ZoteroBroker.TOKEN_SECRET);
+            setResult(Activity.RESULT_OK, resultIntent);
             finish();
         }
     }

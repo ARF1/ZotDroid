@@ -11,6 +11,7 @@ import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
@@ -37,6 +38,7 @@ import java.util.List;
 public class SettingsActivity extends AppCompatPreferenceActivity {
 
     private static final String TAG = "uk.co.section9.zotdroid.SettingsActivity";
+
 
     /**
      * A preference value change listener that updates the preference's summary
@@ -204,4 +206,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             return super.onOptionsItemSelected(item);
         }
     }
+
+
 }

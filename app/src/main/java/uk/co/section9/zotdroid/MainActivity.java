@@ -2,12 +2,8 @@ package uk.co.section9.zotdroid;
 
 import android.app.Activity;
 import android.app.Dialog;
-import android.app.FragmentManager;
-import android.app.ProgressDialog;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.util.DisplayMetrics;
@@ -22,16 +18,27 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.Window;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
 
+import java.util.ArrayList;
 import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener, ZoteroOps.ZoteroItemsCallback, ZoteroBroker.ZoteroAuthCallback {
 
     public static final String TAG = "zotdroid.MainActivity";
-    public static int ZOTERO_LOGIN_REQUEST = 1667;
+    private static int ZOTERO_LOGIN_REQUEST = 1667;
+    private ZoteroOps zoteroOps = new ZoteroOps();
+    private Dialog loadingDialog;
 
+    private ArrayAdapter<String> mainListAdapter;
+    ArrayList<String> mainListItems = new ArrayList<String>();
+    /**
+     * onCreate as standard. Attempts to auth and if we arent authed, launches the login screen.
+     * @param savedInstanceState
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,21 +59,27 @@ public class MainActivity extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
-        drawer.setDrawerListener(toggle);
+
         toggle.syncState();
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
+        // Setup the main list of items
+        mainListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mainListItems);
+        ListView myListView = (ListView) findViewById(R.id.listViewMain);
+        myListView.setAdapter(mainListAdapter);
+
         // Pass this activity - ZoteroBroker will look for credentials
-        ZoteroBroker.passCreds(this);
+        ZoteroBroker.passCreds(this,this);
 
         // Now check to see if we need to launch the login process
+        // TODO - this is a network op so needs to be in an AsyncTask we need to implement
         /*if (!ZoteroBroker.isAuthed()){
             Log.i(TAG,"Not authed. Performing OAUTH.");
             Intent loginIntent = new Intent(this, LoginActivity.class);
             loginIntent.setAction("zotdroid.LoginActivity.LOGIN");
-            this.startActivityForResult(loginIntent,1);
+            this.startActivityForResult(loginIntent,ZOTERO_LOGIN_REQUEST);
         }*/
     }
 
@@ -109,16 +122,12 @@ public class MainActivity extends AppCompatActivity
     }
 
 
-    protected void sync(){
-
-        Dialog dialog = launchLoadingDialog();
-
-        Vector<ZoteroOps.ZoteroRecord> records =  ZoteroOps.getItems();
-        for (ZoteroOps.ZoteroRecord record : records){
-            Log.i(TAG,record.toString());
-        }
-
-        dialog.dismiss();
+    /**
+     * Start sync with the Zotero server
+     */
+    protected void sync() {
+        loadingDialog = launchLoadingDialog();
+        zoteroOps.getItems(this);
     }
 
     /**
@@ -128,8 +137,8 @@ public class MainActivity extends AppCompatActivity
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         Log.i(TAG,"Returned from Zotero Login.");
         if (requestCode == ZOTERO_LOGIN_REQUEST) {
-            if (resultCode == RESULT_OK) {
-              ZoteroBroker.setCreds(this);
+            if (resultCode == Activity.RESULT_OK ) {
+                ZoteroBroker.setCreds(this);
             }
             finishActivity(ZOTERO_LOGIN_REQUEST);
         }
@@ -181,7 +190,7 @@ public class MainActivity extends AppCompatActivity
                     Log.i(TAG,"Not authed. Performing OAUTH.");
                     Intent loginIntent = new Intent(this, LoginActivity.class);
                     loginIntent.setAction("zotdroid.LoginActivity.LOGIN");
-                    this.startActivityForResult(loginIntent,1);
+                    this.startActivityForResult(loginIntent,ZOTERO_LOGIN_REQUEST);
                 }
                 return true;
             default:
@@ -213,5 +222,28 @@ public class MainActivity extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    /**
+     * Called when the sync task completes and we have a stack of results to process.
+     * @param results
+     */
+    @Override
+    public void onItemsCompletion(Vector<ZoteroOps.ZoteroRecord> results) {
+        loadingDialog.dismiss();
+
+        for (ZoteroOps.ZoteroRecord record : results){
+            mainListItems.add(record.title);
+            mainListAdapter.notifyDataSetChanged();
+        }
+    }
+
+    /**
+     * Called when we are checking authorisation of our tokens
+     * @param result
+     */
+    @Override
+    public void onAuthCompletion(boolean result) {
+
     }
 }

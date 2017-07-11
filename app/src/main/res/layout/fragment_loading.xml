@@ -25,6 +25,14 @@
         android:layout_below="@+id/progressBar3"
         android:layout_alignStart="@+id/progressBar3" />
 
+    <TextView
+        android:text="TextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/textViewLoading"
+        android:textSize="24sp"
+        android:textColor="@color/common_google_signin_btn_text_dark_default" />
+
     <!-- TODO: Update blank fragment layout -->
 
 </FrameLayout>

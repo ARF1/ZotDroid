@@ -21,17 +21,25 @@ import android.view.Window;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.Vector;
 
-public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, ZoteroOps.ZoteroItemsCallback, ZoteroBroker.ZoteroAuthCallback {
+// TODO - there are lots of interfaces here so eventually, we will need to move these out to another
+// ops style class. ZoteroOps might handle it
 
-    public static final String TAG = "zotdroid.MainActivity";
-    private static int ZOTERO_LOGIN_REQUEST = 1667;
-    private ZoteroOps zoteroOps = new ZoteroOps();
-    private Dialog loadingDialog;
+public class MainActivity extends AppCompatActivity
+        implements NavigationView.OnNavigationItemSelectedListener, ZoteroOps.ZoteroItemsCallback,
+        ZoteroOps.ZoteroItemCallback, ZoteroBroker.ZoteroAuthCallback {
+
+    public static final String  TAG = "zotdroid.MainActivity";
+    private static int          ZOTERO_LOGIN_REQUEST = 1667;
+    private ZoteroOps           zoteroOps = new ZoteroOps();
+    private Dialog              loadingDialog;
+    private Vector<ZoteroOps.ZoteroRecord>  zoteroRecords; // TODO - eventually we will move this to our database
+
+
 
     private ArrayAdapter<String> mainListAdapter;
     ArrayList<String> mainListItems = new ArrayList<String>();
@@ -66,6 +74,7 @@ public class MainActivity extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
 
         // Setup the main list of items
+        zoteroRecords = new Vector<ZoteroOps.ZoteroRecord>();
         mainListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mainListItems);
         ListView myListView = (ListView) findViewById(R.id.listViewMain);
         myListView.setAdapter(mainListAdapter);
@@ -106,14 +115,8 @@ public class MainActivity extends AppCompatActivity
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                zoteroOps.stop();
                 dialog.dismiss();
-            }
-        });
-
-        cancelButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // do whatever you want here
             }
         });
 
@@ -127,7 +130,8 @@ public class MainActivity extends AppCompatActivity
      */
     protected void sync() {
         loadingDialog = launchLoadingDialog();
-        zoteroOps.getItems(this);
+        zoteroRecords.clear();
+        zoteroOps.getItems(this, this);
     }
 
     /**
@@ -196,10 +200,8 @@ public class MainActivity extends AppCompatActivity
             default:
                 return super.onOptionsItemSelected(item);
         }
-
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
@@ -226,13 +228,39 @@ public class MainActivity extends AppCompatActivity
 
     /**
      * Called when the sync task completes and we have a stack of results to process.
-     * @param results
+     * Clears the list and adds what we get from the server
+     * @param success
      */
     @Override
-    public void onItemsCompletion(Vector<ZoteroOps.ZoteroRecord> results) {
+    public void onItemCompletion(boolean success, Vector<ZoteroOps.ZoteroRecord> results) {
+
+        String status_message = "";
+        if (success) {
+            for (ZoteroOps.ZoteroRecord record : results) {
+                zoteroRecords.add(record);
+            }
+            status_message = "Loaded " + Integer.toString(zoteroRecords.size()) + " records.";
+            TextView messageView = (TextView)loadingDialog.findViewById(R.id.textViewLoading);
+            messageView.setText(status_message);
+            Log.i(TAG,status_message);
+
+        } else {
+            loadingDialog.dismiss();
+            Log.d(TAG,"Error returned in onItemCompletion");
+        }
+    }
+    /**
+     * Called when the sync task completes and we have a stack of results to process.
+     * Clears the list and adds what we get from the server
+     * @param success
+     */
+    @Override
+    public void onItemsCompletion(boolean success) {
         loadingDialog.dismiss();
 
-        for (ZoteroOps.ZoteroRecord record : results){
+        mainListItems.clear();
+
+        for (ZoteroOps.ZoteroRecord record : zoteroRecords){
             mainListItems.add(record.title);
             mainListAdapter.notifyDataSetChanged();
         }

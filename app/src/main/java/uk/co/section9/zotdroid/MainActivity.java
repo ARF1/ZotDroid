@@ -26,19 +26,19 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Vector;
 
-// TODO - there are lots of interfaces here so eventually, we will need to move these out to another
-// ops style class. ZoteroOps might handle it
+import uk.co.section9.zotdroid.data.RecordsTable;
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, ZoteroOps.ZoteroItemsCallback,
-        ZoteroOps.ZoteroItemCallback, ZoteroBroker.ZoteroAuthCallback {
+        implements NavigationView.OnNavigationItemSelectedListener, ZoteroOps.ZoteroTaskCallback,
+        ZoteroBroker.ZoteroAuthCallback, ZoteroWebDav.ZoteroWebDavCallback {
 
     public static final String  TAG = "zotdroid.MainActivity";
     private static int          ZOTERO_LOGIN_REQUEST = 1667;
     private ZoteroOps           zoteroOps = new ZoteroOps();
-    private Dialog              loadingDialog;
-    private Vector<ZoteroOps.ZoteroRecord>  zoteroRecords; // TODO - eventually we will move this to our database
+    private ZoteroWebDav        zoteroWebDav = new ZoteroWebDav();
 
+    private Dialog              loadingDialog;
+    private Vector<RecordsTable.ZoteroRecord>  zoteroRecords; // TODO - eventually we will move this to our database
 
 
     private ArrayAdapter<String> mainListAdapter;
@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity
         navigationView.setNavigationItemSelectedListener(this);
 
         // Setup the main list of items
-        zoteroRecords = new Vector<ZoteroOps.ZoteroRecord>();
+        zoteroRecords = new Vector<RecordsTable.ZoteroRecord>();
         mainListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mainListItems);
         ListView myListView = (ListView) findViewById(R.id.listViewMain);
         myListView.setAdapter(mainListAdapter);
@@ -131,7 +131,14 @@ public class MainActivity extends AppCompatActivity
     protected void sync() {
         loadingDialog = launchLoadingDialog();
         zoteroRecords.clear();
-        zoteroOps.getItems(this, this);
+        zoteroOps.getItems(this);
+    }
+
+    /**
+     * Start sync with the Zotero server
+     */
+    protected void testWebdav() {
+        zoteroWebDav.testWebDav(this, this);
     }
 
     /**
@@ -197,6 +204,11 @@ public class MainActivity extends AppCompatActivity
                     this.startActivityForResult(loginIntent,ZOTERO_LOGIN_REQUEST);
                 }
                 return true;
+
+            case R.id.action_test_webdav:
+                testWebdav();
+                return true;
+
             default:
                 return super.onOptionsItemSelected(item);
         }
@@ -232,11 +244,11 @@ public class MainActivity extends AppCompatActivity
      * @param success
      */
     @Override
-    public void onItemCompletion(boolean success, Vector<ZoteroOps.ZoteroRecord> results) {
+    public void onItemCompletion(boolean success, Vector<RecordsTable.ZoteroRecord> results) {
 
         String status_message = "";
         if (success) {
-            for (ZoteroOps.ZoteroRecord record : results) {
+            for (RecordsTable.ZoteroRecord record : results) {
                 zoteroRecords.add(record);
             }
             status_message = "Loaded " + Integer.toString(zoteroRecords.size()) + " records.";
@@ -260,8 +272,8 @@ public class MainActivity extends AppCompatActivity
 
         mainListItems.clear();
 
-        for (ZoteroOps.ZoteroRecord record : zoteroRecords){
-            mainListItems.add(record.title);
+        for (RecordsTable.ZoteroRecord record : zoteroRecords){
+            mainListItems.add(record.getTitle());
             mainListAdapter.notifyDataSetChanged();
         }
     }
@@ -272,6 +284,29 @@ public class MainActivity extends AppCompatActivity
      */
     @Override
     public void onAuthCompletion(boolean result) {
+
+    }
+
+    /**
+     * Webdav testing callback
+     * @param result
+     * @param message
+     */
+
+    @Override
+    public void onWebDavTestComplete(boolean result, String message) {
+
+    }
+
+    /**
+     * Webdav download completed for some reason
+     * @param result
+     * @param message
+     * @param filename
+     */
+
+    @Override
+    public void onWebDavDownloadComplete(boolean result, String message, String filename) {
 
     }
 }

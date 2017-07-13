@@ -1,6 +1,7 @@
 package uk.co.section9.zotdroid.data;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
@@ -16,6 +17,19 @@ public class ZotDroidDB extends SQLiteOpenHelper {
 
     public ZotDroidDB(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+    }
+
+    protected boolean checkTableExists(String tablename, SQLiteDatabase db){
+
+        Cursor cursor = db.rawQuery("select DISTINCT tbl_name from sqlite_master where tbl_name = \""+ tablename +"\"", null);
+        if(cursor!=null) {
+            if(cursor.getCount()>0) {
+                cursor.close();
+                return true;
+            }
+            cursor.close();
+        }
+        return false;
     }
 
     /**
@@ -46,5 +60,15 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         // Create all the tables, presumably in memory
         // We double check to see if we have any database tables already]
         _check_and_create(db);
+    }
+
+    @Override
+    public void onUpgrade(SQLiteDatabase db, int i, int i1) {
+        // Drop older table if existed
+        db.execSQL("DROP TABLE IF EXISTS " + CollectionsTable.get_table_name());
+        db.execSQL("DROP TABLE IF EXISTS " + RecordsTable.get_table_name());
+        db.execSQL("DROP TABLE IF EXISTS " + SummaryTable.get_table_name());
+        // Create tables again
+        onCreate(db);
     }
 }

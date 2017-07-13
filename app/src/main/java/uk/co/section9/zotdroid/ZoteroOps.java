@@ -12,11 +12,10 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.InterfaceAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Map;
 import java.util.Vector;
+import uk.co.section9.zotdroid.data.RecordsTable.ZoteroRecord;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -32,19 +31,6 @@ public class ZoteroOps {
 
     private ZoteroItemsTask currentTask = null;
     private boolean processingTask = false;
-
-    // TODO - Make this a tree like structure and return these?
-    public static class ZoteroRecord {
-        String key;
-        String parent;
-        String title;
-        String type;
-        String author; // TODO - Just one for now but we will add more
-
-        public String toString() {
-            return title + " - " + author;
-        }
-    }
 
     /**
      * Generic task that executes in the background, making requests of Zotero
@@ -112,11 +98,8 @@ public class ZoteroOps {
     /**
      * Special callback for the Items once all items have completed
      */
-    interface ZoteroItemsCallback {
+    interface ZoteroTaskCallback {
         void onItemsCompletion(boolean success);
-    }
-
-    interface ZoteroItemCallback {
         void onItemCompletion(boolean success, Vector<ZoteroRecord> results);
     }
 
@@ -126,14 +109,12 @@ public class ZoteroOps {
      */
     private class ZoteroItemsTask extends ZoteroTask {
 
-        ZoteroItemCallback callbackItem;
-        ZoteroItemsCallback callbackComplete;
+        ZoteroTaskCallback callback;
         int startItem = 0;
         int itemLimit = 25; // Seems to be what Zotero likes by default (despite the API)
 
-        ZoteroItemsTask(ZoteroItemCallback callbackItem, ZoteroItemsCallback callbackComplete, int start, int limit) {
-            this.callbackItem = callbackItem;
-            this.callbackComplete = callbackComplete;
+        ZoteroItemsTask(ZoteroTaskCallback callback, int start, int limit) {
+            this.callback = callback;
             this.startItem = start;
             this.itemLimit = limit;
         }
@@ -158,7 +139,7 @@ public class ZoteroOps {
 
             // Check we didn't get a failure on that rsync call
             if (rstring == "FAIL"){
-                callbackComplete.onItemsCompletion(false);
+                callback.onItemsCompletion(false);
                 return;
             }
 
@@ -184,28 +165,28 @@ public class ZoteroOps {
 
                         ZoteroRecord record = new ZoteroRecord();
 
-                        record.key = oneObject.getString("key");
+                        record.setKey(oneObject.getString("key"));
 
                         try {
-                            record.title = oneObject.getString("title");
+                            record.setTitle(oneObject.getString("title"));
                         } catch (JSONException e) {
-                            record.title = "No title";
+                            record.setTitle("No title");
                         }
 
                         try {
                             JSONObject creator = oneObject.getJSONArray("creators").getJSONObject(0);
-                            record.author = creator.getString("lastName") + ", " + creator.getString("firstName");
+                            record.setAuthor(creator.getString("lastName") + ", " + creator.getString("firstName"));
                         } catch (JSONException e){
-                            record.author = "No author(s)";
+                            record.setAuthor("No author(s)");
                         }
 
                         try {
-                            record.parent = oneObject.getString("parent");
+                            record.setParent(oneObject.getString("parent"));
                         } catch (JSONException e){
-                            record.parent = "";
+                            record.setParent("");
                         }
 
-                        record.type = oneObject.getString("itemType");
+                        record.setItemType(oneObject.getString("itemType"));
 
                         results.add(record);
 
@@ -216,7 +197,7 @@ public class ZoteroOps {
                     }
                 }
 
-                callbackItem.onItemCompletion(success, results);
+                callback.onItemCompletion(success, results);
 
                 if (!processingTask){
                     return; // Don't fire any callbacks
@@ -224,16 +205,16 @@ public class ZoteroOps {
 
                 // We fire off another task from here if success and we have more to go
                 if (success && startItem + 1 < total){
-                    new ZoteroItemsTask(callbackItem, callbackComplete, startItem + itemLimit ,itemLimit).execute();
+                    new ZoteroItemsTask(callback, startItem + itemLimit ,itemLimit).execute();
                 } else {
-                    callbackComplete.onItemsCompletion(success);
+                    callback.onItemsCompletion(success);
                 }
 
             } catch (JSONException e) {
                 e.printStackTrace();
                 Log.d(TAG,"Error in parsing JSON Object.");
                 success = false;
-                callbackComplete.onItemsCompletion(false);
+                callback.onItemsCompletion(false);
             }
         }
     }
@@ -254,15 +235,14 @@ public class ZoteroOps {
      * Fire off the getItems part.
      * This function makes multiple requests and therefore, we need two levels of callbacks
      * Informing the user at each step.
-     * @param callbackComplete
-     * @param callbackItem
+     * @param callback
      */
 
-    public boolean getItems(ZoteroItemsCallback callbackComplete, ZoteroItemCallback callbackItem) {
+    public boolean getItems(ZoteroTaskCallback callback) {
 
         if (currentTask == null) {
             processingTask = true;
-            currentTask = new ZoteroItemsTask(callbackItem, callbackComplete, 0, 25);
+            currentTask = new ZoteroItemsTask(callback, 0, 25);
             currentTask.execute();
             return true;
         }

@@ -19,10 +19,6 @@ public class ZotDroidDB extends SQLiteOpenHelper {
 
     public static final String TAG = "zotdroid.ZotDroidDB";
 
-    public RecordsTable     _records_table;
-    public CollectionsTable _collections_table;
-    public SummaryTable     _summary_table;
-
     private SQLiteDatabase _db;
 
     public ZotDroidDB(Context context) {
@@ -51,27 +47,22 @@ public class ZotDroidDB extends SQLiteOpenHelper {
 
     private void _check_and_create() {
 
-        _summary_table = new SummaryTable(this);
-        _records_table = new RecordsTable(this);
-        _collections_table = new CollectionsTable(this);
-
         if (!checkTableExists(SummaryTable.get_table_name())) {
-            _summary_table.createTable();
-        } else {
-            _summary_table.populateFromDB();
+            SummaryTable.createTable(_db);
         }
 
         if (!checkTableExists(RecordsTable.get_table_name())) {
-            _records_table.createTable();
-        } else {
-            _records_table.populateFromDB();
+            RecordsTable.createTable(_db);
         }
 
         if (!checkTableExists(CollectionsTable.get_table_name())) {
-            _collections_table.createTable();
-        } else {
-            _collections_table.populateFromDB();
+            CollectionsTable.createTable(_db);
         }
+
+        if (!checkTableExists(AttachmentsTable.get_table_name())) {
+            AttachmentsTable.createTable(_db);
+        }
+
     }
 
     /**
@@ -83,9 +74,10 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         }
 
         SQLiteDatabase db = this.getWritableDatabase();
-        db.execSQL("DROP TABLE IF EXISTS \"" + _summary_table.get_table_name() + "\"");
-        db.execSQL("DROP TABLE IF EXISTS \"" + _records_table.get_table_name() + "\"");
-        db.execSQL("DROP TABLE IF EXISTS \"" + _collections_table.get_table_name() + "\"");
+        db.execSQL("DROP TABLE IF EXISTS \"" + SummaryTable.get_table_name() + "\"");
+        db.execSQL("DROP TABLE IF EXISTS \"" + RecordsTable.get_table_name() + "\"");
+        db.execSQL("DROP TABLE IF EXISTS \"" + CollectionsTable.get_table_name() + "\"");
+        db.execSQL("DROP TABLE IF EXISTS \"" + AttachmentsTable.get_table_name() + "\"");
 
         onCreate(db);
     }
@@ -104,9 +96,10 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int i, int i1) {
         // Drop older table if existed
-        db.execSQL("DROP TABLE IF EXISTS " + _collections_table.get_table_name());
-        db.execSQL("DROP TABLE IF EXISTS " + _records_table.get_table_name());
-        db.execSQL("DROP TABLE IF EXISTS " + _summary_table.get_table_name());
+        db.execSQL("DROP TABLE IF EXISTS " + CollectionsTable.get_table_name());
+        db.execSQL("DROP TABLE IF EXISTS " + RecordsTable.get_table_name());
+        db.execSQL("DROP TABLE IF EXISTS " + SummaryTable.get_table_name());
+        db.execSQL("DROP TABLE IF EXISTS " + AttachmentsTable.get_table_name());
         // Create tables again
         onCreate(db);
     }
@@ -131,9 +124,6 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         return result;
     }
 
-    public void insertRow(String tablename, ContentValues values){
-        _db.insert(tablename, null, values);
-    }
 
     // reads the first cursor
     // TODO - might be a faster way when we are grabbing them all?
@@ -150,4 +140,11 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         cursor.close();
         return values;
     }
+
+
+    public void writeRecord(ZoteroRecord record){
+        RecordsTable.writeRecord(record,_db);
+    }
+
+    public void writeAttachment(ZoteroAttachment attachment){ AttachmentsTable.writeAttachment(attachment,_db); }
 }

@@ -1,5 +1,7 @@
 package uk.co.section9.zotdroid.data;
 
+import android.database.sqlite.SQLiteDatabase;
+
 /**
  * Created by oni on 11/07/2017.
  */
@@ -12,10 +14,8 @@ public class BaseData {
         return TABLE_NAME;
     }
 
-    public void createTable() {}
+    public static void createTable(SQLiteDatabase db) {}
 
-    public void deleteTable() {}
-
-    public void populateFromDB() {}
+    public static void deleteTable(SQLiteDatabase db) {}
 
 }

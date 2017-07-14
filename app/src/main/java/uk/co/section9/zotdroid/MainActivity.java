@@ -18,35 +18,42 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.Window;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ListView;
+import android.widget.ExpandableListAdapter;
+import android.widget.ExpandableListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
-import uk.co.section9.zotdroid.data.RecordsTable;
-import uk.co.section9.zotdroid.data.ZotDroidDB;
+import uk.co.section9.zotdroid.data.ZoteroAttachment;
+import uk.co.section9.zotdroid.data.ZoteroRecord;
+
+/**
+ * TODO - if we cancel a sync, we need to not replace anything!
+ */
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, ZoteroOps.ZoteroTaskCallback,
-        ZoteroBroker.ZoteroAuthCallback, ZoteroWebDav.ZoteroWebDavCallback {
+        implements NavigationView.OnNavigationItemSelectedListener, ZoteroBroker.ZoteroAuthCallback,
+ZotDroidOps.ZotDroidCaller {
 
     public static final String      TAG = "zotdroid.MainActivity";
     private static int              ZOTERO_LOGIN_REQUEST = 1667;
-    private ZoteroOps               _zotero_ops = new ZoteroOps();
-    private ZoteroWebDav            _zotero_webdav = new ZoteroWebDav();
+
     private Dialog                  _loading_dialog;
     private Dialog                  _webdav_dialog;
-    private ZotDroidDB              _zotdroid_db;
 
-    private ArrayAdapter<String>    _main_list_adapter;
-    ArrayList<String>               _main_list_items = new ArrayList<String>();
+    private ZotDroidOps             _zotdroid_ops;
 
-    private int                     _sync_progress;
+    private ExpandableListAdapter                   _main_list_adapter;
+    private ExpandableListView                      _main_list_view;
+    ArrayList< String >                    _main_list_items = new ArrayList< String >  ();
+    HashMap< String, ArrayList<String> >   _main_list_sub_items =  new HashMap< String, ArrayList<String> >();
     /**
      * onCreate as standard. Attempts to auth and if we arent authed, launches the login screen.
+     *
      * @param savedInstanceState
      */
     @Override
@@ -75,13 +82,11 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        // Fire up the database
-        _zotdroid_db =  new ZotDroidDB(this);
+
 
         // Setup the main list of items
-        _main_list_adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, _main_list_items);
-        ListView myListView = (ListView) findViewById(R.id.listViewMain);
-        myListView.setAdapter(_main_list_adapter);
+        _main_list_view = (ExpandableListView) findViewById(R.id.listViewMain);
+
 
         // Pass this activity - ZoteroBroker will look for credentials
         ZoteroBroker.passCreds(this,this);
@@ -94,9 +99,9 @@ public class MainActivity extends AppCompatActivity
             loginIntent.setAction("zotdroid.LoginActivity.LOGIN");
             this.startActivityForResult(loginIntent,ZOTERO_LOGIN_REQUEST);
         }*/
-        _sync_progress = 0;
 
-        // Attempt to load from the DB
+        _zotdroid_ops = new ZotDroidOps(this, this);
+
         populateFromDB();
 
     }
@@ -124,7 +129,7 @@ public class MainActivity extends AppCompatActivity
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                _zotero_ops.stop();
+                _zotdroid_ops.stop();
                 dialog.dismiss();
             }
         });
@@ -139,18 +144,21 @@ public class MainActivity extends AppCompatActivity
      */
     protected void sync() {
         _loading_dialog = launchLoadingDialog();
-        _sync_progress = 0;
         _main_list_items.clear();
-        _main_list_adapter.notifyDataSetChanged();
-        _zotdroid_db.reset(); // For now, just nuke the database
-        _zotero_ops.getItems(this);
+        _zotdroid_ops.sync();
+
     }
 
-    /**
-     * Start sync with the Zotero server
-     */
-    protected void testWebdav() {
-        _zotero_webdav.testWebDav(this, this);
+    public void onSyncProgress(float progress) {
+        String status_message = "Loading. " + Float.toString(progress) + "% complete.";
+        TextView messageView = (TextView) _loading_dialog.findViewById(R.id.textViewLoading);
+        messageView.setText(status_message);
+        Log.i(TAG,status_message);
+    }
+
+    public void onSyncFinish(boolean success, String message) {
+        populateFromDB();
+        _loading_dialog.dismiss();
     }
 
     /**
@@ -218,7 +226,7 @@ public class MainActivity extends AppCompatActivity
                 return true;
 
             case R.id.action_test_webdav:
-                testWebdav();
+                //testWebdav();
                 return true;
 
             default:
@@ -250,55 +258,33 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
-    /**
-     * Called when the sync task completes and we have a stack of results to process.
-     * Clears the list and adds what we get from the server
-     * @param success
-     */
-    @Override
-    public void onItemCompletion(boolean success, Vector<RecordsTable.ZoteroRecord> results) {
 
-        String status_message = "";
-        if (success) {
-            for (RecordsTable.ZoteroRecord record : results){
-                _main_list_items.add(record.toString());
-                _zotdroid_db._records_table.writeRecord(record);
-            }
-
-            _sync_progress += results.size();
-            _main_list_adapter.notifyDataSetChanged();
-
-            status_message = "Loaded " + Integer.toString(_sync_progress) + " records.";
-            TextView messageView = (TextView) _loading_dialog.findViewById(R.id.textViewLoading);
-            messageView.setText(status_message);
-            Log.i(TAG,status_message);
-
-        } else {
-            _loading_dialog.dismiss();
-            Log.d(TAG,"Error returned in onItemCompletion");
-        }
-    }
 
     /**
-     * Read from the DB on load
+     * Read from the DB on load if there is anything there.
      */
     public void populateFromDB() {
-        Vector<RecordsTable.ZoteroRecord> records = _zotdroid_db._records_table.get_records();
-        for (RecordsTable.ZoteroRecord record : records){
-            _main_list_items.add(record.toString());
+
+        _zotdroid_ops.populateFromDB();
+
+        Vector<ZoteroRecord> records = _zotdroid_ops.get_records();
+
+        for (ZoteroRecord record : records) {
+            _main_list_items.add(record.get_title());
+            ArrayList<String> tl = new ArrayList<String>();
+            for (ZoteroAttachment attachment : record.get_attachments()){
+                tl.add(attachment.get_file_name());
+                Log.i(TAG,"ATTAH");
+            }
+            _main_list_sub_items.put(record.get_title(),tl);
         }
-        _main_list_adapter.notifyDataSetChanged();
+
+        _main_list_adapter = new ZotDroidListAdapter(this,_main_list_items, _main_list_sub_items);
+        _main_list_view.setAdapter(_main_list_adapter);
+
     }
 
-    /**
-     * Called when the sync task completes and we have a stack of results to process.
-     * Clears the list and adds what we get from the server
-     * @param success
-     */
-    @Override
-    public void onItemsCompletion(boolean success) {
-        _loading_dialog.dismiss();
-    }
+
 
     /**
      * Called when we are checking authorisation of our tokens
@@ -309,26 +295,5 @@ public class MainActivity extends AppCompatActivity
 
     }
 
-    /**
-     * Webdav testing callback
-     * @param result
-     * @param message
-     */
 
-    @Override
-    public void onWebDavTestComplete(boolean result, String message) {
-
-    }
-
-    /**
-     * Webdav download completed for some reason
-     * @param result
-     * @param message
-     * @param filename
-     */
-
-    @Override
-    public void onWebDavDownloadComplete(boolean result, String message, String filename) {
-
-    }
 }

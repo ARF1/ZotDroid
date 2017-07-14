@@ -1,4 +1,4 @@
-package uk.co.section9.zotdroid;
+package uk.co.section9.zotdroid.data;
 
 import android.os.AsyncTask;
 import android.util.Log;
@@ -15,8 +15,10 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Vector;
-import uk.co.section9.zotdroid.data.RecordsTable.ZoteroRecord;
-import uk.co.section9.zotdroid.data.ZotDroidDB;
+
+import uk.co.section9.zotdroid.ZoteroBroker;
+import uk.co.section9.zotdroid.data.ZoteroRecord;
+import uk.co.section9.zotdroid.data.ZoteroAttachment;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -25,9 +27,9 @@ import javax.net.ssl.HttpsURLConnection;
  * Basically sends all our commands and such to Zotero and returns the replies
  */
 
-public class ZoteroOps {
+public class ZoteroNet {
 
-    public static final String TAG = "zotdroid.ZoteroOps";
+    public static final String TAG = "zotdroid.ZoteroNet";
     public static final String BASE_URL = "https://api.zotero.org";
 
     private ZoteroItemsTask _current_task       = null;
@@ -77,7 +79,7 @@ public class ZoteroOps {
                     }
 
                     // TODO - pagination might be a bit tricky.
-                    result = "{ " + headers + " data : " + result + "}";
+                    result = "{ " + headers + " results : " + result + "}";
 
                 } catch (IOException e) {
                     InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
@@ -99,9 +101,9 @@ public class ZoteroOps {
     /**
      * Special callback for the Items once all items have completed
      */
-    interface ZoteroTaskCallback {
+    public interface ZoteroTaskCallback {
         void onItemsCompletion(boolean success);
-        void onItemCompletion(boolean success, Vector<ZoteroRecord> results);
+        void onItemCompletion(boolean success, float progress, String message, Vector<ZoteroRecord> records, Vector<ZoteroAttachment> attachments);
     }
 
     /**
@@ -134,8 +136,77 @@ public class ZoteroOps {
                     "sort", "dateAdded");
         }
 
+
+        protected ZoteroRecord processEntry(JSONObject jobj) {
+            ZoteroRecord record = new ZoteroRecord();
+
+            try {
+                record.set_zotero_key(jobj.getString("key"));
+            } catch (JSONException e){
+                // We should always have a key. If we dont then bad things :S
+            }
+
+            try {
+                record.set_title(jobj.getString("title"));
+            } catch (JSONException e) {
+                record.set_title("No title");
+            }
+
+            try {
+                JSONObject creator = jobj.getJSONArray("creators").getJSONObject(0);
+                record.set_author(creator.getString("lastName") + ", " + creator.getString("firstName"));
+            } catch (JSONException e){
+                record.set_author("No author(s)");
+            }
+
+            try {
+                record.set_parent(jobj.getString("parent"));
+            } catch (JSONException e){
+                record.set_parent("");
+            }
+
+            try {
+                record.set_item_type(jobj.getString("itemType"));
+            } catch (JSONException e){
+                record.set_parent("");
+            }
+            return record;
+        }
+
+        protected ZoteroAttachment processAttachment(JSONObject jobj) {
+            ZoteroAttachment attachment = new ZoteroAttachment();
+
+            try {
+                attachment.set_zotero_key(jobj.getString("key"));
+            } catch (JSONException e){
+                // We should always have a key. If we dont then bad things :S
+            }
+
+            try {
+                attachment.set_file_name(jobj.getString("filename"));
+            } catch (JSONException e){
+            }
+
+
+            // TODO - some attachments are top level - do we show these?
+            try {
+                attachment.set_parent(jobj.getString("parentItem"));
+                Log.i(TAG, "n: " + attachment.get_parent());
+            } catch (JSONException e){
+
+            }
+
+            try {
+                attachment.set_file_type(jobj.getString("contentType"));
+            } catch (JSONException e){
+            }
+
+            return attachment;
+        }
+
         protected void onPostExecute(String rstring) {
-            Vector<ZoteroRecord> results =  new Vector<ZoteroRecord>();
+            Vector<ZoteroRecord> records =  new Vector<ZoteroRecord>();
+            Vector<ZoteroAttachment> attachments =  new Vector<ZoteroAttachment>();
 
             // TODO - not so happy with the stop()s everywhere - state is annoying. Need a better
             // interrupt. Has already caused one issue :/
@@ -160,39 +231,17 @@ public class ZoteroOps {
                     Log.i(TAG,"No Total-Results in request.");
                 }
 
-                JSONArray jArray = jObject.getJSONArray("data");
+                JSONArray jArray = jObject.getJSONArray("results");
 
                 for (int i=0; i < jArray.length(); i++) {
                     try {
-                        JSONObject oneObject = jArray.getJSONObject(i);
-                        oneObject = oneObject.getJSONObject("data");
-
-                        ZoteroRecord record = new ZoteroRecord();
-
-                        record.set_zotero_key(oneObject.getString("key"));
-
-                        try {
-                            record.set_title(oneObject.getString("title"));
-                        } catch (JSONException e) {
-                            record.set_title("No title");
+                        JSONObject jobjtop = jArray.getJSONObject(i);
+                        JSONObject jobj = jobjtop.getJSONObject("data");
+                        if (jobj.getString("itemType").contains("attachment")){
+                            attachments.add(processAttachment(jobj));
+                        } else {
+                            records.add(processEntry(jobj));
                         }
-
-                        try {
-                            JSONObject creator = oneObject.getJSONArray("creators").getJSONObject(0);
-                            record.set_author(creator.getString("lastName") + ", " + creator.getString("firstName"));
-                        } catch (JSONException e){
-                            record.set_author("No author(s)");
-                        }
-
-                        try {
-                            record.set_parent(oneObject.getString("parent"));
-                        } catch (JSONException e){
-                            record.set_parent("");
-                        }
-
-                        record.set_item_type(oneObject.getString("itemType"));
-
-                        results.add(record);
 
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -201,7 +250,7 @@ public class ZoteroOps {
                     }
                 }
 
-                callback.onItemCompletion(success, results);
+                callback.onItemCompletion(success, ((float)startItem / (float)total) * 100.0f, "", records, attachments);
 
                 if (!_processing_task){
                     stop();

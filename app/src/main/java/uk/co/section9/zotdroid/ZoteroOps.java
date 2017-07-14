@@ -16,6 +16,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Vector;
 import uk.co.section9.zotdroid.data.RecordsTable.ZoteroRecord;
+import uk.co.section9.zotdroid.data.ZotDroidDB;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -27,10 +28,10 @@ import javax.net.ssl.HttpsURLConnection;
 public class ZoteroOps {
 
     public static final String TAG = "zotdroid.ZoteroOps";
-    public static final String BaseURL = "https://api.zotero.org";
+    public static final String BASE_URL = "https://api.zotero.org";
 
-    private ZoteroItemsTask currentTask = null;
-    private boolean processingTask = false;
+    private ZoteroItemsTask _current_task       = null;
+    private boolean         _processing_task    = false;
 
     /**
      * Generic task that executes in the background, making requests of Zotero
@@ -126,7 +127,7 @@ public class ZoteroOps {
          * but the desc and dateAdded seem ok. It could be an integer thing I suspect
          */
         protected void execute(){
-            super.execute(BaseURL + "/users/" + ZoteroBroker.USER_ID + "/items?start=" + Integer.toString(this.startItem),
+            super.execute(BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items?start=" + Integer.toString(this.startItem),
                     "start", Integer.toString(this.startItem),
                     "limit", Integer.toString(this.itemLimit ),
                     "direction", "desc",
@@ -135,11 +136,14 @@ public class ZoteroOps {
 
         protected void onPostExecute(String rstring) {
             Vector<ZoteroRecord> results =  new Vector<ZoteroRecord>();
-            // For some reason, proper objects are not returned so I create one for our JSON
+
+            // TODO - not so happy with the stop()s everywhere - state is annoying. Need a better
+            // interrupt. Has already caused one issue :/
 
             // Check we didn't get a failure on that rsync call
             if (rstring == "FAIL"){
                 callback.onItemsCompletion(false);
+                stop();
                 return;
             }
 
@@ -165,28 +169,28 @@ public class ZoteroOps {
 
                         ZoteroRecord record = new ZoteroRecord();
 
-                        record.setKey(oneObject.getString("key"));
+                        record.set_zotero_key(oneObject.getString("key"));
 
                         try {
-                            record.setTitle(oneObject.getString("title"));
+                            record.set_title(oneObject.getString("title"));
                         } catch (JSONException e) {
-                            record.setTitle("No title");
+                            record.set_title("No title");
                         }
 
                         try {
                             JSONObject creator = oneObject.getJSONArray("creators").getJSONObject(0);
-                            record.setAuthor(creator.getString("lastName") + ", " + creator.getString("firstName"));
+                            record.set_author(creator.getString("lastName") + ", " + creator.getString("firstName"));
                         } catch (JSONException e){
-                            record.setAuthor("No author(s)");
+                            record.set_author("No author(s)");
                         }
 
                         try {
-                            record.setParent(oneObject.getString("parent"));
+                            record.set_parent(oneObject.getString("parent"));
                         } catch (JSONException e){
-                            record.setParent("");
+                            record.set_parent("");
                         }
 
-                        record.setItemType(oneObject.getString("itemType"));
+                        record.set_item_type(oneObject.getString("itemType"));
 
                         results.add(record);
 
@@ -199,7 +203,8 @@ public class ZoteroOps {
 
                 callback.onItemCompletion(success, results);
 
-                if (!processingTask){
+                if (!_processing_task){
+                    stop();
                     return; // Don't fire any callbacks
                 }
 
@@ -208,6 +213,7 @@ public class ZoteroOps {
                     new ZoteroItemsTask(callback, startItem + itemLimit ,itemLimit).execute();
                 } else {
                     callback.onItemsCompletion(success);
+                    stop();
                 }
 
             } catch (JSONException e) {
@@ -215,6 +221,7 @@ public class ZoteroOps {
                 Log.d(TAG,"Error in parsing JSON Object.");
                 success = false;
                 callback.onItemsCompletion(false);
+                stop();
             }
         }
     }
@@ -223,9 +230,9 @@ public class ZoteroOps {
      * Cancel whatever the current operation is
      */
     public void stop() {
-        if (currentTask != null) {
-            processingTask = false;
-            currentTask = null;
+        if (_current_task != null) {
+            _processing_task = false;
+            _current_task = null;
         }
     }
 
@@ -240,10 +247,10 @@ public class ZoteroOps {
 
     public boolean getItems(ZoteroTaskCallback callback) {
 
-        if (currentTask == null) {
-            processingTask = true;
-            currentTask = new ZoteroItemsTask(callback, 0, 25);
-            currentTask.execute();
+        if (_current_task == null) {
+            _processing_task = true;
+            _current_task = new ZoteroItemsTask(callback, 0, 25);
+            _current_task.execute();
             return true;
         }
         return false;

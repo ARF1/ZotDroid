@@ -12,11 +12,10 @@ public class BaseData {
         return TABLE_NAME;
     }
 
-    public static String createTable(){
-        return "";
-    }
+    public void createTable() {}
 
-    public static String deleteTable(){
-        return ("DROP TABLE IF EXISTS " + TABLE_NAME);
-    }
+    public void deleteTable() {}
+
+    public void populateFromDB() {}
+
 }

@@ -27,22 +27,24 @@ import java.util.ArrayList;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.data.RecordsTable;
+import uk.co.section9.zotdroid.data.ZotDroidDB;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, ZoteroOps.ZoteroTaskCallback,
         ZoteroBroker.ZoteroAuthCallback, ZoteroWebDav.ZoteroWebDavCallback {
 
-    public static final String  TAG = "zotdroid.MainActivity";
-    private static int          ZOTERO_LOGIN_REQUEST = 1667;
-    private ZoteroOps           zoteroOps = new ZoteroOps();
-    private ZoteroWebDav        zoteroWebDav = new ZoteroWebDav();
+    public static final String      TAG = "zotdroid.MainActivity";
+    private static int              ZOTERO_LOGIN_REQUEST = 1667;
+    private ZoteroOps               _zotero_ops = new ZoteroOps();
+    private ZoteroWebDav            _zotero_webdav = new ZoteroWebDav();
+    private Dialog                  _loading_dialog;
+    private Dialog                  _webdav_dialog;
+    private ZotDroidDB              _zotdroid_db;
 
-    private Dialog              loadingDialog;
-    private Vector<RecordsTable.ZoteroRecord>  zoteroRecords; // TODO - eventually we will move this to our database
+    private ArrayAdapter<String>    _main_list_adapter;
+    ArrayList<String>               _main_list_items = new ArrayList<String>();
 
-
-    private ArrayAdapter<String> mainListAdapter;
-    ArrayList<String> mainListItems = new ArrayList<String>();
+    private int                     _sync_progress;
     /**
      * onCreate as standard. Attempts to auth and if we arent authed, launches the login screen.
      * @param savedInstanceState
@@ -73,11 +75,13 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
+        // Fire up the database
+        _zotdroid_db =  new ZotDroidDB(this);
+
         // Setup the main list of items
-        zoteroRecords = new Vector<RecordsTable.ZoteroRecord>();
-        mainListAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mainListItems);
+        _main_list_adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, _main_list_items);
         ListView myListView = (ListView) findViewById(R.id.listViewMain);
-        myListView.setAdapter(mainListAdapter);
+        myListView.setAdapter(_main_list_adapter);
 
         // Pass this activity - ZoteroBroker will look for credentials
         ZoteroBroker.passCreds(this,this);
@@ -90,6 +94,11 @@ public class MainActivity extends AppCompatActivity
             loginIntent.setAction("zotdroid.LoginActivity.LOGIN");
             this.startActivityForResult(loginIntent,ZOTERO_LOGIN_REQUEST);
         }*/
+        _sync_progress = 0;
+
+        // Attempt to load from the DB
+        populateFromDB();
+
     }
 
     /**
@@ -115,7 +124,7 @@ public class MainActivity extends AppCompatActivity
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                zoteroOps.stop();
+                _zotero_ops.stop();
                 dialog.dismiss();
             }
         });
@@ -129,16 +138,19 @@ public class MainActivity extends AppCompatActivity
      * Start sync with the Zotero server
      */
     protected void sync() {
-        loadingDialog = launchLoadingDialog();
-        zoteroRecords.clear();
-        zoteroOps.getItems(this);
+        _loading_dialog = launchLoadingDialog();
+        _sync_progress = 0;
+        _main_list_items.clear();
+        _main_list_adapter.notifyDataSetChanged();
+        _zotdroid_db.reset(); // For now, just nuke the database
+        _zotero_ops.getItems(this);
     }
 
     /**
      * Start sync with the Zotero server
      */
     protected void testWebdav() {
-        zoteroWebDav.testWebDav(this, this);
+        _zotero_webdav.testWebDav(this, this);
     }
 
     /**
@@ -248,19 +260,36 @@ public class MainActivity extends AppCompatActivity
 
         String status_message = "";
         if (success) {
-            for (RecordsTable.ZoteroRecord record : results) {
-                zoteroRecords.add(record);
+            for (RecordsTable.ZoteroRecord record : results){
+                _main_list_items.add(record.toString());
+                _zotdroid_db._records_table.writeRecord(record);
             }
-            status_message = "Loaded " + Integer.toString(zoteroRecords.size()) + " records.";
-            TextView messageView = (TextView)loadingDialog.findViewById(R.id.textViewLoading);
+
+            _sync_progress += results.size();
+            _main_list_adapter.notifyDataSetChanged();
+
+            status_message = "Loaded " + Integer.toString(_sync_progress) + " records.";
+            TextView messageView = (TextView) _loading_dialog.findViewById(R.id.textViewLoading);
             messageView.setText(status_message);
             Log.i(TAG,status_message);
 
         } else {
-            loadingDialog.dismiss();
+            _loading_dialog.dismiss();
             Log.d(TAG,"Error returned in onItemCompletion");
         }
     }
+
+    /**
+     * Read from the DB on load
+     */
+    public void populateFromDB() {
+        Vector<RecordsTable.ZoteroRecord> records = _zotdroid_db._records_table.get_records();
+        for (RecordsTable.ZoteroRecord record : records){
+            _main_list_items.add(record.toString());
+        }
+        _main_list_adapter.notifyDataSetChanged();
+    }
+
     /**
      * Called when the sync task completes and we have a stack of results to process.
      * Clears the list and adds what we get from the server
@@ -268,14 +297,7 @@ public class MainActivity extends AppCompatActivity
      */
     @Override
     public void onItemsCompletion(boolean success) {
-        loadingDialog.dismiss();
-
-        mainListItems.clear();
-
-        for (RecordsTable.ZoteroRecord record : zoteroRecords){
-            mainListItems.add(record.getTitle());
-            mainListAdapter.notifyDataSetChanged();
-        }
+        _loading_dialog.dismiss();
     }
 
     /**

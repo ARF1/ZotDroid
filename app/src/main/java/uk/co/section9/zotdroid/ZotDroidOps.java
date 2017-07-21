@@ -2,6 +2,7 @@ package uk.co.section9.zotdroid;
 
 import android.app.Activity;
 import android.content.ContentValues;
+import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.widget.TextView;
@@ -26,7 +27,7 @@ import uk.co.section9.zotdroid.data.ZoteroRecord;
  * TODO - if we cancel a sync, we need to not replace anything!
  */
 
-public class ZotDroidOps implements ZoteroNet.ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDavCallback {
+public class ZotDroidOps implements ZoteroNet.ZoteroTaskCallback{
 
     private ZoteroNet               _zotero_net = new ZoteroNet();
     private ZoteroWebDav            _zotero_webdav = new ZoteroWebDav();
@@ -46,6 +47,34 @@ public class ZotDroidOps implements ZoteroNet.ZoteroTaskCallback, ZoteroWebDav.Z
         _zotdroid_db =  new ZotDroidDB(activity);
     }
 
+
+    /**
+     * A very small class that holds the state for our webdav attachment download
+     * Its perhaps a bit complicated but it means we can do multiple requests and
+     * not have the main activity worry too much.
+     */
+    private class OpsDav implements  ZoteroWebDav.ZoteroWebDavCallback {
+
+        ZoteroAttachment _attachment;
+        private OpsDav(ZoteroAttachment attachment){
+            _attachment = attachment;
+        }
+
+        @Override
+        public void onWebDavProgess(boolean result, String message) {
+            if (result) {
+                _midnightcaller.onDownloadProgress(Float.parseFloat(message));
+            }
+        }
+
+        @Override
+        public void onWebDavComplete(boolean result, String message) {
+            _midnightcaller.onDownloadFinish(result, message, _attachment.get_file_type());
+        }
+
+    }
+
+
     /**
     * Define the callbacks we want to use with our various activities
     */
@@ -53,6 +82,8 @@ public class ZotDroidOps implements ZoteroNet.ZoteroTaskCallback, ZoteroWebDav.Z
     public interface ZotDroidCaller {
         void onSyncProgress(float progress);
         void onSyncFinish(boolean success, String message);
+        void onDownloadProgress(float progress);
+        void onDownloadFinish(boolean success, String message, String type);
     }
 
 
@@ -64,13 +95,27 @@ public class ZotDroidOps implements ZoteroNet.ZoteroTaskCallback, ZoteroWebDav.Z
         _zotero_net.getItems(this);
     }
 
-
     public void stop() {
         _zotero_net.stop();
     }
 
     public Vector<ZoteroRecord> get_records() {
         return _records;
+    }
+
+    public ZoteroRecord get_record(int idx) {
+        if (idx > 0 && idx < _records.size()) {
+            return _records.elementAt(idx);
+        }
+        return null;
+    }
+
+    public void startAttachmentDownload(ZoteroRecord record, int idx){
+        if (idx < record.get_attachments().size()) {
+            ZoteroAttachment za = record.get_attachments().elementAt(idx);
+            _zotero_webdav.downloadAttachment(za.get_zotero_key() + ".zip", za.get_file_name(), _activity, new OpsDav(za));
+        }
+        // TODO return somekind of false here
     }
 
     /**
@@ -106,13 +151,10 @@ public class ZotDroidOps implements ZoteroNet.ZoteroTaskCallback, ZoteroWebDav.Z
             ZoteroAttachment attachment = AttachmentsTable.getAttachmentFromValues(values);
 
             ZoteroRecord record = null;
-
             record = _key_to_record.get(attachment.get_parent());
-            Log.i(TAG,"attaching " + attachment.get_parent());
 
             if (record != null){
                 record.addAttachment(attachment);
-                Log.i(TAG,"affix");
             }
             _attachments.add(attachment);
         }
@@ -162,20 +204,6 @@ public class ZotDroidOps implements ZoteroNet.ZoteroTaskCallback, ZoteroWebDav.Z
      * @param message
      */
 
-    @Override
-    public void onWebDavTestComplete(boolean result, String message) {
 
-    }
 
-    /**
-     * Webdav download completed for some reason
-     * @param result
-     * @param message
-     * @param filename
-     */
-
-    @Override
-    public void onWebDavDownloadComplete(boolean result, String message, String filename) {
-
-    }
 }

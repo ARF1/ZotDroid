@@ -11,13 +11,19 @@ import android.util.Log;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.Flushable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Vector;
+import java.util.zip.DeflaterInputStream;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+import java.util.zip.ZipInputStream;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -32,12 +38,9 @@ public class ZoteroWebDav {
     public static final String TAG = "zotdroid.ZoteroWebDav";
 
 
-    /**
-     * Small interface for the webdav callbacks
-     */
     public interface ZoteroWebDavCallback {
-        public void onWebDavTestComplete(boolean result, String message);
-        public void onWebDavDownloadComplete(boolean result, String message, String filename);
+        public void onWebDavProgess(boolean result, String message);
+        public void onWebDavComplete(boolean result, String message);
     }
 
     /**
@@ -100,10 +103,10 @@ public class ZoteroWebDav {
 
             Log.i(TAG, rstring);
             if (rstring != "SUCCESS"){
-                callback.onWebDavTestComplete(false, rstring);
+                callback.onWebDavComplete(false, rstring);
                 return;
             }
-            callback.onWebDavTestComplete(true, "success");
+            callback.onWebDavComplete(true, "success");
         }
     }
 
@@ -115,72 +118,117 @@ public class ZoteroWebDav {
 
     private class WebDavRequest extends AsyncTask<String,Integer,String> {
 
+        ZoteroWebDavCallback callback;
+
+        private float _progress;
+
+        public WebDavRequest(ZoteroWebDavCallback callback){
+            this.callback = callback;
+        }
+
         protected String doInBackground(String... address) {
 
-            String result = "FAIL";
+            String result = "*FAIL*";
             URL url = null;
+
+            // Credentials are address[1] / username and address[2] / password
+            // filename is address[3]
+            String username = address[1];
+            String password = address[2];
+            String filename = address[3];
+            String final_filename = address[4];
+
             try {
-                url = new URL(address[0]);
+                url = new URL(address[0] + "/" + filename);
             } catch (MalformedURLException e) {
                 e.printStackTrace();
                 return result;
             }
 
-            // Credentials are address[1] / username and address[2] / password
-            // filename is address[3]
+            Log.i(TAG, filename + ", " + url.toString());
+            String basic_auth = getB64Auth(username, password);
 
-            String username = address[1];
-            String password = address[2];
-            String filename = address[3];
-
-            String basic_auth = getB64Auth(username,password);
+            _progress = 0;
 
             HttpsURLConnection urlConnection = null;
             try {
                 urlConnection = (HttpsURLConnection) url.openConnection();
+                urlConnection.setRequestProperty("Authorization", basic_auth);
 
                 try {
-
                     // https://stackoverflow.com/questions/7887078/android-saving-file-to-external-storage#7887114
                     // TODO - we should totally set the file download path in the settings
                     String root = Environment.getExternalStorageDirectory().toString();
                     File myDir = new File(root + "/attachments");
                     myDir.mkdirs();
-                    File file = new File (myDir, filename);
-                    if (file.exists ()) file.delete();
+                    File file = new File(myDir, final_filename);
+                    if (file.exists()) file.delete();
 
                     // Now do the reading but save to a file
                     byte[] bytes = new byte[1024]; // read in 1024 chunks
-                    BufferedInputStream buf = new BufferedInputStream( urlConnection.getInputStream());
-                    FileOutputStream out = new FileOutputStream(file);
 
-                    int bytes_read = buf.read(bytes, 0, bytes.length);
-                    while (bytes_read != -1){
-                        out.write(bytes,0,bytes_read);
-                        bytes_read = buf.read(bytes, 0, bytes.length);
+                    InputStream is = urlConnection.getInputStream();
+                    BufferedInputStream buf = new BufferedInputStream(is);
+
+                    FileOutputStream out = new FileOutputStream(file);
+                    ZipInputStream zin = new ZipInputStream (buf);
+                    zin.getNextEntry();
+
+                    int total_bytes_read = 0;
+                    int total = urlConnection.getContentLength();
+                    Log.i(TAG,"Bytes Available: " + Integer.toString(total));
+
+                    int bytes_read = 0;
+                    while ((bytes_read = zin.read(bytes, 0, bytes.length)) > 0) {
+                        out.write(bytes, 0, bytes_read);
+                        total_bytes_read += bytes_read;
+                        int progress = (int) Math.round( (float) total_bytes_read / (float) total * 100.0);
+                        publishProgress(progress);
                     }
 
                     out.flush();
                     out.close();
+                    zin.close();
                     buf.close();
+
                     // return the full path so we can open it
-                    result = root + "/attachments/" + filename;
+                    result = root + "/attachments/" + final_filename;
+                    callback.onWebDavComplete(true, result);
 
                 } catch (IOException e) {
                     InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
                     e.printStackTrace();
-                    result = "FAIL";
+                    result = "*FAIL*ioerror";
                 } finally {
                     urlConnection.disconnect();
                 }
+            } catch ( FileNotFoundException e){
+                e.printStackTrace();
+                result = "*FAIL*File not found.";
             } catch (IOException e) {
                 InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
                 // TODO - do something with the error streams at some point
                 e.printStackTrace();
-                result = "FAIL";
+                result = "*FAIL*ioerror.";
             }
 
             return result;
+        }
+
+        protected void onProgressUpdate(Integer... progress) {
+            Log.i(TAG,"Progress: " + Integer.toString(progress[0]));
+            callback.onWebDavProgess(true, Integer.toString(progress[0]));
+        }
+
+
+        protected void onPostExecute(String rstring) {
+
+            Log.i(TAG, "Post Execute: " + rstring);
+            if (rstring.startsWith("*FAIL*")){
+                callback.onWebDavComplete(false, rstring.replace("*FAIL*",""));
+                return;
+            }
+            callback.onWebDavComplete(true, rstring);
         }
     }
 
@@ -194,12 +242,14 @@ public class ZoteroWebDav {
     }
 
 
-    public void downloadAttachment(String filename, Activity activity, ZoteroWebDavCallback callback){
+    public void downloadAttachment(String filename, String final_filename, Activity activity, ZoteroWebDavCallback callback){
         // Get the credentials we need for this
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(activity);
         String username = settings.getString("settings_webdav_username","username");
         String password = settings.getString("settings_webdav_password","password");
         String server_address = settings.getString("settings_webdav_address","address");
+
+        new WebDavRequest(callback).execute(server_address,username,password,filename,final_filename);
 
     }
 }

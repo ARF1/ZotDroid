@@ -3,6 +3,7 @@ package uk.co.section9.zotdroid;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -22,7 +23,9 @@ import android.widget.Button;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,6 +46,7 @@ ZotDroidOps.ZotDroidCaller {
     private static int              ZOTERO_LOGIN_REQUEST = 1667;
 
     private Dialog                  _loading_dialog;
+    private Dialog                  _download_dialog;
     private Dialog                  _webdav_dialog;
 
     private ZotDroidOps             _zotdroid_ops;
@@ -81,8 +85,6 @@ ZotDroidOps.ZotDroidCaller {
 
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
-
-
 
         // Setup the main list of items
         _main_list_view = (ExpandableListView) findViewById(R.id.listViewMain);
@@ -139,6 +141,33 @@ ZotDroidOps.ZotDroidCaller {
     }
 
 
+    private Dialog launchDownloadDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.fragment_downloading);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setCancelable(true);
+
+        DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
+        int dialogWidth = (int)(displayMetrics.widthPixels * 0.85);
+        int dialogHeight = (int)(displayMetrics.heightPixels * 0.85);
+        dialog.getWindow().setLayout(dialogWidth, dialogHeight);
+
+        Button cancelButton = (Button) dialog.findViewById(R.id.buttonCancelDownload);
+
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                dialog.dismiss();
+            }
+        });
+
+        dialog.show();
+        return dialog;
+    }
+
+
     /**
      * Start sync with the Zotero server
      */
@@ -166,7 +195,7 @@ ZotDroidOps.ZotDroidCaller {
         shared preferences here.
      */
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.i(TAG,"Returned from Zotero Login.");
+        Log.i(TAG,"Returned from Zotero Login hopefully.");
         if (requestCode == ZOTERO_LOGIN_REQUEST) {
             if (resultCode == Activity.RESULT_OK ) {
                 ZoteroBroker.setCreds(this);
@@ -274,7 +303,6 @@ ZotDroidOps.ZotDroidCaller {
             ArrayList<String> tl = new ArrayList<String>();
             for (ZoteroAttachment attachment : record.get_attachments()){
                 tl.add(attachment.get_file_name());
-                Log.i(TAG,"ATTAH");
             }
             _main_list_sub_items.put(record.get_title(),tl);
         }
@@ -282,8 +310,68 @@ ZotDroidOps.ZotDroidCaller {
         _main_list_adapter = new ZotDroidListAdapter(this,_main_list_items, _main_list_sub_items);
         _main_list_view.setAdapter(_main_list_adapter);
 
+        _main_list_view.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
+
+            @Override
+            public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
+
+                //Toast.makeText(getApplicationContext(), "child clicked", Toast.LENGTH_SHORT).show();
+
+                ZoteroRecord record = _zotdroid_ops.get_record(groupPosition);
+                if (record != null){
+                    _download_dialog = launchDownloadDialog();
+                    _zotdroid_ops.startAttachmentDownload(record, childPosition);
+                }
+
+                return true;
+            }
+        });
+
     }
 
+    public void onDownloadProgress(float progress) {
+        String status_message = "Progess: " + Float.toString(progress) + "%";
+        TextView messageView = (TextView) _download_dialog.findViewById(R.id.textViewDownloading);
+        messageView.setText(status_message);
+        Log.i(TAG, status_message);
+    }
+
+    public void onDownloadFinish(boolean success, String message, String filetype) {
+
+        if (!success) {
+            String status_message = "Error: " + message;
+            TextView messageView = (TextView) _download_dialog.findViewById(R.id.textViewDownloading);
+            messageView.setText(status_message);
+            Log.i(TAG, status_message);
+        } else {
+
+            Intent intent = new Intent();
+
+            File ff7 =  new File(message);
+
+            if (ff7.exists()){
+                intent.setAction(android.content.Intent.ACTION_VIEW);
+                Log.i(TAG, "Attempting to open " + message);
+                try {
+                    intent.setDataAndType(Uri.fromFile(ff7), filetype);
+                    intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    _download_dialog.dismiss();
+                    startActivity(intent);
+                    _download_dialog.dismiss();
+                } catch (Exception e){
+                    Log.d(TAG,"Error opening file");
+                    e.printStackTrace();
+                }
+            } else {
+                String status_message = "Error: " + message  + " does not appear to exist.";
+                TextView messageView = (TextView) _download_dialog.findViewById(R.id.textViewDownloading);
+                messageView.setText(status_message);
+                Log.i(TAG, status_message);
+            }
+
+        }
+    }
 
 
     /**

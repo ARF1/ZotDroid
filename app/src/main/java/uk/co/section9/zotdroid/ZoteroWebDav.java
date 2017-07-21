@@ -13,18 +13,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.Flushable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Vector;
-import java.util.zip.DeflaterInputStream;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipInputStream;
-
 import javax.net.ssl.HttpsURLConnection;
 
 import uk.co.section9.zotdroid.data.RecordsTable;
@@ -36,7 +30,6 @@ import uk.co.section9.zotdroid.data.RecordsTable;
 public class ZoteroWebDav {
 
     public static final String TAG = "zotdroid.ZoteroWebDav";
-
 
     public interface ZoteroWebDavCallback {
         public void onWebDavProgess(boolean result, String message);
@@ -72,7 +65,6 @@ public class ZoteroWebDav {
             try {
 
                 String basic_auth = getB64Auth(username,password);
-
                 urlConnection = (HttpsURLConnection) url.openConnection();
                 urlConnection.setRequestProperty("Authorization", basic_auth);
 
@@ -116,11 +108,13 @@ public class ZoteroWebDav {
         return ret;
     }
 
+    /**
+     * The async derived class that actually performs the real work.
+     */
+
     private class WebDavRequest extends AsyncTask<String,Integer,String> {
 
         ZoteroWebDavCallback callback;
-
-        private float _progress;
 
         public WebDavRequest(ZoteroWebDavCallback callback){
             this.callback = callback;
@@ -136,7 +130,8 @@ public class ZoteroWebDav {
             String username = address[1];
             String password = address[2];
             String filename = address[3];
-            String final_filename = address[4];
+            String file_path = address[4];
+            String final_filename = address[5];
 
             try {
                 url = new URL(address[0] + "/" + filename);
@@ -148,8 +143,6 @@ public class ZoteroWebDav {
             Log.i(TAG, filename + ", " + url.toString());
             String basic_auth = getB64Auth(username, password);
 
-            _progress = 0;
-
             HttpsURLConnection urlConnection = null;
             try {
                 urlConnection = (HttpsURLConnection) url.openConnection();
@@ -157,11 +150,7 @@ public class ZoteroWebDav {
 
                 try {
                     // https://stackoverflow.com/questions/7887078/android-saving-file-to-external-storage#7887114
-                    // TODO - we should totally set the file download path in the settings
-                    String root = Environment.getExternalStorageDirectory().toString();
-                    File myDir = new File(root + "/attachments");
-                    myDir.mkdirs();
-                    File file = new File(myDir, final_filename);
+                    File file = new File(file_path + final_filename);
                     if (file.exists()) file.delete();
 
                     // Now do the reading but save to a file
@@ -192,7 +181,7 @@ public class ZoteroWebDav {
                     buf.close();
 
                     // return the full path so we can open it
-                    result = root + "/attachments/" + final_filename;
+                    result = file_path + final_filename;
                     callback.onWebDavComplete(true, result);
 
                 } catch (IOException e) {
@@ -242,14 +231,14 @@ public class ZoteroWebDav {
     }
 
 
-    public void downloadAttachment(String filename, String final_filename, Activity activity, ZoteroWebDavCallback callback){
+    public void downloadAttachment(String filename, String file_path, String final_filename, Activity activity, ZoteroWebDavCallback callback){
         // Get the credentials we need for this
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(activity);
         String username = settings.getString("settings_webdav_username","username");
         String password = settings.getString("settings_webdav_password","password");
         String server_address = settings.getString("settings_webdav_address","address");
 
-        new WebDavRequest(callback).execute(server_address,username,password,filename,final_filename);
+        new WebDavRequest(callback).execute(server_address, username, password, filename, file_path, final_filename);
 
     }
 }

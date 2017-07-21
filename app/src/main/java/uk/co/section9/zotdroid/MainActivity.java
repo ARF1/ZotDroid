@@ -179,7 +179,7 @@ ZotDroidOps.ZotDroidCaller {
     }
 
     public void onSyncProgress(float progress) {
-        String status_message = "Loading. " + Float.toString(progress) + "% complete.";
+        String status_message = "Loading. " + Float.toString( Math.round(progress * 100.0f)) + "% complete.";
         TextView messageView = (TextView) _loading_dialog.findViewById(R.id.textViewLoading);
         messageView.setText(status_message);
         Log.i(TAG,status_message);

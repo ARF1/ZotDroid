@@ -146,5 +146,8 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         RecordsTable.writeRecord(record,_db);
     }
 
+    public void writeCollection(ZoteroCollection collection){ CollectionsTable.writeCollection(collection,_db);
+    }
+
     public void writeAttachment(ZoteroAttachment attachment){ AttachmentsTable.writeAttachment(attachment,_db); }
 }

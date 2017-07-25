@@ -9,6 +9,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.SubMenu;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -19,9 +20,11 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.Window;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -32,6 +35,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.data.ZoteroAttachment;
+import uk.co.section9.zotdroid.data.ZoteroCollection;
 import uk.co.section9.zotdroid.data.ZoteroRecord;
 
 /**
@@ -53,7 +57,9 @@ ZotDroidOps.ZotDroidCaller {
 
     private ExpandableListAdapter                   _main_list_adapter;
     private ExpandableListView                      _main_list_view;
+
     ArrayList< String >                    _main_list_items = new ArrayList< String >  ();
+    ArrayList< String >                    _main_list_collections = new ArrayList< String >  ();
     HashMap< String, ArrayList<String> >   _main_list_sub_items =  new HashMap< String, ArrayList<String> >();
     /**
      * onCreate as standard. Attempts to auth and if we arent authed, launches the login screen.
@@ -68,14 +74,14 @@ ZotDroidOps.ZotDroidCaller {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+      /*  FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
-        });
+        })*/
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -83,8 +89,8 @@ ZotDroidOps.ZotDroidCaller {
 
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
+        //NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        //navigationView.setNavigationItemSelectedListener(this);
 
         // Setup the main list of items
         _main_list_view = (ExpandableListView) findViewById(R.id.listViewMain);
@@ -103,7 +109,6 @@ ZotDroidOps.ZotDroidCaller {
         }*/
 
         _zotdroid_ops = new ZotDroidOps(this, this);
-
         populateFromDB();
 
     }
@@ -174,6 +179,7 @@ ZotDroidOps.ZotDroidCaller {
     protected void sync() {
         _loading_dialog = launchLoadingDialog();
         _main_list_items.clear();
+        _main_list_collections.clear();
         _zotdroid_ops.sync();
 
     }
@@ -225,10 +231,32 @@ ZotDroidOps.ZotDroidCaller {
         //}
     }
 
+
+    @Override
+    public boolean onCreatePanelMenu(int featureId, Menu menu) {
+        return super.onCreatePanelMenu(featureId, menu);
+
+        // This is where we create our menu from collections
+/*        getMenuInflater().inflate(R.menu.activity_main_drawer, menu);
+
+        menu.addSubMenu(Menu.NONE, R.id.collections_menu , Menu.NONE,"Menu1");
+
+        SubMenu themeMenu = menu.findItem(R.id.collections_menu).getSubMenu();
+
+        themeMenu.clear();
+        themeMenu.add(0, 1, Menu.NONE, "Automatic");
+        themeMenu.add(0, 2, Menu.NONE, "Default");
+        themeMenu.add(0, 3, Menu.NONE, "Night");
+        themeMenu.add(0, 4, Menu.NONE, "Battery Saving");
+
+        return true;*/
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
+
         return true;
     }
 
@@ -267,7 +295,7 @@ ZotDroidOps.ZotDroidCaller {
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
         int id = item.getItemId();
-
+/*
         if (id == R.id.nav_camera) {
             // Handle the camera action
         } else if (id == R.id.nav_gallery) {
@@ -280,7 +308,7 @@ ZotDroidOps.ZotDroidCaller {
 
         } else if (id == R.id.nav_send) {
 
-        }
+        }*/
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
@@ -316,7 +344,6 @@ ZotDroidOps.ZotDroidCaller {
             public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
 
                 //Toast.makeText(getApplicationContext(), "child clicked", Toast.LENGTH_SHORT).show();
-
                 ZoteroRecord record = _zotdroid_ops.get_record(groupPosition);
                 if (record != null){
                     _download_dialog = launchDownloadDialog();
@@ -327,6 +354,15 @@ ZotDroidOps.ZotDroidCaller {
             }
         });
 
+        // Now create our lefthand drawer from the collections
+        ListView drawer_list = (ListView) findViewById(R.id.left_drawer);
+
+        for (ZoteroCollection c : _zotdroid_ops._collections) {
+            _main_list_collections.add(c.get_title());
+        }
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, _main_list_collections);
+        drawer_list.setAdapter(adapter);
     }
 
     public void onDownloadProgress(float progress) {

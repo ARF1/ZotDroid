@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.data.AttachmentsTable;
+import uk.co.section9.zotdroid.data.CollectionsTable;
 import uk.co.section9.zotdroid.data.RecordsTable;
 import uk.co.section9.zotdroid.data.ZotDroidDB;
 import uk.co.section9.zotdroid.data.ZoteroAttachment;
@@ -35,14 +36,13 @@ public class ZotDroidOps implements ZoteroTaskCallback {
     private ZotDroidDB              _zotdroid_db;
     private Activity                _activity;
     private ZotDroidCaller          _midnightcaller; // Was listening to Chase and Status ;)
-
     private static String           _download_path;
-
     private Vector<ZoteroTask>      _current_tasks;
 
-    protected Vector<ZoteroRecord> _records = new Vector<ZoteroRecord>();
-    protected Vector<ZoteroAttachment> _attachments = new Vector<ZoteroAttachment>();
-    protected Map<String,ZoteroRecord> _key_to_record = new HashMap<String, ZoteroRecord>();
+    protected Vector<ZoteroRecord>      _records = new Vector<ZoteroRecord>();
+    protected Vector<ZoteroAttachment>  _attachments = new Vector<ZoteroAttachment>();
+    protected Map<String,ZoteroRecord>  _key_to_record = new HashMap<String, ZoteroRecord>();
+    protected Vector<ZoteroCollection>  _collections = new Vector<ZoteroCollection>();
 
     public static final String TAG = "zotdroid.ZotDroidOps";
 
@@ -57,7 +57,6 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         File root_dir = new File(_download_path);
         root_dir.mkdirs();
     }
-
 
     /**
      * A very small class that holds the state for our webdav attachment download
@@ -82,9 +81,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         public void onWebDavComplete(boolean result, String message) {
             _midnightcaller.onDownloadFinish(result, message, _attachment.get_file_type());
         }
-
     }
-
 
     /**
     * Define the callbacks we want to use with our various activities
@@ -190,6 +187,31 @@ public class ZotDroidOps implements ZoteroTaskCallback {
             }
             _attachments.add(attachment);
         }
+
+        // Now finish with collections
+
+        numrows = _zotdroid_db.getNumRows(CollectionsTable.get_table_name());
+
+        for (int i=0; i < numrows; ++i) {
+            ContentValues values = null;
+            values = _zotdroid_db.readRow(CollectionsTable.get_table_name(), i);
+            ZoteroCollection collection = CollectionsTable.getCollectionFromValues(values);
+            _collections.add(collection);
+        }
+
+        // Go through and create our 'pointers'
+        // Could be slow for big collections
+
+        for (ZoteroCollection c : _collections){
+            for (ZoteroCollection d : _collections){
+                if (d.get_parent() == c.get_zotero_key()){
+                    c.add_collection(d);
+                }
+            }
+        }
+
+
+
     }
 
     /**
@@ -212,7 +234,6 @@ public class ZotDroidOps implements ZoteroTaskCallback {
             for (ZoteroAttachment attachment : attachments) {
                 _zotdroid_db.writeAttachment(attachment);
             }
-
 
             _midnightcaller.onSyncProgress((float)new_index / (float)total);
 
@@ -240,11 +261,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
     @Override
     public void onItemsCompletion(ZoteroTask task, boolean success, String message) {
         _current_tasks.remove(task);
-
         if (success) {
-
-            Log.i(TAG,"GOT HERE");
-
             if (_current_tasks.isEmpty()) {
                 _midnightcaller.onSyncFinish(success, message);
             }
@@ -262,7 +279,6 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         _current_tasks.remove(task);
 
         if (success) {
-
             for (ZoteroCollection collection : collections){
                 //_main_list_items.add(record.toString());
                 _zotdroid_db.writeCollection(collection);
@@ -271,6 +287,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
             if (_current_tasks.isEmpty()) {
                 _midnightcaller.onSyncFinish(success, message);
             }
+
         } else {
             for (ZoteroTask t : _current_tasks){
                 t.cancel(true);

@@ -36,6 +36,7 @@ public class ZoteroCollection {
         this._parent = parent;
     }
 
+    public void add_collection(ZoteroCollection c) { _sub_collections.add(c); }
 
     // For now, we cover all the bases we need for all possible items
     // Eventually we might have separate record tables
@@ -44,10 +45,10 @@ public class ZoteroCollection {
     protected String    _zotero_key;
     protected String    _parent;
     protected Vector<ZoteroCollection> _sub_collections; // In-efficient in memory terms but whatever
+
     public String toString() {
         return _title;
     }
-
     public ZoteroCollection(){
         _sub_collections = new Vector<ZoteroCollection>();
     }

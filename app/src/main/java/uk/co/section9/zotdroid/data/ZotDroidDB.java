@@ -82,13 +82,10 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-
-
     @Override
     public void onCreate(SQLiteDatabase db) {
         // Create all the tables, presumably in memory
         // We double check to see if we have any database tables already]
-
         this._db = db;
         _check_and_create();
     }
@@ -141,13 +138,11 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         return values;
     }
 
-
     public void writeRecord(ZoteroRecord record){
         RecordsTable.writeRecord(record,_db);
     }
 
-    public void writeCollection(ZoteroCollection collection){ CollectionsTable.writeCollection(collection,_db);
-    }
+    public void writeCollection(ZoteroCollection collection){ CollectionsTable.writeCollection(collection,_db); }
 
     public void writeAttachment(ZoteroAttachment attachment){ AttachmentsTable.writeAttachment(attachment,_db); }
 }

@@ -99,13 +99,13 @@ public class ZoteroCollectionsTask extends ZoteroTask {
         }
 
         try {
-            collection.set_title(jobj.getString("title"));
+            collection.set_title(jobj.getString("name"));
         } catch (JSONException e) {
             collection.set_title("No title");
         }
 
         try {
-            collection.set_parent(jobj.getString("parent"));
+            collection.set_parent(jobj.getString("parentCollection"));
         } catch (JSONException e) {
             collection.set_parent("");
         }

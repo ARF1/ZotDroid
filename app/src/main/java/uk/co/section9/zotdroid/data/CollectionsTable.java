@@ -22,7 +22,7 @@ public class CollectionsTable extends BaseData {
     }
 
     public static void createTable(SQLiteDatabase db) {
-        String CREATE_TABLE_COLLECTIONS = "CREATE TABLE \"" +TABLE_NAME + "\" (\"title\" TEXT, \"author\" TEXT, " +
+        String CREATE_TABLE_COLLECTIONS = "CREATE TABLE \"" +TABLE_NAME + "\" (\"title\" TEXT, " +
                 "\"zotero_key\" VARCHAR PRIMARY KEY, \"parent\" VARCHAR )";
         db.execSQL(CREATE_TABLE_COLLECTIONS);
     }

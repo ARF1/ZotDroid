@@ -67,6 +67,13 @@ public class ZoteroRecord {
 
     public void addAttachment(ZoteroAttachment attachment) { _attachments.add(attachment); }
 
+    public void addCollection(ZoteroCollection c) { _collections.add(c);}
+
+    public Vector<String> get_temp_collections() { return _temp_collections; }
+
+    public void addTempCollection(String s) { _temp_collections.add(s);}
+    public boolean inCollection(ZoteroCollection c) { return  _collections.contains(c); }
+
     public Vector<ZoteroAttachment> get_attachments() {return _attachments;}
 
     // For now, we cover all the bases we need for all possible items
@@ -80,6 +87,9 @@ public class ZoteroRecord {
     protected String    _zotero_key;
     protected String    _parent;
     protected Vector<ZoteroAttachment> _attachments;
+    protected Vector<ZoteroCollection> _collections;
+    protected Vector<String>    _temp_collections;
+
     public String toString() {
         return _title + " - " + _author;
     }
@@ -87,5 +97,7 @@ public class ZoteroRecord {
     public ZoteroRecord(){
         _date_added = new Date();
         _attachments = new Vector<ZoteroAttachment>();
+        _collections = new Vector<ZoteroCollection>();
+        _temp_collections = new Vector<String>(); // TODO - temporarily holding collection keys might not be the best way
     }
 }

@@ -63,6 +63,10 @@ public class ZotDroidDB extends SQLiteOpenHelper {
             AttachmentsTable.createTable(_db);
         }
 
+        if (!checkTableExists(CollectionsItemsTable.get_table_name())) {
+            CollectionsItemsTable.createTable(_db);
+        }
+
     }
 
     /**
@@ -78,6 +82,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS \"" + RecordsTable.get_table_name() + "\"");
         db.execSQL("DROP TABLE IF EXISTS \"" + CollectionsTable.get_table_name() + "\"");
         db.execSQL("DROP TABLE IF EXISTS \"" + AttachmentsTable.get_table_name() + "\"");
+        db.execSQL("DROP TABLE IF EXISTS \"" + CollectionsItemsTable.get_table_name() + "\"");
 
         onCreate(db);
     }
@@ -97,6 +102,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + RecordsTable.get_table_name());
         db.execSQL("DROP TABLE IF EXISTS " + SummaryTable.get_table_name());
         db.execSQL("DROP TABLE IF EXISTS " + AttachmentsTable.get_table_name());
+        db.execSQL("DROP TABLE IF EXISTS " + CollectionsItemsTable.get_table_name());
         // Create tables again
         onCreate(db);
     }
@@ -145,4 +151,6 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public void writeCollection(ZoteroCollection collection){ CollectionsTable.writeCollection(collection,_db); }
 
     public void writeAttachment(ZoteroAttachment attachment){ AttachmentsTable.writeAttachment(attachment,_db); }
+
+    public void writeCollectionItem(ZoteroCollectionItem ic){ CollectionsItemsTable.writeCollection(ic,_db); }
 }

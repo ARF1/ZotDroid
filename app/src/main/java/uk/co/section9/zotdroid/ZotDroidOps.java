@@ -12,11 +12,13 @@ import java.util.Map;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.data.AttachmentsTable;
+import uk.co.section9.zotdroid.data.CollectionsItemsTable;
 import uk.co.section9.zotdroid.data.CollectionsTable;
 import uk.co.section9.zotdroid.data.RecordsTable;
 import uk.co.section9.zotdroid.data.ZotDroidDB;
 import uk.co.section9.zotdroid.data.ZoteroAttachment;
 import uk.co.section9.zotdroid.data.ZoteroCollection;
+import uk.co.section9.zotdroid.data.ZoteroCollectionItem;
 import uk.co.section9.zotdroid.data.ZoteroRecord;
 import uk.co.section9.zotdroid.data.task.ZoteroItemsTask;
 import uk.co.section9.zotdroid.data.task.ZoteroCollectionsTask;
@@ -96,15 +98,31 @@ public class ZotDroidOps implements ZoteroTaskCallback {
 
     /**
      * Perform a sync with Zotero, grabbing all the items
+     * We start with collections as records depend on them
+     * When collections completes, we'll start on items
+     * For now, we clear all our in-memory, but later we will do something a bit better
      */
     public void sync() {
-        _zotdroid_db.reset(); // For now, just nuke the database
+
+        nukeAll(); // Eventualy do something better.
+
         _current_tasks.add(new ZoteroCollectionsTask(this,0,25));
-        _current_tasks.add(new ZoteroItemsTask(this,0,25));
 
         for (ZoteroTask t : _current_tasks) {
             t.startZoteroTask();
         }
+    }
+
+    private void nukeMemory(){
+        _records.clear();
+        _collections.clear();
+        _attachments.clear();
+        _key_to_record.clear();
+    }
+
+    private void nukeAll(){
+        _zotdroid_db.reset();
+        nukeMemory();
     }
 
     public void stop() {
@@ -121,6 +139,17 @@ public class ZotDroidOps implements ZoteroTaskCallback {
     public ZoteroRecord get_record(int idx) {
         if (idx > 0 && idx < _records.size()) {
             return _records.elementAt(idx);
+        }
+        return null;
+    }
+
+    public Vector<ZoteroCollection> get_collections() {
+        return _collections;
+    }
+
+    public ZoteroCollection get_collection(int idx) {
+        if (idx >= 0 && idx < _collections.size()) {
+            return _collections.elementAt(idx);
         }
         return null;
     }
@@ -148,12 +177,23 @@ public class ZotDroidOps implements ZoteroTaskCallback {
     }
 
     /**
+     * Make sure our internal memory is up to date, either from DB or Zotero
+     * Eventually, we will add a proper sync check in here as well.
+     */
+
+    public void update(){
+        if (_records.isEmpty()) {
+            populateFromDB();
+        }
+    }
+
+    /**
      * Get all the records and attachments we have in the database and populate what we need in Memory
      */
 
     public void populateFromDB() {
-        _records.clear();
-        _attachments.clear();
+
+        nukeMemory();
 
         // Start with Records
         int numrows = _zotdroid_db.getNumRows(RecordsTable.get_table_name());
@@ -188,7 +228,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
             _attachments.add(attachment);
         }
 
-        // Now finish with collections
+        // Now go with collections
 
         numrows = _zotdroid_db.getNumRows(CollectionsTable.get_table_name());
 
@@ -210,6 +250,29 @@ public class ZotDroidOps implements ZoteroTaskCallback {
             }
         }
 
+        // This bit could be slow if there are loads of collections. There will be a faster
+        // way to do it I would say.
+
+        // Add the records to the collections they belong to.
+        numrows = _zotdroid_db.getNumRows(CollectionsItemsTable.get_table_name());
+
+        for (int i=0; i < numrows; ++i) {
+            ContentValues values = null;
+            values = _zotdroid_db.readRow(CollectionsItemsTable.get_table_name(), i);
+            ZoteroCollectionItem ct = CollectionsItemsTable.getCollectionFromValues(values);
+
+            for (ZoteroCollection c : _collections){
+                if (ct.get_collection().contains(c.get_zotero_key())){
+                    for (ZoteroRecord r : _records){
+                        if ( ct.get_item().contains(r.get_zotero_key())){
+                            r.addCollection(c);
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
+        }
 
 
     }
@@ -235,6 +298,8 @@ public class ZotDroidOps implements ZoteroTaskCallback {
                 _zotdroid_db.writeAttachment(attachment);
             }
 
+            collectionItemsCreate(records);
+
             _midnightcaller.onSyncProgress((float)new_index / (float)total);
 
             // We fire off another task from here if success and we have more to go
@@ -252,6 +317,25 @@ public class ZotDroidOps implements ZoteroTaskCallback {
             _midnightcaller.onSyncFinish(false, "Error grabbing items from Zotero.");
         }
     }
+
+    /**
+     * Once we have both collections and items, we need to properly link them up
+     * We create the CollectionItems entries in the database for use later
+     */
+
+    private void collectionItemsCreate(Vector<ZoteroRecord> records) {
+
+        for (ZoteroRecord record : records){
+            for (String ts : record.get_temp_collections()){
+                ZoteroCollectionItem ci = new ZoteroCollectionItem();
+                ci.set_item(record.get_zotero_key());
+                ci.set_collection(ts);
+                _zotdroid_db.writeCollectionItem(ci);
+            }
+            record.get_temp_collections().clear();
+        }
+    }
+
 
     /**
      * Called when the sync task completes and we have a stack of results to process.
@@ -274,18 +358,27 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         }
     }
 
+    /**
+     * Collections have completed.
+     * @param task
+     * @param success
+     * @param message
+     * @param collections
+     */
     @Override
     public void onCollectionsCompletion(ZoteroTask task, boolean success, String message, Vector<ZoteroCollection> collections) {
         _current_tasks.remove(task);
 
         if (success) {
             for (ZoteroCollection collection : collections){
-                //_main_list_items.add(record.toString());
                 _zotdroid_db.writeCollection(collection);
             }
 
             if (_current_tasks.isEmpty()) {
-                _midnightcaller.onSyncFinish(success, message);
+                // Now we have collections, fire up the record grabbing
+                ZoteroItemsTask zt = new ZoteroItemsTask(this,0,25);
+                _current_tasks.add(zt);
+                zt.startZoteroTask();
             }
 
         } else {

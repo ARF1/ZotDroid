@@ -20,6 +20,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.Window;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ExpandableListAdapter;
@@ -34,6 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
+import uk.co.section9.zotdroid.data.CollectionsItemsTable;
 import uk.co.section9.zotdroid.data.ZoteroAttachment;
 import uk.co.section9.zotdroid.data.ZoteroCollection;
 import uk.co.section9.zotdroid.data.ZoteroRecord;
@@ -109,7 +111,7 @@ ZotDroidOps.ZotDroidCaller {
         }*/
 
         _zotdroid_ops = new ZotDroidOps(this, this);
-        populateFromDB();
+        updateList(null);
 
     }
 
@@ -192,7 +194,7 @@ ZotDroidOps.ZotDroidCaller {
     }
 
     public void onSyncFinish(boolean success, String message) {
-        populateFromDB();
+        updateList(null);
         _loading_dialog.dismiss();
     }
 
@@ -315,24 +317,49 @@ ZotDroidOps.ZotDroidCaller {
         return true;
     }
 
+    /**
+     * Refine the list when we click on a collection
+     * @param position
+     */
 
+    public void chooseCollection(int position) {
+
+        // First is always *All* so subtract one
+        if (position > 0 ){
+            ZoteroCollection c = _zotdroid_ops.get_collection(position-1);
+            if (c != null) {
+                updateList(c);
+            } else {
+                updateList(null);
+            }
+        } else {
+            // The *ALL*
+            updateList(null);
+        }
+    }
 
     /**
-     * Read from the DB on load if there is anything there.
+     * Update our list from what is held by ZotDroidOps
+     * @param filter - null or a zotero key
      */
-    public void populateFromDB() {
-
-        _zotdroid_ops.populateFromDB();
+    public void updateList(ZoteroCollection filter) {
+        _main_list_items.clear();
+        _main_list_collections.clear();
+        // Make sure we are up to date
+        _zotdroid_ops.update();
 
         Vector<ZoteroRecord> records = _zotdroid_ops.get_records();
 
         for (ZoteroRecord record : records) {
-            _main_list_items.add(record.get_title());
-            ArrayList<String> tl = new ArrayList<String>();
-            for (ZoteroAttachment attachment : record.get_attachments()){
-                tl.add(attachment.get_file_name());
+
+            if (filter == null || record.inCollection(filter)) {
+                _main_list_items.add(record.get_title());
+                ArrayList<String> tl = new ArrayList<String>();
+                for (ZoteroAttachment attachment : record.get_attachments()) {
+                    tl.add(attachment.get_file_name());
+                }
+                _main_list_sub_items.put(record.get_title(), tl);
             }
-            _main_list_sub_items.put(record.get_title(),tl);
         }
 
         _main_list_adapter = new ZotDroidListAdapter(this,_main_list_items, _main_list_sub_items);
@@ -357,12 +384,24 @@ ZotDroidOps.ZotDroidCaller {
         // Now create our lefthand drawer from the collections
         ListView drawer_list = (ListView) findViewById(R.id.left_drawer);
 
+        _main_list_collections.add("All");
+
         for (ZoteroCollection c : _zotdroid_ops._collections) {
             _main_list_collections.add(c.get_title());
         }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, _main_list_collections);
         drawer_list.setAdapter(adapter);
+
+        drawer_list.setOnItemClickListener(new AdapterView.OnItemClickListener()
+        {
+            @Override
+            public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3)
+            {
+                Log.i(TAG,_main_list_collections.get(position).toString());
+                chooseCollection(position);
+            }
+        });
     }
 
     public void onDownloadProgress(float progress) {
@@ -405,7 +444,6 @@ ZotDroidOps.ZotDroidCaller {
                 messageView.setText(status_message);
                 Log.i(TAG, status_message);
             }
-
         }
     }
 

@@ -4,6 +4,7 @@ package uk.co.section9.zotdroid.data.task;
  * Created by oni on 21/07/2017.
  */
 
+import android.preference.Preference;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -14,6 +15,8 @@ import java.util.Vector;
 
 import uk.co.section9.zotdroid.ZoteroBroker;
 import uk.co.section9.zotdroid.data.ZoteroAttachment;
+import uk.co.section9.zotdroid.data.ZoteroCollection;
+import uk.co.section9.zotdroid.data.ZoteroCollectionItem;
 import uk.co.section9.zotdroid.data.ZoteroRecord;
 
 /**
@@ -82,8 +85,23 @@ public class ZoteroItemsTask extends ZoteroTask {
         } catch (JSONException e){
             record.set_parent("");
         }
+
+        try {
+            JSONArray collections = jobj.getJSONArray("collections");
+            for (int i=0; i < collections.length(); i++) {
+                try {
+                    String tj = collections.getString(i);
+                    record.addTempCollection(tj);
+                } catch (JSONException e) {
+                }
+            }
+
+        } catch (JSONException e) {
+        }
+
         return record;
     }
+
 
     protected ZoteroAttachment processAttachment(JSONObject jobj) {
         ZoteroAttachment attachment = new ZoteroAttachment();
@@ -118,9 +136,6 @@ public class ZoteroItemsTask extends ZoteroTask {
     protected void onPostExecute(String rstring) {
         Vector<ZoteroRecord> records =  new Vector<ZoteroRecord>();
         Vector<ZoteroAttachment> attachments =  new Vector<ZoteroAttachment>();
-
-        // TODO - not so happy with the stop()s everywhere - state is annoying. Need a better
-        // interrupt. Has already caused one issue :/
 
         // Check we didn't get a failure on that rsync call
         if (rstring == "FAIL"){

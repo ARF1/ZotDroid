@@ -85,7 +85,6 @@ public class ZoteroCollectionsTask extends ZoteroTask {
             e.printStackTrace();
             Log.e(TAG,"Error in parsing JSON Object.");
             callback.onCollectionsCompletion(this, false,"Error in parsing JSON Object.", null);
-
         }
     }
 

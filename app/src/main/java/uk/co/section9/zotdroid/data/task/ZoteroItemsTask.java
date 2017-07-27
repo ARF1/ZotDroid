@@ -4,7 +4,6 @@ package uk.co.section9.zotdroid.data.task;
  * Created by oni on 21/07/2017.
  */
 
-import android.preference.Preference;
 import android.util.Log;
 
 import org.json.JSONArray;
@@ -15,8 +14,6 @@ import java.util.Vector;
 
 import uk.co.section9.zotdroid.ZoteroBroker;
 import uk.co.section9.zotdroid.data.ZoteroAttachment;
-import uk.co.section9.zotdroid.data.ZoteroCollection;
-import uk.co.section9.zotdroid.data.ZoteroCollectionItem;
 import uk.co.section9.zotdroid.data.ZoteroRecord;
 
 /**
@@ -30,11 +27,26 @@ public class ZoteroItemsTask extends ZoteroTask {
     ZoteroTaskCallback callback;
     int startItem = 0;
     int itemLimit = 25; // Seems to be what Zotero likes by default (despite the API)
+    String _url = "";
+    private boolean _reset_mode = true;
 
     public ZoteroItemsTask(ZoteroTaskCallback callback, int start, int limit) {
         this.callback = callback;
         this.startItem = start;
         this.itemLimit = limit;
+        _reset_mode = true;
+        _url = BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items?start=" + Integer.toString(this.startItem);
+    }
+
+    public ZoteroItemsTask(ZoteroTaskCallback callback, Vector<String> keys) {
+        this.callback = callback;
+        _reset_mode = false;
+        _url = BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items?itemKey=";
+
+        for (String key: keys){
+            _url += key + ",";
+        }
+
     }
 
     /**
@@ -44,16 +56,24 @@ public class ZoteroItemsTask extends ZoteroTask {
      * but the desc and dateAdded seem ok. It could be an integer thing I suspect
      */
     public void startZoteroTask(){
-        super.execute(BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items?start=" + Integer.toString(this.startItem),
-                "start", Integer.toString(this.startItem),
-                "limit", Integer.toString(this.itemLimit ),
-                "direction", "desc",
-                "sort", "dateAdded");
+        if (_reset_mode) {
+            super.execute(_url,
+                    "start", Integer.toString(this.startItem),
+                    "limit", Integer.toString(this.itemLimit),
+                    "direction", "desc",
+                    "sort", "dateAdded");
+        } else {
+            super.execute(_url,
+                    "direction", "desc",
+                    "sort", "dateAdded");
+        }
     }
 
 
     protected ZoteroRecord processEntry(JSONObject jobj) {
         ZoteroRecord record = new ZoteroRecord();
+
+        // TODO - We need to handle these exceptions better - possibly by just ignoring this record
 
         try {
             record.set_zotero_key(jobj.getString("key"));
@@ -84,6 +104,12 @@ public class ZoteroItemsTask extends ZoteroTask {
             record.set_item_type(jobj.getString("itemType"));
         } catch (JSONException e){
             record.set_parent("");
+        }
+
+        try {
+            record.set_version(jobj.getString("version"));
+        } catch (JSONException e){
+            record.set_version("0000");
         }
 
         try {
@@ -126,6 +152,12 @@ public class ZoteroItemsTask extends ZoteroTask {
         }
 
         try {
+            attachment.set_version(jobj.getString("version"));
+        } catch (JSONException e){
+            attachment.set_version("0000");
+        }
+
+        try {
             attachment.set_file_type(jobj.getString("contentType"));
         } catch (JSONException e){
         }
@@ -139,19 +171,26 @@ public class ZoteroItemsTask extends ZoteroTask {
 
         // Check we didn't get a failure on that rsync call
         if (rstring == "FAIL"){
-            callback.onItemsCompletion(this, false, rstring);
+            callback.onItemsCompletion(this, false, rstring, "0000");
             return;
         }
 
         try {
             JSONObject jObject = new JSONObject(rstring);
 
+            // Grab the totals and the versions from the headers we found
             int total = 0;
             try {
                 total = jObject.getInt("Total-Results");
             } catch (JSONException e) {
-                total = 0;
                 Log.i(TAG,"No Total-Results in request.");
+            }
+
+            String version = "0000";
+            try {
+                version = jObject.getString("Last-Modified-Version");
+            } catch (JSONException e) {
+                Log.i(TAG,"No Last-Modified-Version in request.");
             }
 
             JSONArray jArray = jObject.getJSONArray("results");
@@ -168,17 +207,21 @@ public class ZoteroItemsTask extends ZoteroTask {
 
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    callback.onItemCompletion(this, false, "", 0, total, null, null);
+                    callback.onItemCompletion(this, false, "", 0, total, null, null,"0000");
                     return;
                 }
             }
 
-            callback.onItemCompletion(this, true, "", startItem + jArray.length(), total, records, attachments);
+            if (_reset_mode) {
+                callback.onItemCompletion(this, true, "", startItem + jArray.length(), total, records, attachments, version);
+            } else {
+                callback.onItemCompletion(this, true, "", records, attachments, version);
+            }
 
         } catch (JSONException e) {
             e.printStackTrace();
             Log.e(TAG,"Error in parsing JSON Object.");
-            callback.onItemsCompletion(this, false,"Erro in parsing JSON Object.");
+            callback.onItemsCompletion(this, false,"Erro in parsing JSON Object.", "0000");
         }
     }
 }

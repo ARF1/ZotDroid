@@ -23,7 +23,7 @@ public class CollectionsTable extends BaseData {
 
     public static void createTable(SQLiteDatabase db) {
         String CREATE_TABLE_COLLECTIONS = "CREATE TABLE \"" +TABLE_NAME + "\" (\"title\" TEXT, " +
-                "\"zotero_key\" VARCHAR PRIMARY KEY, \"parent\" VARCHAR )";
+                "\"zotero_key\" VARCHAR PRIMARY KEY, \"parent\" VARCHAR, \"version\" VARCHAR )";
         db.execSQL(CREATE_TABLE_COLLECTIONS);
     }
 
@@ -36,6 +36,7 @@ public class CollectionsTable extends BaseData {
         values.put("zotero_key", collection.get_zotero_key());
         values.put("title", collection.get_title());
         values.put("parent",collection.get_parent());
+        values.put("version",collection.get_version());
         return values;
     }
 
@@ -53,11 +54,21 @@ public class CollectionsTable extends BaseData {
         collection.set_title((String)values.get("title"));
         collection.set_zotero_key((String)values.get("zotero_key"));
         collection.set_parent((String)values.get("parent"));
+        collection.set_version((String)values.get("version"));
         return collection;
     }
 
     public static String get_table_name(){
         return TABLE_NAME;
     }
+
+    public static String collectionExists(String key){
+        return "select count(*) from \"" + get_table_name() + "\" where zotero_key=\"" + key + "\";";
+    }
+
+    public static String getCollection(String key){
+        return "select * from \"" + get_table_name() + "\" where zotero_key=\"" + key + "\";";
+    }
+
 
 }

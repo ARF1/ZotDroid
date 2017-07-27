@@ -7,6 +7,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
+import java.util.Date;
+import java.util.Vector;
+
 /**
  * Created by oni on 11/07/2017.
  */
@@ -67,6 +70,17 @@ public class ZotDroidDB extends SQLiteOpenHelper {
             CollectionsItemsTable.createTable(_db);
         }
 
+        // There should always be one and only one summary record
+
+        if (!checkTableExists(SummaryTable.get_table_name())) {
+            SummaryTable.createTable(_db);
+        }
+        clearTable(SummaryTable.get_table_name());
+        ZoteroSummary s = new ZoteroSummary();
+        s.set_date_synced(new Date());
+        s.set_last_version_collections("0000");
+        s.set_last_version_items("0000");
+        writeSummary(s);
     }
 
     /**
@@ -107,13 +121,11 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    /**
-     * Cheeky little pass through for the sub-table classes
-     * @param statement
-     */
-    protected void execSQL(String statement) {
-        _db.execSQL(statement);
+    protected void clearTable(String tablename){
+        _db.execSQL("DELETE from " + tablename);
     }
+
+
 
     // Get the number of rows in a table
     public int getNumRows(String tablename){
@@ -144,13 +156,68 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         return values;
     }
 
+    /**
+     * Get all the records from our database into memory
+     * @return
+     */
+    public Vector<ZoteroRecord> getRecords() {
+        int result = 0;
+        Vector<ZoteroRecord> records = new Vector<ZoteroRecord>();
+        ContentValues values = new ContentValues();
+        Cursor cursor = _db.rawQuery("select * from \"" + RecordsTable.get_table_name() + "\";", null);
+        while (cursor.moveToNext()){
+            values.clear();
+            for (int i = 0; i < cursor.getColumnCount(); i++){
+                values.put(cursor.getColumnName(i),cursor.getString(i));
+            }
+            records.add(RecordsTable.getRecordFromValues(values));
+
+        }
+
+        cursor.close();
+        return records;
+    }
+
     public void writeRecord(ZoteroRecord record){
         RecordsTable.writeRecord(record,_db);
+    }
+
+
+    private boolean exists(String q){
+        Cursor cursor = _db.rawQuery(q, null);
+        if (cursor != null) {
+            cursor.moveToFirst();
+            if (cursor.getInt(0) != 0){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean recordExists(String key) { return exists(RecordsTable.recordExists(key)); }
+    public boolean collectionExists(String key) { return exists(CollectionsTable.collectionExists(key)); }
+    public boolean attachmentExists(String key) { return exists(AttachmentsTable.attachmentExists(key)); }
+
+
+    public ZoteroCollection getCollection(String key) {
+        return CollectionsTable.getCollectionFromValues( CollectionsTable.getSingle(_db,key));
+    }
+
+    public ZoteroRecord getRecord(String key) {
+        return RecordsTable.getRecordFromValues( RecordsTable.getSingle(_db, key));
+    }
+
+    public ZoteroAttachment getAttachment(String key) {
+        return AttachmentsTable.getAttachmentFromValues(AttachmentsTable.getSingle(_db,key));
     }
 
     public void writeCollection(ZoteroCollection collection){ CollectionsTable.writeCollection(collection,_db); }
 
     public void writeAttachment(ZoteroAttachment attachment){ AttachmentsTable.writeAttachment(attachment,_db); }
+
+    public ZoteroSummary getSummary() { return SummaryTable.getRecordFromValues( readRow(SummaryTable.get_table_name(),0)); }
+
+    public void writeSummary(ZoteroSummary summary){ clearTable(SummaryTable.get_table_name()); SummaryTable.writeSummary(summary,_db); }
 
     public void writeCollectionItem(ZoteroCollectionItem ic){ CollectionsItemsTable.writeCollection(ic,_db); }
 }

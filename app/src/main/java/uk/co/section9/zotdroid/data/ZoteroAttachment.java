@@ -6,12 +6,17 @@ package uk.co.section9.zotdroid.data;
 
 public class ZoteroAttachment {
 
-    public static final String TAG = "zotdroid.data.AttachmentsTable.ZoteroAttachment";
+    public static final String TAG = "zotdroid.data.ZoteroAttachment";
 
     protected String _file_name;
     protected String _zotero_key;
     protected String _parent;
     protected String _file_type;
+    protected String _version;
+
+    public String get_version() { return _version; }
+
+    public void set_version(String version) { _version = version; }
 
     public String get_file_name() {
         return _file_name;

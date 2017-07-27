@@ -176,7 +176,18 @@ ZotDroidOps.ZotDroidCaller {
 
 
     /**
-     * Start sync with the Zotero server
+     * Reset everything and do a full sync from scratch
+     */
+    protected void resetAndSync() {
+        _loading_dialog = launchLoadingDialog();
+        _main_list_items.clear();
+        _main_list_collections.clear();
+        _zotdroid_ops.resetAndSync();
+
+    }
+
+    /**
+     * Do a standard, partial sync
      */
     protected void sync() {
         _loading_dialog = launchLoadingDialog();
@@ -196,6 +207,9 @@ ZotDroidOps.ZotDroidCaller {
     public void onSyncFinish(boolean success, String message) {
         updateList(null);
         _loading_dialog.dismiss();
+
+        Log.i(TAG,"Items Version: " + _zotdroid_ops.getItemsVersion());
+        Log.i(TAG,"Collections Version: " + _zotdroid_ops.getCollectionsVersion());
     }
 
     /**
@@ -272,6 +286,16 @@ ZotDroidOps.ZotDroidCaller {
         switch (id) {
             case R.id.action_settings:
                 this.startActivityForResult(new Intent(this, SettingsActivity.class),1);
+                return true;
+            case R.id.action_reset_sync:
+                if (ZoteroBroker.isAuthed()) {
+                    resetAndSync();
+                } else {
+                    Log.i(TAG,"Not authed. Performing OAUTH.");
+                    Intent loginIntent = new Intent(this, LoginActivity.class);
+                    loginIntent.setAction("zotdroid.LoginActivity.LOGIN");
+                    this.startActivityForResult(loginIntent,ZOTERO_LOGIN_REQUEST);
+                }
                 return true;
             case R.id.action_sync:
                 if (ZoteroBroker.isAuthed()) {

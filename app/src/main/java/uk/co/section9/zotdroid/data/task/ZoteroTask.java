@@ -13,14 +13,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Vector;
 
 import javax.net.ssl.HttpsURLConnection;
-
 import uk.co.section9.zotdroid.ZoteroBroker;
-import uk.co.section9.zotdroid.data.ZoteroAttachment;
-import uk.co.section9.zotdroid.data.ZoteroCollection;
-import uk.co.section9.zotdroid.data.ZoteroRecord;
 
 /**
  * Generic task that executes in the background, making requests of Zotero
@@ -68,6 +63,10 @@ public abstract class ZoteroTask extends AsyncTask<String,Integer,String> {
                 // Here, we check for any of the special Zotero headers we might need
                 if (urlConnection.getHeaderField("Total-Results") != null){
                     headers += "Total-Results : " + urlConnection.getHeaderField("Total-Results") + ", ";
+                }
+
+                if (urlConnection.getHeaderField("Last-Modified-Version") != null){
+                    headers += "Last-Modified-Version : " + urlConnection.getHeaderField("Last-Modified-Version") + ", ";
                 }
 
                 // TODO - pagination might be a bit tricky.

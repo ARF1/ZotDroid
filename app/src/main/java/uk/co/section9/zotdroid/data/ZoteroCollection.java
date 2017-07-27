@@ -38,12 +38,21 @@ public class ZoteroCollection {
 
     public void add_collection(ZoteroCollection c) { _sub_collections.add(c); }
 
+    public String get_version() {
+        return _version;
+    }
+
+    public void set_version(String _version) {
+        this._version = _version;
+    }
+
     // For now, we cover all the bases we need for all possible items
     // Eventually we might have separate record tables
 
     protected String    _title;
     protected String    _zotero_key;
     protected String    _parent;
+    protected String    _version;
     protected Vector<ZoteroCollection> _sub_collections; // In-efficient in memory terms but whatever
 
     public String toString() {
@@ -51,5 +60,6 @@ public class ZoteroCollection {
     }
     public ZoteroCollection(){
         _sub_collections = new Vector<ZoteroCollection>();
+        _version = "0000";
     }
 }

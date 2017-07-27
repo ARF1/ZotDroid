@@ -24,7 +24,7 @@ public class ZoteroRecord {
     }
 
     public void set_author(String author) {
-        this._author = _author;
+        _author = author;
     }
 
     public String get_title() {
@@ -76,6 +76,14 @@ public class ZoteroRecord {
 
     public Vector<ZoteroAttachment> get_attachments() {return _attachments;}
 
+    public String get_version() {
+        return _version;
+    }
+
+    public void set_version(String _version) {
+        this._version = _version;
+    }
+
     // For now, we cover all the bases we need for all possible items
     // Eventually we might have separate record tables
 
@@ -83,6 +91,7 @@ public class ZoteroRecord {
     protected String    _title;
     protected String    _item_type;
     protected Date      _date_added;
+    protected String    _version;
     protected String    _author; // TODO - Just one for now but we will add more
     protected String    _zotero_key;
     protected String    _parent;

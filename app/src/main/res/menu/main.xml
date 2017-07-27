@@ -17,4 +17,11 @@
         android:orderInCategory="100"
         android:title="@string/action_test_webdav"
         app:showAsAction="never" />
+
+    <item android:title="Reset and Sync "
+        android:id="@+id/action_reset_sync"
+        android:icon="@android:drawable/ic_popup_sync"
+        android:visible="true"
+        android:checkable="false"
+        android:enabled="true" />
 </menu>

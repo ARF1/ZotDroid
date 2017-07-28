@@ -30,7 +30,7 @@ public class ZoteroDelTask extends ZoteroTask {
 
     @Override
     public void startZoteroTask() {
-        super.execute(BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/deleted?since=" + _since_version + "&format=versions");
+       execute(BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/deleted?since=" + _since_version + "&format=versions");
     }
 
     protected void onPostExecute(String rstring) {

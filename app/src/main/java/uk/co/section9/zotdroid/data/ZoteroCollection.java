@@ -12,7 +12,7 @@ import java.util.Vector;
 
 public class ZoteroCollection {
 
-    public static final String TAG = "zotdroid.data.RecordsTable.ZoteroCollection";
+    public static final String TAG = "zotdroid.data.ZoteroCollection";
 
     public String get_zotero_key() {
         return _zotero_key;

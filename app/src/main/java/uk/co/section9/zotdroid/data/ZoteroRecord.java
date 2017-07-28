@@ -9,7 +9,7 @@ import java.util.Vector;
 
 public class ZoteroRecord {
 
-    public static final String TAG = "zotdroid.data.RecordsTable.ZoteroRecord";
+    public static final String TAG = "zotdroid.data.ZoteroRecord";
 
     public String get_zotero_key() {
         return _zotero_key;

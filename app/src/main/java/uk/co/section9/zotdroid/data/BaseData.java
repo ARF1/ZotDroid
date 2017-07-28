@@ -10,11 +10,11 @@ import android.database.sqlite.SQLiteDatabase;
 
 public class BaseData {
 
-    protected static final String TABLE_NAME = "";
+    protected final String TABLE_NAME = "";
 
-    public static ContentValues getSingle(SQLiteDatabase db, String key){
+    public ContentValues getSingle(SQLiteDatabase db, String key){
 
-        String q = "select * from \"" + get_table_name() + "\" where zotero_key=\"" + key + "\";";
+        String q = "select * from \"" + this.get_table_name() + "\" where zotero_key=\"" + key + "\";";
         Cursor cursor = db.rawQuery(q, null);
         cursor.moveToFirst();
         ContentValues values = new ContentValues();
@@ -25,12 +25,23 @@ public class BaseData {
         return values;
     }
 
-    public static String get_table_name() {
+    protected boolean exists(String q, SQLiteDatabase db ){
+        Cursor cursor = db.rawQuery(q, null);
+        if (cursor != null) {
+            cursor.moveToFirst();
+            if (cursor.getInt(0) != 0){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public String get_table_name() {
         return TABLE_NAME;
     }
 
-    public static void createTable(SQLiteDatabase db) {}
+    public void createTable(SQLiteDatabase db) {}
 
-    public static void deleteTable(SQLiteDatabase db) {}
+    public void deleteTable(SQLiteDatabase db) {}
 
 }

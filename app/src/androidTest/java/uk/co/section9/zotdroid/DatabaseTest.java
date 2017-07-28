@@ -48,9 +48,8 @@ public class DatabaseTest {
 
         db.writeRecord(record);
 
-        int numrow = db.getNumRows(RecordsTable.get_table_name());
-
-        ZoteroRecord r2 = RecordsTable.getRecordFromValues(db.readRow(RecordsTable.get_table_name(),numrow-1));
+        int numrow = db.getNumRecords();
+        ZoteroRecord r2 = db.getRecord(numrow-1);
 
         assertEquals(r2.get_version(),"1234");
         assertEquals(r2.get_author(),"author");

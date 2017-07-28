@@ -55,13 +55,13 @@ public class ZoteroCollectionsTask extends ZoteroTask {
     public void startZoteroTask() {
 
         if (_reset_mode) {
-            super.execute(_url,
+            execute(_url,
                     "start", Integer.toString(this.startItem),
                     "limit", Integer.toString(this.itemLimit),
                     "direction", "desc",
                     "sort", "dateAdded");
         } else {
-            super.execute(_url,
+            execute(_url,
                     "direction", "desc",
                     "sort", "dateAdded");
         }
@@ -135,6 +135,12 @@ public class ZoteroCollectionsTask extends ZoteroTask {
             collection.set_title(jobj.getString("name"));
         } catch (JSONException e) {
             collection.set_title("No title");
+        }
+
+        try {
+            collection.set_version(jobj.getString("version"));
+        } catch (JSONException e) {
+            collection.set_version("0000");
         }
 
         try {

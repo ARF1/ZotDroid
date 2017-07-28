@@ -57,13 +57,13 @@ public class ZoteroItemsTask extends ZoteroTask {
      */
     public void startZoteroTask(){
         if (_reset_mode) {
-            super.execute(_url,
+            execute(_url,
                     "start", Integer.toString(this.startItem),
                     "limit", Integer.toString(this.itemLimit),
                     "direction", "desc",
                     "sort", "dateAdded");
         } else {
-            super.execute(_url,
+            execute(_url,
                     "direction", "desc",
                     "sort", "dateAdded");
         }
@@ -146,7 +146,6 @@ public class ZoteroItemsTask extends ZoteroTask {
         // TODO - some attachments are top level - do we show these?
         try {
             attachment.set_parent(jobj.getString("parentItem"));
-            Log.i(TAG, "n: " + attachment.get_parent());
         } catch (JSONException e){
 
         }

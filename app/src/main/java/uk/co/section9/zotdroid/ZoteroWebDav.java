@@ -209,7 +209,6 @@ public class ZoteroWebDav {
             callback.onWebDavProgess(true, Integer.toString(progress[0]));
         }
 
-
         protected void onPostExecute(String rstring) {
 
             Log.i(TAG, "Post Execute: " + rstring);

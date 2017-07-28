@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.Util;
+import uk.co.section9.zotdroid.ZotDroidOps;
 
 /**
  * Created by oni on 11/07/2017.
@@ -15,26 +16,26 @@ import uk.co.section9.zotdroid.Util;
 
 public class RecordsTable extends BaseData {
 
-    public static final String TAG = "zotdroid.data.RecordsTable";
+    public final String TAG = "zotdroid.data.RecordsTable";
 
-    protected static final String TABLE_NAME = "records";
+    protected final String TABLE_NAME = "records";
 
-    public static String get_table_name(){
+    public String get_table_name(){
         return TABLE_NAME;
     }
 
-    public static void createTable(SQLiteDatabase db) {
+    public void createTable(SQLiteDatabase db) {
         String CREATE_TABLE_RECORDS = "CREATE TABLE \"" +TABLE_NAME + "\" (\"date_added\" DATETIME DEFAULT CURRENT_TIMESTAMP, " +
                 "\"content_type\" VARCHAR, \"item_type\" VARCHAR, \"title\" TEXT, \"author\" TEXT, " +
                 "\"zotero_key\" VARCHAR PRIMARY KEY, \"parent\" VARCHAR, \"version\" VARCHAR )";
         db.execSQL(CREATE_TABLE_RECORDS);
     }
 
-    public static void deleteTable(SQLiteDatabase db) {
+    public void deleteTable(SQLiteDatabase db) {
         db.execSQL("DROP TABLE IF EXISTS " + get_table_name());
     }
 
-    public static ContentValues getValues (ZoteroRecord record) {
+    public ContentValues getValues (ZoteroRecord record) {
         ContentValues values = new ContentValues();
         values.put("date_added", Util.dateToDBString(record.get_date_added()));
         values.put("zotero_key", record.get_zotero_key());
@@ -48,7 +49,7 @@ public class RecordsTable extends BaseData {
         return values;
     }
 
-    public static ZoteroRecord getRecordFromValues(ContentValues values) {
+    public ZoteroRecord getRecordFromValues(ContentValues values) {
         ZoteroRecord record = new ZoteroRecord();
         record.set_date_added( Util.dbStringToDate((String)values.get("date_added")));
         record.set_content_type((String)values.get("content_type"));
@@ -62,19 +63,35 @@ public class RecordsTable extends BaseData {
         return record;
     }
 
-    public static String recordExists(String key) {
-        return "select count(*) from \"" + get_table_name() + "\" where zotero_key=\"" + key + "\";"; }
+    public Boolean recordExists(String key, SQLiteDatabase db) {
+        String q = "select count(*) from \"" + get_table_name() + "\" where zotero_key=\"" + key + "\";";
+        return exists(q,db);
+    }
 
-    public void updateRecord(ZoteroRecord record) {
+    public void updateRecord(ZoteroRecord record, SQLiteDatabase db) {
+        db.execSQL("UPDATE " + get_table_name() +
+                " SET date_added=\"" + record.get_date_added() + "\", " +
+                "content_type=\"" + record.get_content_type() + "\", " +
+                "item_type=\"" + record.get_item_type() + "\", " +
+                "title=\"" + record.get_title() + "\", " +
+                "author=\"" + record.get_author() + "\", " +
+                "parent=\"" + record.get_parent() + "\", " +
+                "version=\"" + record.get_version() + "\" " +
+                "WHERE zotero_key=\"" + record.get_zotero_key() + "\";");
+
     }
 
     /**
      * Take a record and write it to the database
      * @param record
      */
-    public static void writeRecord( ZoteroRecord record, SQLiteDatabase db) {
+    public void writeRecord( ZoteroRecord record, SQLiteDatabase db) {
         ContentValues values = getValues(record);
         db.insert(get_table_name(), null, values);
+    }
+
+    public void deleteRecord( String key, SQLiteDatabase db ){
+        db.execSQL("DELETE FROM " + get_table_name() + " WHERE zotero_key=\"" + key + "\";");
     }
 
     /**
@@ -84,8 +101,8 @@ public class RecordsTable extends BaseData {
 
     }
 
-    public static String getRecord(String key){
-        return "select * from \"" + get_table_name() + "\" where zotero_key=\"" + key + "\";";
+    public ZoteroRecord getRecord(String key, SQLiteDatabase db){
+        return getRecordFromValues(getSingle(db,key));
     }
 
 

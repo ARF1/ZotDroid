@@ -22,7 +22,6 @@ public class ZoteroVerItemsTask extends ZoteroTask {
     ZoteroTaskCallback _callback;
     String _since_version;
 
-
     public ZoteroVerItemsTask (ZoteroTaskCallback callback, String since_version) {
         _callback = callback;
         _since_version = since_version;
@@ -30,15 +29,18 @@ public class ZoteroVerItemsTask extends ZoteroTask {
 
     @Override
     public void startZoteroTask() {
-        super.execute(BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items?since=" + _since_version + "&format=versions");
+        execute(BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items?since=" + _since_version + "&format=versions");
     }
 
     protected void onPostExecute(String rstring) {
 
         Vector<String> item_keys = new Vector<String>();
 
+        String version = "0000";
+
         try {
             JSONObject jObject = new JSONObject(rstring);
+            version = jObject.getString("Last-Modified-Version");
             JSONObject items = jObject.getJSONObject("results");
 
             Iterator i = items.keys();
@@ -46,12 +48,13 @@ public class ZoteroVerItemsTask extends ZoteroTask {
                 String key = (String)i.next();
                 item_keys.add(key);
             }
-            _callback.onItemVersion(this, true, "New items to check", item_keys);
+            _callback.onItemVersion(this, true, "New items to check", item_keys, version);
+            return;
 
         } catch (JSONException e) {
             e.printStackTrace();
             Log.e(TAG,"Error in parsing JSON Object.");
-            _callback.onItemVersion(this, false,"Erro in parsing JSON Object.", null);
+            _callback.onItemVersion(this, false,"Error in parsing JSON Object.", null, version);
             return;
         }
 

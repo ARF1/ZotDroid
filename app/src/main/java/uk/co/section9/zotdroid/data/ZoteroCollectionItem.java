@@ -9,7 +9,7 @@ package uk.co.section9.zotdroid.data;
 
 public class ZoteroCollectionItem {
 
-    public static final String TAG = "zotdroid.data.RecordsTable.ZoteroCollectionItem";
+    public static final String TAG = "zotdroid.data.ZoteroCollectionItem";
     
     // For now, we cover all the bases we need for all possible items
     // Eventually we might have separate record tables

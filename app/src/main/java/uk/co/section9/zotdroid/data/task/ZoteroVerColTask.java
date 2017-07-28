@@ -28,15 +28,18 @@ public class ZoteroVerColTask extends ZoteroTask {
 
     @Override
     public void startZoteroTask() {
-        super.execute(BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/collections?since=" + _since_version + "&format=versions");
+        execute(BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/collections?since=" + _since_version + "&format=versions");
     }
 
     protected void onPostExecute(String rstring) {
 
         Vector<String> item_keys = new Vector<String>();
 
+        String version = "0000";
+
         try {
             JSONObject jObject = new JSONObject(rstring);
+            version = jObject.getString("Last-Modified-Version");
             JSONObject items = jObject.getJSONObject("results");
 
             Iterator i = items.keys();
@@ -44,12 +47,12 @@ public class ZoteroVerColTask extends ZoteroTask {
                 String key = (String)i.next();
                 item_keys.add(key);
             }
-            _callback.onCollectionVersion(this, true, "New collections to check", item_keys);
+            _callback.onCollectionVersion(this, true, "New collections to check", item_keys, version);
 
         } catch (JSONException e) {
             e.printStackTrace();
             Log.e(TAG,"Error in parsing JSON Object.");
-            _callback.onCollectionVersion(this, false,"Erro in parsing JSON Object.", null);
+            _callback.onCollectionVersion(this, false,"Erro in parsing JSON Object.", null, version);
             return;
         }
 

@@ -18,8 +18,6 @@ public class CollectionsItemsTable extends BaseData {
     public void createTable(SQLiteDatabase db) {
         String CREATE_TABLE_COLLECTIONS = "CREATE TABLE \"" +TABLE_NAME + "\" ( \"collection\" VARCHAR, \"item\" VARCHAR )";
         db.execSQL(CREATE_TABLE_COLLECTIONS);
-        //String CREATE_TABLE_INDEX = "CREATE INDEX colindex ON  \"" +TABLE_NAME + "\" ( \"collection\" )";
-        //db.execSQL(CREATE_TABLE_INDEX);
     }
 
     public void deleteTable(SQLiteDatabase db) {

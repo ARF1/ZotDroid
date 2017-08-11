@@ -21,7 +21,7 @@ public class SummaryTable extends BaseData {
 
     public void createTable(SQLiteDatabase db) {
         String CREATE_TABLE_SUMMARY = "CREATE TABLE \"" + TABLE_NAME + "\" (\"date_synced\" DATETIME DEFAULT CURRENT_TIMESTAMP, " +
-                "\"last_version_items\" VARCHAR, \"last_version_collections\" VARCHAR)";
+                "\"last_version\" VARCHAR)";
         db.execSQL(CREATE_TABLE_SUMMARY);
     }
 
@@ -32,22 +32,15 @@ public class SummaryTable extends BaseData {
     public ContentValues getValues (ZoteroSummary summary) {
         ContentValues values = new ContentValues();
         values.put("date_synced", Util.dateToDBString(summary.get_date_synced()));
-        values.put("last_version_items", summary.get_last_version_items());
-        values.put("last_version_collections", summary.get_last_version_collections());
+        values.put("last_version", summary.get_last_version());
         return values;
     }
 
     public ZoteroSummary getSummaryFromValues(ContentValues values) {
         ZoteroSummary summary = new ZoteroSummary();
         summary.set_date_synced( Util.dbStringToDate((String)values.get("date_synced")));
-        summary.set_last_version_items((String)values.get("last_version_items"));
-        summary.set_last_version_collections((String)values.get("last_version_collections"));
+        summary.set_last_version((String)values.get("last_version"));
         return summary;
-    }
-
-
-    public void updateSummary(ZoteroSummary record) {
-
     }
 
     /**

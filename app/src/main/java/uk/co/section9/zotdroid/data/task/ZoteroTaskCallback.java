@@ -29,10 +29,10 @@ public interface ZoteroTaskCallback {
     void onCollectionVersion(ZoteroTask task, boolean success, String message, Vector<String> collections, String version);
 
     // Called when the various sync tasks have fully completed
-    void onSyncDelete (ZoteroTask task, boolean success, String message, Vector<String> items, Vector<String> collections);
-    void onSyncItemsVersion (ZoteroTask task, boolean success, String message, String records_version);
-    void onSyncCollectionsVersion (ZoteroTask task, boolean success, String message, String collections_version);
+    void onSyncDelete (ZoteroTask task, boolean success, String message, Vector<String> items, Vector<String> collections, String version);
+    void onSyncItemsVersion (ZoteroTask task, boolean success, String message, String version);
+    void onSyncCollectionsVersion (ZoteroTask task, boolean success, String message, String version);
 
     // Called when all of the above sync tasks are done
-    void onSyncCompletion(ZoteroTask task, boolean success, String message);
+    void onSyncCompletion(ZoteroTask task, boolean success, String message, String version);
 }

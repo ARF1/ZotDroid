@@ -12,6 +12,7 @@ import org.json.JSONObject;
 
 import java.util.Vector;
 
+import uk.co.section9.zotdroid.Util;
 import uk.co.section9.zotdroid.ZoteroBroker;
 import uk.co.section9.zotdroid.data.ZoteroAttachment;
 import uk.co.section9.zotdroid.data.ZoteroRecord;
@@ -85,6 +86,20 @@ public class ZoteroItemsTask extends ZoteroTask {
             record.set_title(jobj.getString("title"));
         } catch (JSONException e) {
             record.set_title("No title");
+        }
+
+        try {
+            String td = jobj.getString("dateAdded");
+            record.set_date_added(Util.jsonStringToDate(td));
+        } catch (JSONException e) {
+            // Pass - go with today's date
+        }
+
+        try {
+            String td = jobj.getString("dateModified");
+            record.set_date_modified(Util.jsonStringToDate(td));
+        } catch (JSONException e) {
+            // Pass - go with today's date
         }
 
         try {

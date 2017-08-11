@@ -61,7 +61,6 @@ public class AttachmentsTable extends BaseData {
     public Boolean attachmentExists(String key, SQLiteDatabase db){
         String q =  "select count(*) from \"" + get_table_name() + "\" where zotero_key=\"" + key + "\";";
         return exists(q,db);
-
     }
 
     public void deleteAttachment(String key, SQLiteDatabase db){

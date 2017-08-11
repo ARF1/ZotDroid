@@ -61,8 +61,14 @@ public class ZoteroRecord {
         return _date_added;
     }
 
-    public void set_date_added(Date date_added) {
-        this._date_added = date_added;
+    public void set_date_added(Date date_added) { this._date_added = date_added; }
+
+    public Date get_date_modified() {
+        return _date_modified;
+    }
+
+    public void set_date_modified(Date date_added) {
+        this._date_modified = date_added;
     }
 
     public void addAttachment(ZoteroAttachment attachment) { _attachments.add(attachment); }
@@ -91,6 +97,7 @@ public class ZoteroRecord {
     protected String    _title;
     protected String    _item_type;
     protected Date      _date_added;
+    protected Date      _date_modified;
     protected String    _version;
     protected String    _author; // TODO - Just one for now but we will add more
     protected String    _zotero_key;
@@ -105,6 +112,7 @@ public class ZoteroRecord {
 
     public ZoteroRecord(){
         _date_added = new Date();
+        _date_modified = new Date();
         _attachments = new Vector<ZoteroAttachment>();
         _collections = new Vector<ZoteroCollection>();
         _temp_collections = new Vector<String>(); // TODO - temporarily holding collection keys might not be the best way

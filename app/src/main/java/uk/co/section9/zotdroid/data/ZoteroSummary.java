@@ -21,30 +21,20 @@ public class ZoteroSummary extends BaseData {
         this._date_synced = _date_synced;
     }
 
-    public String get_last_version_items() {
-        return _last_version_items;
+    public String get_last_version() {
+        return _last_version;
     }
 
-    public void set_last_version_items(String last_version_items) {
-        this._last_version_items = last_version_items;
-    }
-
-    public String get_last_version_collections() {
-        return _last_version_collections;
-    }
-
-    public void set_last_version_collections(String last_version_collections) {
-        this._last_version_collections = last_version_collections;
+    public void set_last_version(String last_version) {
+        this._last_version = last_version;
     }
 
     protected Date _date_synced;
-    protected String _last_version_items;
-    protected String _last_version_collections;
+    protected String _last_version;
 
     public ZoteroSummary() {
         _date_synced = new Date();
-        _last_version_collections = "0000";
-        _last_version_items = "0000";
+        _last_version = "0000";
     }
 
 }

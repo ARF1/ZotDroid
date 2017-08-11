@@ -3,6 +3,7 @@ package uk.co.section9.zotdroid.data;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 
 import java.util.Date;
 import java.util.Vector;
@@ -16,7 +17,7 @@ import uk.co.section9.zotdroid.ZotDroidOps;
 
 public class RecordsTable extends BaseData {
 
-    public final String TAG = "zotdroid.data.RecordsTable";
+    public final String TAG = "RecordsTable";
 
     protected final String TABLE_NAME = "records";
 
@@ -26,7 +27,7 @@ public class RecordsTable extends BaseData {
 
     public void createTable(SQLiteDatabase db) {
         String CREATE_TABLE_RECORDS = "CREATE TABLE \"" +TABLE_NAME + "\" (\"date_added\" DATETIME DEFAULT CURRENT_TIMESTAMP, " +
-                "\"content_type\" VARCHAR, \"item_type\" VARCHAR, \"title\" TEXT, \"author\" TEXT, " +
+                "\"date_modified\" DATETIME DEFAULT CURRENT_TIMESTAMP, " + "\"content_type\" VARCHAR, \"item_type\" VARCHAR, \"title\" TEXT, \"author\" TEXT, " +
                 "\"zotero_key\" VARCHAR PRIMARY KEY, \"parent\" VARCHAR, \"version\" VARCHAR )";
         db.execSQL(CREATE_TABLE_RECORDS);
     }
@@ -38,6 +39,7 @@ public class RecordsTable extends BaseData {
     public ContentValues getValues (ZoteroRecord record) {
         ContentValues values = new ContentValues();
         values.put("date_added", Util.dateToDBString(record.get_date_added()));
+        values.put("date_modified", Util.dateToDBString(record.get_date_modified()));
         values.put("zotero_key", record.get_zotero_key());
         values.put("content_type", record.get_content_type());
         values.put("item_type", record.get_item_type());
@@ -52,6 +54,7 @@ public class RecordsTable extends BaseData {
     public ZoteroRecord getRecordFromValues(ContentValues values) {
         ZoteroRecord record = new ZoteroRecord();
         record.set_date_added( Util.dbStringToDate((String)values.get("date_added")));
+        record.set_date_modified( Util.dbStringToDate((String)values.get("date_modified")));
         record.set_content_type((String)values.get("content_type"));
         record.set_item_type((String)values.get("item_type"));
         record.set_title((String)values.get("title"));
@@ -70,7 +73,8 @@ public class RecordsTable extends BaseData {
 
     public void updateRecord(ZoteroRecord record, SQLiteDatabase db) {
         db.execSQL("UPDATE " + get_table_name() +
-                " SET date_added=\"" + record.get_date_added() + "\", " +
+                " SET date_added=\"" +  Util.dateToDBString(record.get_date_added()) + "\", " +
+                "date_modified=\"" +  Util.dateToDBString(record.get_date_modified()) + "\", " +
                 "content_type=\"" + record.get_content_type() + "\", " +
                 "item_type=\"" + record.get_item_type() + "\", " +
                 "title=\"" + record.get_title() + "\", " +
@@ -78,7 +82,6 @@ public class RecordsTable extends BaseData {
                 "parent=\"" + record.get_parent() + "\", " +
                 "version=\"" + record.get_version() + "\" " +
                 "WHERE zotero_key=\"" + record.get_zotero_key() + "\";");
-
     }
 
     /**
@@ -91,19 +94,12 @@ public class RecordsTable extends BaseData {
     }
 
     public void deleteRecord( String key, SQLiteDatabase db ){
+        Log.i(TAG,"Deleting from Records Table: " + key);
         db.execSQL("DELETE FROM " + get_table_name() + " WHERE zotero_key=\"" + key + "\";");
-    }
-
-    /**
-     * Delete all the records in the DB - Good for syncing perhaps?
-     */
-    public void clearRecords() {
-
     }
 
     public ZoteroRecord getRecord(String key, SQLiteDatabase db){
         return getRecordFromValues(getSingle(db,key));
     }
-
 
 }

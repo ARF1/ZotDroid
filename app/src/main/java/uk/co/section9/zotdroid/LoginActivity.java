@@ -23,7 +23,6 @@ public class LoginActivity extends AppCompatActivity  {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.zotero_login);
-
         Button mSignInButton = (Button) findViewById(R.id.sign_in_button);
         mSignInButton.setOnClickListener(new OnClickListener() {
             @Override
@@ -48,9 +47,7 @@ public class LoginActivity extends AppCompatActivity  {
      * errors are presented and no actual login attempt is made.
      */
     private void attemptLogin() {
-
         ZoteroBroker.AuthResult res = ZoteroBroker.getAuthURL();
-
         if (res.result) {
             Log.d(TAG, "Starting Browser based Auth.");
             startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(res.authUrl)));
@@ -131,6 +128,5 @@ public class LoginActivity extends AppCompatActivity  {
         Log.d(TAG, "Got new intent");
         finishLogin(intent);
     }
-
 }
 

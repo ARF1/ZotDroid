@@ -40,8 +40,15 @@ public class ZoteroDelTask extends ZoteroTask {
 
         try {
             JSONObject jObject = new JSONObject(rstring);
-            jObject = jObject.getJSONObject("results");
 
+            String version = "0000";
+            try {
+                version = jObject.getString("Last-Modified-Version");
+            } catch (JSONException e) {
+                Log.i(TAG,"No Last-Modified-Version in request.");
+            }
+
+            jObject = jObject.getJSONObject("results");
             JSONArray items = jObject.getJSONArray("items");
 
             for (int i=0; i < items.length(); i++) {
@@ -61,12 +68,13 @@ public class ZoteroDelTask extends ZoteroTask {
                 } catch (JSONException e) {
                 }
             }
-            _callback.onSyncDelete(this, true, "New items to delete", item_keys, collection_keys );
+
+            _callback.onSyncDelete(this, true, "New items to delete", item_keys, collection_keys, version );
 
         } catch (JSONException e) {
             e.printStackTrace();
             Log.e(TAG,"Error in parsing JSON Object.");
-            _callback.onSyncDelete(this, false,"Erro in parsing JSON Object.", null, null);
+            _callback.onSyncDelete(this, false,"Error in parsing JSON Object.", null, null, "0000");
             return;
         }
 

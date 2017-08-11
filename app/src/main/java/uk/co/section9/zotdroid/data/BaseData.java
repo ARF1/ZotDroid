@@ -13,7 +13,6 @@ public class BaseData {
     protected final String TABLE_NAME = "";
 
     public ContentValues getSingle(SQLiteDatabase db, String key){
-
         String q = "select * from \"" + this.get_table_name() + "\" where zotero_key=\"" + key + "\";";
         Cursor cursor = db.rawQuery(q, null);
         cursor.moveToFirst();

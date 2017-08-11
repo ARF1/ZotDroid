@@ -50,7 +50,6 @@ public class ZotDroidOps implements ZoteroTaskCallback {
     protected Vector<ZoteroCollection>  _collections = new Vector<ZoteroCollection>();
 
     private int _num_current_tasks = 0;
-
     public static final String TAG = "zotdroid.ZotDroidOps";
 
     public ZotDroidOps(Activity activity, ZotDroidCaller midnightcaller) {
@@ -112,7 +111,6 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         nukeMemory(); // Eventualy do something better.
         _current_tasks.add(new ZoteroCollectionsTask(this,0,25));
         _current_tasks.add(new ZoteroItemsTask(this,0,25));
-
         nextTask();
     }
 
@@ -123,8 +121,10 @@ public class ZotDroidOps implements ZoteroTaskCallback {
 
     public void sync(){
         ZoteroSummary s = _zotdroid_db.getSummary();
-        ZoteroSyncColTask zs = new ZoteroSyncColTask(this, s.get_last_version_collections());
+        ZoteroSyncColTask zs = new ZoteroSyncColTask(this, s.get_last_version());
         _current_tasks.add(zs);
+        ZoteroSyncItemsTask zt = new ZoteroSyncItemsTask(this,s.get_last_version());
+        _current_tasks.add(zt);
         nextTask();
     }
 
@@ -136,23 +136,16 @@ public class ZotDroidOps implements ZoteroTaskCallback {
     }
 
     private boolean nextTask() {
-
-        if (_current_tasks.isEmpty()) {
-            return false;
-        }
+        if (_current_tasks.isEmpty()) { return false; }
         _current_tasks.get(0).startZoteroTask();
         _current_tasks.remove(0);
         return true;
-
     }
 
     public void stop() {
-        for (ZoteroTask t : _current_tasks){
-            t.cancel(true);
-        }
+        for (ZoteroTask t : _current_tasks){ t.cancel(true); }
         _current_tasks.clear();
         _num_current_tasks = 0;
-
     }
 
     public Vector<ZoteroRecord> get_records() {
@@ -160,9 +153,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
     }
 
     public ZoteroRecord get_record(int idx) {
-        if (idx > 0 && idx < _records.size()) {
-            return _records.elementAt(idx);
-        }
+        if (idx > 0 && idx < _records.size()) { return _records.elementAt(idx); }
         return null;
     }
 
@@ -205,9 +196,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
      */
 
     public void update(){
-        if (_records.isEmpty()) {
-            populateFromDB();
-        }
+        if (_records.isEmpty()) { populateFromDB(); }
     }
 
     /**
@@ -215,9 +204,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
      */
 
     public void populateFromDB() {
-
         nukeMemory();
-
         // Start with Records
         int numrows = _zotdroid_db.getNumRecords();
 
@@ -231,14 +218,10 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         numrows = _zotdroid_db.getNumAttachments();
 
         for (int i=0; i < numrows; ++i){
-
             ZoteroAttachment attachment = _zotdroid_db.getAttachment(i);
             ZoteroRecord record = null;
             record = _key_to_record.get(attachment.get_parent());
-
-            if (record != null){
-                record.addAttachment(attachment);
-            }
+            if (record != null){ record.addAttachment(attachment); }
             _attachments.add(attachment);
         }
 
@@ -265,7 +248,6 @@ public class ZotDroidOps implements ZoteroTaskCallback {
 
         // This bit could be slow if there are loads of collections. There will be a faster
         // way to do it I would say.
-
         // Add the records to the collections they belong to.
         numrows = _zotdroid_db.getNumCollectionsItems();
 
@@ -316,7 +298,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
             ZoteroAttachment existing = _zotdroid_db.getAttachment(attachment.get_zotero_key());
             if (Integer.valueOf(existing.get_version()) < Integer.valueOf(attachment.get_version())){
                 // Perform an update :)
-
+                _zotdroid_db.updateAttachment(attachment);
             } else {
                 Log.d(TAG, "An attachment brought down has an older/same version.");
             }
@@ -341,56 +323,46 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         }
     }
 
+    /**
+     * This is called when an item is completed, specifically on a sync task (i.e not a reset and sync task)
+     * @param task
+     * @param success
+     * @param message
+     * @param records
+     * @param attachments
+     * @param version
+     */
 
     @Override
     public void onItemCompletion(ZoteroTask task, boolean success, String message, Vector<ZoteroRecord> records,
                                  Vector<ZoteroAttachment> attachments, String version) {
-
         _midnightcaller.onSyncProgress( (float)(_num_current_tasks  - _current_tasks.size()) / (float)_num_current_tasks);
-
         if (success) {
-            for (ZoteroRecord record : records){
-                checkUpdateRecord(record);
-            }
-
-            if (!nextTask()) {
-                onItemsCompletion(task, true, message, version);
-            }
-
+            for (ZoteroRecord record : records){ checkUpdateRecord(record); }
+            for (ZoteroAttachment attachment : attachments){ checkUpdateAttachment(attachment); }
+            if (!nextTask()) { onItemsCompletion(task, true, message, version); }
         } else {
-            for (ZoteroTask t : _current_tasks){
-                t.cancel(true);
-            }
-            _current_tasks.clear();
+            stop();
             _midnightcaller.onSyncFinish(success, message);
         }
-
-
     }
 
     /**
      * Called when the sync task completes and we have a stack of results to process.
      * Clears the list and adds what we get from the server
-     * TODO - eventually move this so all we do in this activity is UX stuff
+     * This version is called on a reset and sync where we have indices into the data
      * @param success
      */
     @Override
     public void onItemCompletion(ZoteroTask task, boolean success, String message, int new_index,
                                  int total, Vector<ZoteroRecord> records,
                                  Vector<ZoteroAttachment> attachments, String version) {
-
         String status_message = "";
         if (success) {
-            for (ZoteroRecord record : records){
-                checkUpdateRecord(record);
-            }
-
-            for (ZoteroAttachment attachment : attachments) {
-                checkUpdateAttachment(attachment);
-            }
+            for (ZoteroRecord record : records){ checkUpdateRecord(record); }
+            for (ZoteroAttachment attachment : attachments) { checkUpdateAttachment(attachment);}
 
             _midnightcaller.onSyncProgress((float)new_index / (float)total);
-
             // We fire off another task from here if success and we have more to go
             if (new_index + 1 <= total){
                 ZoteroTask t = new ZoteroItemsTask(this, new_index ,25);
@@ -403,6 +375,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
 
         } else {
             Log.e(TAG,"Error returned in onItemCompletion");
+            stop();
             _midnightcaller.onSyncFinish(false, "Error grabbing items from Zotero.");
         }
     }
@@ -416,22 +389,15 @@ public class ZotDroidOps implements ZoteroTaskCallback {
      */
     @Override
     public void onItemsCompletion(ZoteroTask task, boolean success, String message, String version) {
-
         if (success) {
             ZoteroSummary s = _zotdroid_db.getSummary();
-            s.set_last_version_items(version);
-            _zotdroid_db.writeSummary(s);
             Log.i(TAG,"Items Complete Version: " + version);
-
-            ZoteroDelTask dt = new ZoteroDelTask(this, version);
+            ZoteroDelTask dt = new ZoteroDelTask(this, s.get_last_version());
             _current_tasks.add(0,dt);
             nextTask();
 
         } else {
-            for (ZoteroTask t : _current_tasks){
-                t.cancel(true);
-            }
-            _current_tasks.clear();
+            stop();
             _midnightcaller.onSyncFinish(false, message);
         }
     }
@@ -445,46 +411,27 @@ public class ZotDroidOps implements ZoteroTaskCallback {
      */
 
     public void onCollectionsCompletion(ZoteroTask task, boolean success, String message, String version) {
-
         if (success) {
             ZoteroSummary s = _zotdroid_db.getSummary();
-            s.set_last_version_collections(version);
-            _zotdroid_db.writeSummary(s);
             Log.i(TAG,"Collections Complete Version: " + version);
-
-            ZoteroSyncItemsTask zt = new ZoteroSyncItemsTask(this,s.get_last_version_items());
-            _current_tasks.add(zt);
             nextTask();
-
         } else {
-            for (ZoteroTask t : _current_tasks){
-                t.cancel(true);
-            }
-            _current_tasks.clear();
-            _num_current_tasks = 0;
+           stop();
             _midnightcaller.onSyncFinish(false, message);
         }
     }
 
     public void onCollectionCompletion(ZoteroTask task, boolean success, String message, Vector<ZoteroCollection> collections, String version) {
-
         if (success) {
             for (ZoteroCollection collection : collections){
                 checkUpdateCollection(collection);
             }
-
-            if (!nextTask()) {
-                onCollectionsCompletion(task, true, message, version);
-            }
+            if (!nextTask()) { onCollectionsCompletion(task, true, message, version); }
 
         } else {
-            for (ZoteroTask t : _current_tasks){
-                t.cancel(true);
-            }
-            _current_tasks.clear();
+            stop();
             _midnightcaller.onSyncFinish(success, message);
         }
-
     }
 
     /**
@@ -500,7 +447,6 @@ public class ZotDroidOps implements ZoteroTaskCallback {
 
     public void onCollectionCompletion(ZoteroTask task, boolean success, String message, int new_index,
                                        int total, Vector<ZoteroCollection> collections, String version) {
-
         if (success) {
             for (ZoteroCollection collection : collections){
                 if (!_zotdroid_db.collectionExists(collection.get_zotero_key())) {
@@ -510,7 +456,6 @@ public class ZotDroidOps implements ZoteroTaskCallback {
                     ZoteroCollection existing = _zotdroid_db.getCollection(collection.get_zotero_key());
                     if (Integer.valueOf(existing.get_version()) < Integer.valueOf(collection.get_version())){
                         // Perform an update :)
-
                     } else {
                         Log.d(TAG, "A collection brought down has an older version.");
                     }
@@ -529,10 +474,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
             }
 
         } else {
-            for (ZoteroTask t : _current_tasks){
-                t.cancel(true);
-            }
-            _current_tasks.clear();
+            stop();
             _midnightcaller.onSyncFinish(success, message);
         }
     }
@@ -546,10 +488,10 @@ public class ZotDroidOps implements ZoteroTaskCallback {
     public void onItemVersion(ZoteroTask task, boolean success, String message, Vector<String> items, String version){
 
         Log.i(TAG, "Number of items that need updating: " + items.size());
-
         if (items.size() > 0) {
             Vector<String> keys = new Vector<String>();
             for (int i = 0; i < items.size(); ++i) {
+                Log.i(TAG,"Update Key: " + items.get(i));
                 keys.add(items.get(i));
                 if (keys.size() >= 20) {
                     ZoteroItemsTask zc = new ZoteroItemsTask(this, keys);
@@ -579,9 +521,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
     public void onCollectionVersion(ZoteroTask task, boolean success, String message, Vector<String> items, String version){
 
         Log.i(TAG, "Number of collections that need updating: " + items.size());
-
         // We now need to stagger the download and processing of these
-
         if (items.size() > 0 ) {
             Vector<String> keys = new Vector<String>();
             for (int i = 0; i < items.size(); ++i) {
@@ -597,7 +537,6 @@ public class ZotDroidOps implements ZoteroTaskCallback {
                 ZoteroCollectionsTask zc = new ZoteroCollectionsTask(this, keys);
                 _current_tasks.add(0, zc);
             }
-
             nextTask();
         } else {
             // Nothing to do so we are up-to-date and can complete
@@ -612,10 +551,10 @@ public class ZotDroidOps implements ZoteroTaskCallback {
      * @param message
      * @param items
      * @param collections
+     * @param version
      */
     @Override
-    public void onSyncDelete(ZoteroTask task, boolean success, String message, Vector<String> items, Vector<String> collections) {
-
+    public void onSyncDelete(ZoteroTask task, boolean success, String message, Vector<String> items, Vector<String> collections, String version) {
         Log.i(TAG,"Collections to delete: " + collections.size());
         Log.i(TAG,"Items to delete: " + items.size());
 
@@ -625,66 +564,48 @@ public class ZotDroidOps implements ZoteroTaskCallback {
             _zotdroid_db.deleteRecord(key);
         }
 
-        for (String key : collections){
-            _zotdroid_db.deleteCollection(key);
-        }
-
-        if (!nextTask()) {
-            onSyncCompletion(task, true,"Sync completed");
-        }
-
+        for (String key : collections){ _zotdroid_db.deleteCollection(key); }
+        if (!nextTask()) { onSyncCompletion(task, true,"Sync completed", version); }
     }
-
 
     /**
      * Callback from the first step of syncing, where we check the versions we have against the server
      * @param task
      * @param success
      * @param message
-     * @param collections_version
+     * @param version
      */
     @Override
-    public void onSyncCollectionsVersion(ZoteroTask task, boolean success, String message, String collections_version) {
+    public void onSyncCollectionsVersion(ZoteroTask task, boolean success, String message, String version) {
 
         if (success) {
-            Log.i(TAG,"Current Sync Collections: " + getItemsVersion() + " New Version: " + collections_version);
-
+            Log.i(TAG,"Current Sync Collections: " + getVersion() + " New Version: " + version);
             // Start with collections sync and then items afterwards
-            if (getCollectionsVersion() != collections_version) {
-                ZoteroVerColTask zc = new ZoteroVerColTask(this, getCollectionsVersion());
+            if (getVersion() != version) {
+                ZoteroVerColTask zc = new ZoteroVerColTask(this, getVersion());
                 _current_tasks.add(0,zc);
                 nextTask();
             } else {
-                onCollectionsCompletion(task,true,"Collections are up-to-date.",getCollectionsVersion());
+                onCollectionsCompletion(task,true,"Collections are up-to-date.",getVersion());
             }
-
-        } else {
-            onSyncCompletion(task, false, message);
-        }
+        } else { stop(); onSyncCompletion(task, false, message, version); }
     }
 
     @Override
-    public void onSyncItemsVersion(ZoteroTask task, boolean success, String message, String items_version) {
-
+    public void onSyncItemsVersion(ZoteroTask task, boolean success, String message, String version) {
         if (success) {
-            Log.i(TAG,"Current Sync Items: " + getItemsVersion() + " New Version: " + items_version);
-
+            Log.i(TAG,"Current Sync Items: " + getVersion() + " New Version: " + version);
             // Now we move onto the records if we need to
-            if (getItemsVersion() != items_version){
-                ZoteroVerItemsTask zv = new ZoteroVerItemsTask(this, getItemsVersion());
+            if (getVersion() != version){
+                ZoteroVerItemsTask zv = new ZoteroVerItemsTask(this, getVersion());
                 _current_tasks.add(0,zv);
                 nextTask();
             } else {
                 // We dont need to sync records so we are done (aside from deletion)
-                onSyncCompletion(task, true, "Sync completed");
+                onSyncCompletion(task, true, "Sync completed", version);
             }
-
-        } else {
-            onSyncCompletion(task, false, message);
-        }
+        } else { stop(); onSyncCompletion(task, false, message, version); }
     }
-
-
 
     /**
      * Once we have both collections and items, we need to properly link them up
@@ -692,7 +613,6 @@ public class ZotDroidOps implements ZoteroTaskCallback {
      */
 
     private void collectionItemsCreate(ZoteroRecord record) {
-
         for (String ts : record.get_temp_collections()){
             ZoteroCollectionItem ci = new ZoteroCollectionItem();
             ci.set_item(record.get_zotero_key());
@@ -700,30 +620,33 @@ public class ZotDroidOps implements ZoteroTaskCallback {
             _zotdroid_db.writeCollectionItem(ci);
         }
         record.get_temp_collections().clear();
-
     }
-
 
     /**
      * Get the currently held Items Version
      * @return
      */
-    public String getItemsVersion() { return _zotdroid_db.getSummary().get_last_version_items(); }
+    public String getVersion() { return _zotdroid_db.getSummary().get_last_version(); }
 
     /**
-     * Get the currently held Collections Version
-     * @return
+     * Final call back - the sync has completed
+     * @param task
+     * @param success
+     * @param message
+     * @param version
      */
-    public String getCollectionsVersion() { return _zotdroid_db.getSummary().get_last_version_collections(); }
-
-
-    public void onSyncCompletion(ZoteroTask task, boolean success, String message) {
+    public void onSyncCompletion(ZoteroTask task, boolean success, String message, String version) {
         _num_current_tasks = 0;
         _current_tasks.clear();
 
+        if (success) {
+            // If we've succeeded then we can write our latest version to the place
+            ZoteroSummary s = _zotdroid_db.getSummary();
+            s.set_last_version(version);
+            _zotdroid_db.writeSummary(s);
+        }
         // Call this anyway - it's probably for the best at this point
         this.populateFromDB();
-
         _midnightcaller.onSyncFinish(success,message);
     }
 }

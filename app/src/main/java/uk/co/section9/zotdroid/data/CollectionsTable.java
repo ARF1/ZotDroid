@@ -11,6 +11,8 @@ public class CollectionsTable extends BaseData {
 
     protected final String TABLE_NAME = "collections";
 
+    protected final String TAG= "CollectionsTable";
+
     public void createTable(SQLiteDatabase db) {
         String CREATE_TABLE_COLLECTIONS = "CREATE TABLE \"" +TABLE_NAME + "\" (\"title\" TEXT, " +
                 "\"zotero_key\" VARCHAR PRIMARY KEY, \"parent\" VARCHAR, \"version\" VARCHAR )";

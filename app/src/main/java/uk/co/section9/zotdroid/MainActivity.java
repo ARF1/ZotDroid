@@ -207,9 +207,7 @@ ZotDroidOps.ZotDroidCaller {
     public void onSyncFinish(boolean success, String message) {
         updateList(null);
         _loading_dialog.dismiss();
-
-        Log.i(TAG,"Items Version: " + _zotdroid_ops.getItemsVersion());
-        Log.i(TAG,"Collections Version: " + _zotdroid_ops.getCollectionsVersion());
+        Log.i(TAG,"Sync Version: " + _zotdroid_ops.getVersion());
     }
 
     /**

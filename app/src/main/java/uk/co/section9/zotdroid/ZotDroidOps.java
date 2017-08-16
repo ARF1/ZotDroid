@@ -35,7 +35,7 @@ import uk.co.section9.zotdroid.data.task.ZoteroVerItemsTask;
  * TODO - if we cancel a sync, we need to not replace anything!
  */
 
-public class ZotDroidOps implements ZoteroTaskCallback {
+public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDavCallback {
 
     private ZoteroWebDav            _zotero_webdav = new ZoteroWebDav();
     private ZotDroidDB              _zotdroid_db;
@@ -62,6 +62,30 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         _download_path = Environment.getExternalStorageDirectory().toString() + "/ZotDroid/";
         File root_dir = new File(_download_path);
         root_dir.mkdirs();
+    }
+
+    /**
+     * Called as WebDav process runs
+     * @param result
+     * @param message
+     */
+    @Override
+    public void onWebDavProgess(boolean result, String message) {
+        // Ignored for now
+    }
+
+    /**
+     * Called when a webdav process completes
+     * @param result
+     * @param message
+     */
+    @Override
+    public void onWebDavComplete(boolean result, String message) {
+        _midnightcaller.onWebDavTestFinish(result, message);
+    }
+
+    public void testWebDav() {
+        _zotero_webdav.testWebDav(_activity, this);
     }
 
     /**
@@ -98,6 +122,8 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         void onSyncFinish(boolean success, String message);
         void onDownloadProgress(float progress);
         void onDownloadFinish(boolean success, String message, String type);
+        // Called when WebDav Test completes
+        void onWebDavTestFinish(boolean success, String message);
     }
 
     /**
@@ -117,17 +143,27 @@ public class ZotDroidOps implements ZoteroTaskCallback {
     /**
      * A standard sync where we do things a bit more intelligent like
      * We start with the collections, then move onto records / items
+     * Returns true if syncing is possible, OR false if a full reset and
+     * sync is needed (i.e the DB is empty)
      */
 
-    public void sync(){
+    public boolean sync(){
         ZoteroSummary s = _zotdroid_db.getSummary();
+        if (s.get_last_version() == "0000"){
+            return false;
+        }
+
         ZoteroSyncColTask zs = new ZoteroSyncColTask(this, s.get_last_version());
         _current_tasks.add(zs);
         ZoteroSyncItemsTask zt = new ZoteroSyncItemsTask(this,s.get_last_version());
         _current_tasks.add(zt);
         nextTask();
+        return true;
     }
 
+    /**
+     * Erase all the currently held records, collections etc, in memory.
+     */
     private void nukeMemory(){
         _records.clear();
         _collections.clear();
@@ -135,6 +171,11 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         _key_to_record.clear();
     }
 
+    /**
+     * Remove the finished task, and start the next in the queue, returning true
+     * Returns false if this was the last task.
+     * @return
+     */
     private boolean nextTask() {
         if (_current_tasks.isEmpty()) { return false; }
         _current_tasks.get(0).startZoteroTask();
@@ -142,21 +183,35 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         return true;
     }
 
+    /**
+     * Stop the current task and clear all remaining tasks.
+     */
     public void stop() {
         for (ZoteroTask t : _current_tasks){ t.cancel(true); }
         _current_tasks.clear();
         _num_current_tasks = 0;
     }
 
+    /**
+     * @return the records in memory
+     */
     public Vector<ZoteroRecord> get_records() {
         return _records;
     }
 
+    /**
+     * get a particular record
+     * @param idx
+     * @return a particular record at position idx
+     */
     public ZoteroRecord get_record(int idx) {
         if (idx > 0 && idx < _records.size()) { return _records.elementAt(idx); }
         return null;
     }
 
+    /**
+     * Return the collections in memory
+     */
     public Vector<ZoteroCollection> get_collections() {
         return _collections;
     }
@@ -259,6 +314,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
                     for (ZoteroRecord r : _records){
                         if ( ct.get_item().contains(r.get_zotero_key())){
                             r.addCollection(c);
+                            c.add_record(r);
                             break;
                         }
                     }
@@ -268,6 +324,9 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         }
     }
 
+    /**
+     * Given a record, do we add it anew or alter an existing?
+     */
     private void checkUpdateRecord(ZoteroRecord record) {
         if (!_zotdroid_db.recordExists(record.get_zotero_key())) {
             _zotdroid_db.writeRecord(record);
@@ -290,6 +349,10 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         }
     }
 
+    /**
+     * Given an attachment, do we add it anew or alter an existing?
+     * @param attachment
+     */
     private void checkUpdateAttachment(ZoteroAttachment attachment) {
         if (!_zotdroid_db.attachmentExists(attachment.get_zotero_key())) {
             _zotdroid_db.writeAttachment(attachment);
@@ -305,6 +368,10 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         }
     }
 
+    /**
+     * Given a collection, do we add it anew or alter existing?
+     * @param collection
+     */
     private void checkUpdateCollection(ZoteroCollection collection) {
         if (!_zotdroid_db.collectionExists(collection.get_zotero_key())) {
             _zotdroid_db.writeCollection(collection);
@@ -325,7 +392,6 @@ public class ZotDroidOps implements ZoteroTaskCallback {
 
     /**
      * This is called when an item is completed, specifically on a sync task (i.e not a reset and sync task)
-     * @param task
      * @param success
      * @param message
      * @param records
@@ -334,13 +400,13 @@ public class ZotDroidOps implements ZoteroTaskCallback {
      */
 
     @Override
-    public void onItemCompletion(ZoteroTask task, boolean success, String message, Vector<ZoteroRecord> records,
+    public void onItemCompletion(boolean success, String message, Vector<ZoteroRecord> records,
                                  Vector<ZoteroAttachment> attachments, String version) {
         _midnightcaller.onSyncProgress( (float)(_num_current_tasks  - _current_tasks.size()) / (float)_num_current_tasks);
         if (success) {
             for (ZoteroRecord record : records){ checkUpdateRecord(record); }
             for (ZoteroAttachment attachment : attachments){ checkUpdateAttachment(attachment); }
-            if (!nextTask()) { onItemsCompletion(task, true, message, version); }
+            if (!nextTask()) { onItemsCompletion(true, message, version); }
         } else {
             stop();
             _midnightcaller.onSyncFinish(success, message);
@@ -354,7 +420,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
      * @param success
      */
     @Override
-    public void onItemCompletion(ZoteroTask task, boolean success, String message, int new_index,
+    public void onItemCompletion( boolean success, String message, int new_index,
                                  int total, Vector<ZoteroRecord> records,
                                  Vector<ZoteroAttachment> attachments, String version) {
         String status_message = "";
@@ -369,7 +435,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
                 _current_tasks.add(0,t);
                 nextTask();
             } else {
-                onItemsCompletion(task,success,message, version);
+                onItemsCompletion(success,message, version);
                 return;
             }
 
@@ -388,7 +454,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
      * @param success
      */
     @Override
-    public void onItemsCompletion(ZoteroTask task, boolean success, String message, String version) {
+    public void onItemsCompletion( boolean success, String message, String version) {
         if (success) {
             ZoteroSummary s = _zotdroid_db.getSummary();
             Log.i(TAG,"Items Complete Version: " + version);
@@ -404,13 +470,12 @@ public class ZotDroidOps implements ZoteroTaskCallback {
 
     /**
      * Called when all the collections have finished being pulled down and processed
-     * @param task
      * @param success
      * @param message
      * @param version
      */
 
-    public void onCollectionsCompletion(ZoteroTask task, boolean success, String message, String version) {
+    public void onCollectionsCompletion( boolean success, String message, String version) {
         if (success) {
             ZoteroSummary s = _zotdroid_db.getSummary();
             Log.i(TAG,"Collections Complete Version: " + version);
@@ -421,12 +486,20 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         }
     }
 
-    public void onCollectionCompletion(ZoteroTask task, boolean success, String message, Vector<ZoteroCollection> collections, String version) {
+    /**
+     * Called when a single collection has been completed
+     * @param success
+     * @param message
+     * @param collections
+     * @param version
+     */
+
+    public void onCollectionCompletion( boolean success, String message, Vector<ZoteroCollection> collections, String version) {
         if (success) {
             for (ZoteroCollection collection : collections){
                 checkUpdateCollection(collection);
             }
-            if (!nextTask()) { onCollectionsCompletion(task, true, message, version); }
+            if (!nextTask()) { onCollectionsCompletion(true, message, version); }
 
         } else {
             stop();
@@ -439,13 +512,12 @@ public class ZotDroidOps implements ZoteroTaskCallback {
      * We need to check if these already exist or not, as these can come from both reset
      * or normal sync
      * TODO - We need to check for any possible conflicts here
-     * @param task
      * @param success
      * @param message
      * @param collections
      */
 
-    public void onCollectionCompletion(ZoteroTask task, boolean success, String message, int new_index,
+    public void onCollectionCompletion(boolean success, String message, int new_index,
                                        int total, Vector<ZoteroCollection> collections, String version) {
         if (success) {
             for (ZoteroCollection collection : collections){
@@ -469,23 +541,22 @@ public class ZotDroidOps implements ZoteroTaskCallback {
                 nextTask();
 
             } else {
-                onCollectionsCompletion(task, success ,message, version);
+                onCollectionsCompletion( success ,message, version);
                 return;
             }
-
         } else {
             stop();
             _midnightcaller.onSyncFinish(success, message);
         }
     }
 
+
     /**
      * We now have a list of things that have changed
-     * @param task
      * @param success
      * @param message
      */
-    public void onItemVersion(ZoteroTask task, boolean success, String message, Vector<String> items, String version){
+    public void onItemVersion( boolean success, String message, Vector<String> items, String version){
 
         Log.i(TAG, "Number of items that need updating: " + items.size());
         if (items.size() > 0) {
@@ -508,17 +579,16 @@ public class ZotDroidOps implements ZoteroTaskCallback {
             _num_current_tasks = _current_tasks.size(); // Set this so we can have progress bars
             nextTask();
         } else {
-            onItemsCompletion(task,success,message,version);
+            onItemsCompletion(success,message,version);
         }
     }
 
     /**
      * We now have a list of collections that have changed
-     * @param task
      * @param success
      * @param message
      */
-    public void onCollectionVersion(ZoteroTask task, boolean success, String message, Vector<String> items, String version){
+    public void onCollectionVersion(boolean success, String message, Vector<String> items, String version){
 
         Log.i(TAG, "Number of collections that need updating: " + items.size());
         // We now need to stagger the download and processing of these
@@ -540,13 +610,12 @@ public class ZotDroidOps implements ZoteroTaskCallback {
             nextTask();
         } else {
             // Nothing to do so we are up-to-date and can complete
-            onCollectionsCompletion(task, true, message, version);
+            onCollectionsCompletion(true, message, version);
         }
     }
 
     /**
      * Called when our task to find items to delete returns
-     * @param task
      * @param success
      * @param message
      * @param items
@@ -554,7 +623,7 @@ public class ZotDroidOps implements ZoteroTaskCallback {
      * @param version
      */
     @Override
-    public void onSyncDelete(ZoteroTask task, boolean success, String message, Vector<String> items, Vector<String> collections, String version) {
+    public void onSyncDelete(boolean success, String message, Vector<String> items, Vector<String> collections, String version) {
         Log.i(TAG,"Collections to delete: " + collections.size());
         Log.i(TAG,"Items to delete: " + items.size());
 
@@ -565,18 +634,17 @@ public class ZotDroidOps implements ZoteroTaskCallback {
         }
 
         for (String key : collections){ _zotdroid_db.deleteCollection(key); }
-        if (!nextTask()) { onSyncCompletion(task, true,"Sync completed", version); }
+        if (!nextTask()) { onSyncCompletion(true,"Sync completed", version); }
     }
 
     /**
      * Callback from the first step of syncing, where we check the versions we have against the server
-     * @param task
      * @param success
      * @param message
      * @param version
      */
     @Override
-    public void onSyncCollectionsVersion(ZoteroTask task, boolean success, String message, String version) {
+    public void onSyncCollectionsVersion( boolean success, String message, String version) {
 
         if (success) {
             Log.i(TAG,"Current Sync Collections: " + getVersion() + " New Version: " + version);
@@ -586,13 +654,19 @@ public class ZotDroidOps implements ZoteroTaskCallback {
                 _current_tasks.add(0,zc);
                 nextTask();
             } else {
-                onCollectionsCompletion(task,true,"Collections are up-to-date.",getVersion());
+                onCollectionsCompletion(true,"Collections are up-to-date.",getVersion());
             }
-        } else { stop(); onSyncCompletion(task, false, message, version); }
+        } else { stop(); onSyncCompletion(false, message, version); }
     }
 
+    /**
+     * Called when we have a list of items to sync
+     * @param success
+     * @param message
+     * @param version
+     */
     @Override
-    public void onSyncItemsVersion(ZoteroTask task, boolean success, String message, String version) {
+    public void onSyncItemsVersion(boolean success, String message, String version) {
         if (success) {
             Log.i(TAG,"Current Sync Items: " + getVersion() + " New Version: " + version);
             // Now we move onto the records if we need to
@@ -602,9 +676,9 @@ public class ZotDroidOps implements ZoteroTaskCallback {
                 nextTask();
             } else {
                 // We dont need to sync records so we are done (aside from deletion)
-                onSyncCompletion(task, true, "Sync completed", version);
+                onSyncCompletion(true, "Sync completed", version);
             }
-        } else { stop(); onSyncCompletion(task, false, message, version); }
+        } else { stop(); onSyncCompletion(false, message, version); }
     }
 
     /**
@@ -630,12 +704,11 @@ public class ZotDroidOps implements ZoteroTaskCallback {
 
     /**
      * Final call back - the sync has completed
-     * @param task
      * @param success
      * @param message
      * @param version
      */
-    public void onSyncCompletion(ZoteroTask task, boolean success, String message, String version) {
+    public void onSyncCompletion(boolean success, String message, String version) {
         _num_current_tasks = 0;
         _current_tasks.clear();
 

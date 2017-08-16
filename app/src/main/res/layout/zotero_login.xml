@@ -11,6 +11,14 @@
     tools:context="uk.co.section9.zotdroid.LoginActivity">
 
     <!-- Login progress -->
+    <TextView
+        android:text="You must login to your Zotero account. Press the button below to launch a browser window, then following the instructions on the Zotero Website"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/textView"
+        android:textAppearance="@style/TextAppearance.AppCompat"
+        android:textAlignment="center" />
+
     <ProgressBar
         android:id="@+id/login_progress"
         style="?android:attr/progressBarStyleLarge"
@@ -45,11 +53,12 @@
             <Button
                 android:id="@+id/sign_in_button"
                 style="?android:textAppearanceSmall"
-                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:text="@string/action_sign_in"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:layout_width="match_parent"
+                android:maxWidth="176dip" />
 
         </LinearLayout>
     </ScrollView>

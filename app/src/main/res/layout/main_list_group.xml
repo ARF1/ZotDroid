@@ -3,15 +3,16 @@
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
+    android:background="@android:color/white"
     android:padding="8dp"
     >
 
     <TextView
         android:id="@+id/group"
+        android:textSize="10pt"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:textColor="@android:color/white"
+        android:textColor="@android:color/black"
         android:textStyle="bold" />
 
 </LinearLayout>

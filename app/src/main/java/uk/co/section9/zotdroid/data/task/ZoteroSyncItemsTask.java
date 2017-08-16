@@ -35,7 +35,7 @@ public class ZoteroSyncItemsTask extends ZoteroTask {
     protected void onPostExecute(String rstring) {
         // Check we didn't get a failure on that rsync call
         if (rstring == "FAIL"){
-            _callback.onSyncItemsVersion(this,false,"Version grab for items failed.","0000");
+            _callback.onSyncItemsVersion(false,"Version grab for items failed.","0000");
             return;
         }
 
@@ -43,12 +43,12 @@ public class ZoteroSyncItemsTask extends ZoteroTask {
             JSONObject jObject = new JSONObject(rstring);
             try {
                 _new_version_items = jObject.getString("Last-Modified-Version");
-                _callback.onSyncItemsVersion(this,true,"Version grab complete", _new_version_items);
+                _callback.onSyncItemsVersion(true,"Version grab complete", _new_version_items);
                 return;
 
             } catch (JSONException e) {
                 Log.i(TAG, "No Last-Modified-Version in request.");
-                _callback.onSyncItemsVersion(this,false,"Version grab for items failed.","0000");
+                _callback.onSyncItemsVersion(false,"Version grab for items failed.","0000");
                 return;
             }
         } catch (JSONException e) {

@@ -23,5 +23,6 @@
         android:icon="@android:drawable/ic_popup_sync"
         android:visible="true"
         android:checkable="false"
-        android:enabled="true" />
+        android:enabled="true"
+        android:orderInCategory="101" />
 </menu>

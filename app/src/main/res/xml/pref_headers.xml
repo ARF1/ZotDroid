@@ -12,9 +12,4 @@
         android:icon="@drawable/ic_sync_black_24dp"
         android:title="WebDav" />
 
-    <header
-        android:fragment="uk.co.section9.zotdroid.SettingsActivity$DataSyncPreferenceFragment"
-        android:icon="@drawable/ic_sync_black_24dp"
-        android:title="@string/pref_header_data_sync" />
-
 </preference-headers>

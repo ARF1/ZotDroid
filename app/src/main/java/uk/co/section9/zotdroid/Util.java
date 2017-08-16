@@ -16,8 +16,8 @@ import java.util.TimeZone;
 public class Util {
 
     public static final TimeZone UTC = TimeZone.getTimeZone("UTC");
-    public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssXXX";
-    public static final String DB_DATE_FORMAT = "yyyy-MM-dd HH:mm:ssXXX";
+    public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    public static final String DB_DATE_FORMAT = "yyyy-MM-dd HH:mm:ssZ";
 
     public static Date jsonStringToDate(String s) {
         SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault());

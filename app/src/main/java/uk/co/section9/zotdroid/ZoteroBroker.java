@@ -7,7 +7,6 @@ package uk.co.section9.zotdroid;
  */
 
 import oauth.signpost.*;
-import oauth.signpost.basic.DefaultOAuthConsumer;
 import oauth.signpost.basic.DefaultOAuthProvider;
 import oauth.signpost.commonshttp.CommonsHttpOAuthConsumer;
 import oauth.signpost.exception.OAuthCommunicationException;
@@ -15,25 +14,16 @@ import oauth.signpost.exception.OAuthExpectationFailedException;
 import oauth.signpost.exception.OAuthMessageSignerException;
 import oauth.signpost.exception.OAuthNotAuthorizedException;
 import oauth.signpost.http.HttpParameters;
-
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.AsyncTask;
-import android.os.Parcel;
-import android.os.Parcelable;
 import android.os.StrictMode;
 import android.preference.PreferenceManager;
 import android.util.Log;
-
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -122,7 +112,6 @@ public class ZoteroBroker {
         void onAuthCompletion(boolean result);
     }
 
-
     public static void passCreds(Activity activity, ZoteroAuthCallback callback){
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(activity);
         ACCESS_TOKEN = settings.getString("settings_user_key",ACCESS_TOKEN);
@@ -164,6 +153,11 @@ public class ZoteroBroker {
         };
         thread.start();
     }
+
+    /**
+     * Set the creds from the main activity shared preferences
+     * @param activity
+     */
 
     public static void setCreds(Activity activity){
 

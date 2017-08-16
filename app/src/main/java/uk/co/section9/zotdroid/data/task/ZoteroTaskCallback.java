@@ -15,24 +15,25 @@ import uk.co.section9.zotdroid.data.ZoteroRecord;
  */
 public interface ZoteroTaskCallback {
     // Called when items tasks finish (either one batch or all batches)
-    void onItemsCompletion(ZoteroTask task, boolean success, String message, String version);
-    void onItemCompletion(ZoteroTask task, boolean success, String message, int new_index, int total, Vector<ZoteroRecord> records, Vector<ZoteroAttachment> attachments, String version);
-    void onItemCompletion(ZoteroTask task, boolean success, String message, Vector<ZoteroRecord> records, Vector<ZoteroAttachment> attachments, String version);
+    void onItemsCompletion(boolean success, String message, String version);
+    void onItemCompletion(boolean success, String message, int new_index, int total, Vector<ZoteroRecord> records, Vector<ZoteroAttachment> attachments, String version);
+    void onItemCompletion(boolean success, String message, Vector<ZoteroRecord> records, Vector<ZoteroAttachment> attachments, String version);
 
     // Called when collections tasks finish (either one batch, or all batches)
-    void onCollectionsCompletion(ZoteroTask task, boolean success, String message, String version);
-    void onCollectionCompletion(ZoteroTask task, boolean success, String message, int new_index, int total, Vector<ZoteroCollection> collections, String version);
-    void onCollectionCompletion(ZoteroTask task, boolean success, String message,  Vector<ZoteroCollection> collections, String version);
+    void onCollectionsCompletion(boolean success, String message, String version);
+    void onCollectionCompletion(boolean success, String message, int new_index, int total, Vector<ZoteroCollection> collections, String version);
+    void onCollectionCompletion(boolean success, String message,  Vector<ZoteroCollection> collections, String version);
 
     // Called when we get the latest version number back from the server
-    void onItemVersion(ZoteroTask task, boolean success, String message, Vector<String> items, String version);
-    void onCollectionVersion(ZoteroTask task, boolean success, String message, Vector<String> collections, String version);
+    void onItemVersion(boolean success, String message, Vector<String> items, String version);
+    void onCollectionVersion(boolean success, String message, Vector<String> collections, String version);
 
     // Called when the various sync tasks have fully completed
-    void onSyncDelete (ZoteroTask task, boolean success, String message, Vector<String> items, Vector<String> collections, String version);
-    void onSyncItemsVersion (ZoteroTask task, boolean success, String message, String version);
-    void onSyncCollectionsVersion (ZoteroTask task, boolean success, String message, String version);
+    void onSyncDelete (boolean success, String message, Vector<String> items, Vector<String> collections, String version);
+    void onSyncItemsVersion (boolean success, String message, String version);
+    void onSyncCollectionsVersion (boolean success, String message, String version);
 
     // Called when all of the above sync tasks are done
-    void onSyncCompletion(ZoteroTask task, boolean success, String message, String version);
+    void onSyncCompletion(boolean success, String message, String version);
+
 }

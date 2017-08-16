@@ -48,13 +48,13 @@ public class ZoteroVerItemsTask extends ZoteroTask {
                 String key = (String)i.next();
                 item_keys.add(key);
             }
-            _callback.onItemVersion(this, true, "New items to check", item_keys, version);
+            _callback.onItemVersion(true, "New items to check", item_keys, version);
             return;
 
         } catch (JSONException e) {
             e.printStackTrace();
             Log.e(TAG,"Error in parsing JSON Object.");
-            _callback.onItemVersion(this, false,"Error in parsing JSON Object.", null, version);
+            _callback.onItemVersion(false,"Error in parsing JSON Object.", null, version);
             return;
         }
 

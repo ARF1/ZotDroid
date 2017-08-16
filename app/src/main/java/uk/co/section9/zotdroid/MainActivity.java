@@ -9,7 +9,6 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.SubMenu;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -26,16 +25,15 @@ import android.widget.Button;
 import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Vector;
 
-import uk.co.section9.zotdroid.data.CollectionsItemsTable;
 import uk.co.section9.zotdroid.data.ZoteroAttachment;
 import uk.co.section9.zotdroid.data.ZoteroCollection;
 import uk.co.section9.zotdroid.data.ZoteroRecord;
@@ -52,17 +50,18 @@ ZotDroidOps.ZotDroidCaller {
     private static int              ZOTERO_LOGIN_REQUEST = 1667;
 
     private Dialog                  _loading_dialog;
-    private Dialog                  _download_dialog;
-    private Dialog                  _webdav_dialog;
+    private Dialog                  _download_dialog; // TODO - Do we need both?
 
     private ZotDroidOps             _zotdroid_ops;
+    private ZoteroCollection        _filter = null; // Current category we are in.
 
-    private ExpandableListAdapter                   _main_list_adapter;
-    private ExpandableListView                      _main_list_view;
+    private ExpandableListAdapter   _main_list_adapter;
+    private ExpandableListView      _main_list_view;
 
     ArrayList< String >                    _main_list_items = new ArrayList< String >  ();
     ArrayList< String >                    _main_list_collections = new ArrayList< String >  ();
     HashMap< String, ArrayList<String> >   _main_list_sub_items =  new HashMap< String, ArrayList<String> >();
+
     /**
      * onCreate as standard. Attempts to auth and if we arent authed, launches the login screen.
      *
@@ -76,14 +75,14 @@ ZotDroidOps.ZotDroidCaller {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-      /*  FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                Snackbar.make(view, "Doesn't do much yet but maybe one day.", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
-        })*/
+        });
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -91,28 +90,14 @@ ZotDroidOps.ZotDroidCaller {
 
         toggle.syncState();
 
-        //NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        //navigationView.setNavigationItemSelectedListener(this);
-
         // Setup the main list of items
         _main_list_view = (ExpandableListView) findViewById(R.id.listViewMain);
-
 
         // Pass this activity - ZoteroBroker will look for credentials
         ZoteroBroker.passCreds(this,this);
 
-        // Now check to see if we need to launch the login process
-        // TODO - this is a network op so needs to be in an AsyncTask we need to implement
-        /*if (!ZoteroBroker.isAuthed()){
-            Log.i(TAG,"Not authed. Performing OAUTH.");
-            Intent loginIntent = new Intent(this, LoginActivity.class);
-            loginIntent.setAction("zotdroid.LoginActivity.LOGIN");
-            this.startActivityForResult(loginIntent,ZOTERO_LOGIN_REQUEST);
-        }*/
-
         _zotdroid_ops = new ZotDroidOps(this, this);
-        updateList(null);
-
+        updateList(_filter);
     }
 
     /**
@@ -127,6 +112,9 @@ ZotDroidOps.ZotDroidCaller {
         dialog.setContentView(R.layout.fragment_loading);
         dialog.setCanceledOnTouchOutside(false);
         dialog.setCancelable(true);
+
+        ProgressBar pb = (ProgressBar) dialog.findViewById(R.id.progressBarDownload);
+        pb.setVisibility(View.VISIBLE);
 
         DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
         int dialogWidth = (int)(displayMetrics.widthPixels * 0.85);
@@ -147,6 +135,10 @@ ZotDroidOps.ZotDroidCaller {
         return dialog;
     }
 
+    /**
+     * Launch a loading dialog for showing progress and the like
+     * @return
+     */
 
     private Dialog launchDownloadDialog() {
         final Dialog dialog = new Dialog(this);
@@ -165,15 +157,14 @@ ZotDroidOps.ZotDroidCaller {
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 dialog.dismiss();
+                _zotdroid_ops.stop();
             }
         });
 
         dialog.show();
         return dialog;
     }
-
 
     /**
      * Reset everything and do a full sync from scratch
@@ -183,19 +174,29 @@ ZotDroidOps.ZotDroidCaller {
         _main_list_items.clear();
         _main_list_collections.clear();
         _zotdroid_ops.resetAndSync();
-
     }
 
     /**
-     * Do a standard, partial sync
+     * Do a standard, partial sync if we can, else resetAndSync
      */
     protected void sync() {
+        if (!_zotdroid_ops.sync()) {
+            resetAndSync();
+            return;
+        }
         _loading_dialog = launchLoadingDialog();
         _main_list_items.clear();
         _main_list_collections.clear();
-        _zotdroid_ops.sync();
-
     }
+
+    protected void startTestWebDav() {
+        _loading_dialog = launchLoadingDialog();
+        String status_message = "Testing Webdav Connection.";
+        TextView messageView = (TextView) _loading_dialog.findViewById(R.id.textViewLoading);
+        messageView.setText(status_message);
+        _zotdroid_ops.testWebDav();
+    }
+
 
     public void onSyncProgress(float progress) {
         String status_message = "Loading. " + Float.toString( Math.round(progress * 100.0f)) + "% complete.";
@@ -205,7 +206,7 @@ ZotDroidOps.ZotDroidCaller {
     }
 
     public void onSyncFinish(boolean success, String message) {
-        updateList(null);
+        updateList(_filter);
         _loading_dialog.dismiss();
         Log.i(TAG,"Sync Version: " + _zotdroid_ops.getVersion());
     }
@@ -214,6 +215,7 @@ ZotDroidOps.ZotDroidCaller {
        LoginActivity returns with some data for us, but we write it to the
         shared preferences here.
      */
+
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         Log.i(TAG,"Returned from Zotero Login hopefully.");
         if (requestCode == ZOTERO_LOGIN_REQUEST) {
@@ -224,8 +226,7 @@ ZotDroidOps.ZotDroidCaller {
         }
     }
 
-
-    @Override
+  /*  @Override
     public void onBackPressed() {
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         if (drawer.isDrawerOpen(GravityCompat.START)) {
@@ -233,9 +234,9 @@ ZotDroidOps.ZotDroidCaller {
         } else {
             super.onBackPressed();
         }
-    }
+    }*/
 
-    @Override
+    /*@Override
     public void onResume(){
         super.onResume();
 
@@ -243,34 +244,12 @@ ZotDroidOps.ZotDroidCaller {
         //if (ZoteroBroker.isAuthed()){
         //    sync();
         //}
-    }
-
-
-    @Override
-    public boolean onCreatePanelMenu(int featureId, Menu menu) {
-        return super.onCreatePanelMenu(featureId, menu);
-
-        // This is where we create our menu from collections
-/*        getMenuInflater().inflate(R.menu.activity_main_drawer, menu);
-
-        menu.addSubMenu(Menu.NONE, R.id.collections_menu , Menu.NONE,"Menu1");
-
-        SubMenu themeMenu = menu.findItem(R.id.collections_menu).getSubMenu();
-
-        themeMenu.clear();
-        themeMenu.add(0, 1, Menu.NONE, "Automatic");
-        themeMenu.add(0, 2, Menu.NONE, "Default");
-        themeMenu.add(0, 3, Menu.NONE, "Night");
-        themeMenu.add(0, 4, Menu.NONE, "Battery Saving");
-
-        return true;*/
-    }
+    }*/
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
-
         return true;
     }
 
@@ -283,7 +262,9 @@ ZotDroidOps.ZotDroidCaller {
 
         switch (id) {
             case R.id.action_settings:
-                this.startActivityForResult(new Intent(this, SettingsActivity.class),1);
+                //this.startActivityForResult(new Intent(this, SettingsActivity.class), 1);
+                Intent si = new Intent(this,SettingsActivity.class);
+                startActivity(si);
                 return true;
             case R.id.action_reset_sync:
                 if (ZoteroBroker.isAuthed()) {
@@ -307,7 +288,7 @@ ZotDroidOps.ZotDroidCaller {
                 return true;
 
             case R.id.action_test_webdav:
-                //testWebdav();
+                startTestWebDav();
                 return true;
 
             default:
@@ -317,23 +298,7 @@ ZotDroidOps.ZotDroidCaller {
 
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
-        int id = item.getItemId();
-/*
-        if (id == R.id.nav_camera) {
-            // Handle the camera action
-        } else if (id == R.id.nav_gallery) {
-
-        } else if (id == R.id.nav_slideshow) {
-
-        } else if (id == R.id.nav_manage) {
-
-        } else if (id == R.id.nav_share) {
-
-        } else if (id == R.id.nav_send) {
-
-        }*/
-
+        // Handle navigation view item clicks here
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
@@ -345,19 +310,14 @@ ZotDroidOps.ZotDroidCaller {
      */
 
     public void chooseCollection(int position) {
-
         // First is always *All* so subtract one
-        if (position > 0 ){
-            ZoteroCollection c = _zotdroid_ops.get_collection(position-1);
-            if (c != null) {
-                updateList(c);
-            } else {
-                updateList(null);
-            }
-        } else {
-            // The *ALL*
-            updateList(null);
+        if (position > 0 ) {
+            _filter = _zotdroid_ops.get_collection(position - 1);
+        }else {
+            _filter = null;
         }
+        updateList(_filter);
+
     }
 
     /**
@@ -375,12 +335,13 @@ ZotDroidOps.ZotDroidCaller {
         for (ZoteroRecord record : records) {
 
             if (filter == null || record.inCollection(filter)) {
-                _main_list_items.add(record.get_title());
+                String tt = record.get_title() + " - " + record.get_author();
+                _main_list_items.add(tt);
                 ArrayList<String> tl = new ArrayList<String>();
                 for (ZoteroAttachment attachment : record.get_attachments()) {
                     tl.add(attachment.get_file_name());
                 }
-                _main_list_sub_items.put(record.get_title(), tl);
+                _main_list_sub_items.put(tt, tl);
             }
         }
 
@@ -391,14 +352,20 @@ ZotDroidOps.ZotDroidCaller {
 
             @Override
             public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
+                ZoteroRecord record = null;
+                if (_filter == null) {
+                    record = _zotdroid_ops.get_record(groupPosition);
+                } else {
+                    Vector<ZoteroRecord> tv = _filter.get_records();
+                    if (groupPosition < tv.size()) {
+                        record = tv.elementAt(groupPosition);
+                    }
+                }
 
-                //Toast.makeText(getApplicationContext(), "child clicked", Toast.LENGTH_SHORT).show();
-                ZoteroRecord record = _zotdroid_ops.get_record(groupPosition);
-                if (record != null){
+                if (record != null) {
                     _download_dialog = launchDownloadDialog();
                     _zotdroid_ops.startAttachmentDownload(record, childPosition);
                 }
-
                 return true;
             }
         });
@@ -415,13 +382,19 @@ ZotDroidOps.ZotDroidCaller {
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, _main_list_collections);
         drawer_list.setAdapter(adapter);
 
+        // On-click show only these items in a particular collection and set the title to reflect this.
         drawer_list.setOnItemClickListener(new AdapterView.OnItemClickListener()
         {
             @Override
             public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3)
             {
-                Log.i(TAG,_main_list_collections.get(position).toString());
+                String cat = _main_list_collections.get(position).toString();
+                Log.i(TAG,cat);
                 chooseCollection(position);
+                Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+                Toast.makeText(getApplicationContext(), "Selecting: " + cat, Toast.LENGTH_SHORT).show();
+
+                toolbar.setTitle("ZotDroid: " + cat);
             }
         });
     }
@@ -443,7 +416,6 @@ ZotDroidOps.ZotDroidCaller {
         } else {
 
             Intent intent = new Intent();
-
             File ff7 =  new File(message);
 
             if (ff7.exists()){
@@ -469,6 +441,25 @@ ZotDroidOps.ZotDroidCaller {
         }
     }
 
+    /**
+     * Called when a webdav test process finishes.
+     * @param success
+     * @param message
+     */
+    @Override
+    public void onWebDavTestFinish(boolean success, String message) {
+        String status_message = "Connection Failed: " + message;
+        if (success) {
+            status_message = "Connection succeded";
+        }
+        TextView messageView = (TextView) _loading_dialog.findViewById(R.id.textViewLoading);
+        messageView.setText(status_message);
+        Button button = (Button) _loading_dialog.findViewById(R.id.buttonCancel);
+        button.setText("Dismiss");
+
+        ProgressBar pb = (ProgressBar) _loading_dialog.findViewById(R.id.progressBarDownload);
+        pb.setVisibility(View.INVISIBLE);
+    }
 
     /**
      * Called when we are checking authorisation of our tokens
@@ -476,8 +467,5 @@ ZotDroidOps.ZotDroidCaller {
      */
     @Override
     public void onAuthCompletion(boolean result) {
-
     }
-
-
 }

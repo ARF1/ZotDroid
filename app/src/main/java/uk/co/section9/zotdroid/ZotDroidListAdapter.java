@@ -16,6 +16,9 @@ import java.util.List;
  * http://android-coding.blogspot.co.uk/2014/02/expandablelistview-example.html
  */
 
+/**
+ * Our main class that deals with the big list of Zotero records.
+ */
 public class ZotDroidListAdapter extends BaseExpandableListAdapter {
 
     Context _context;

@@ -7,31 +7,42 @@
     tools:context="uk.co.section9.zotdroid.LoadingFragment"
     android:id="@+id/fragment_loading">
 
-    <ProgressBar
-        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="187dp"
-        android:id="@+id/progressBarDownload"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true" />
 
-    <Button
-        android:text="Cancel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="110dp"
-        android:id="@+id/buttonCancelDownload"
-        android:layout_below="@+id/progressBarDownload"
-        android:layout_alignStart="@+id/progressBarDownload" />
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-    <TextView
-        android:text="Synchronising"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/textViewDownloading"
-        android:textSize="24sp"
-        android:textColor="@color/common_google_signin_btn_text_dark_default" />
+        <TextView
+            android:text="Synchronising"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textViewDownloading"
+            android:textSize="24sp"
+            android:textColor="@color/common_google_signin_btn_text_dark_default" />
+
+        <ProgressBar
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="187dp"
+            android:id="@+id/progressBarDownload"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:verticalScrollbarPosition="defaultPosition"
+            android:layout_gravity="center_vertical|center_horizontal" />
+
+        <Button
+            android:text="Cancel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="110dp"
+            android:id="@+id/buttonCancelDownload"
+            android:layout_below="@+id/progressBarDownload"
+            android:layout_alignStart="@+id/progressBarDownload"
+            android:maxWidth="172dip" />
+
+    </LinearLayout>
 
     <!-- TODO: Update blank fragment layout -->
 

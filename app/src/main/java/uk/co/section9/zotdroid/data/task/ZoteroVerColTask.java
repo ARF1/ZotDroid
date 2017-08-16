@@ -47,12 +47,12 @@ public class ZoteroVerColTask extends ZoteroTask {
                 String key = (String)i.next();
                 item_keys.add(key);
             }
-            _callback.onCollectionVersion(this, true, "New collections to check", item_keys, version);
+            _callback.onCollectionVersion(true, "New collections to check", item_keys, version);
 
         } catch (JSONException e) {
             e.printStackTrace();
             Log.e(TAG,"Error in parsing JSON Object.");
-            _callback.onCollectionVersion(this, false,"Erro in parsing JSON Object.", null, version);
+            _callback.onCollectionVersion(false,"Erro in parsing JSON Object.", null, version);
             return;
         }
 

@@ -3,25 +3,19 @@ package uk.co.section9.zotdroid;
 import android.app.Activity;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.util.Base64;
 import android.util.Log;
-
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.zip.ZipInputStream;
 import javax.net.ssl.HttpsURLConnection;
-
-import uk.co.section9.zotdroid.data.RecordsTable;
 
 /**
  * Created by oni on 13/07/2017.
@@ -32,8 +26,8 @@ public class ZoteroWebDav {
     public static final String TAG = "zotdroid.ZoteroWebDav";
 
     public interface ZoteroWebDavCallback {
-        public void onWebDavProgess(boolean result, String message);
-        public void onWebDavComplete(boolean result, String message);
+        void onWebDavProgess(boolean result, String message);
+        void onWebDavComplete(boolean result, String message);
     }
 
     /**
@@ -49,33 +43,28 @@ public class ZoteroWebDav {
 
         protected String doInBackground(String... address) {
             String result = "SUCCESS";
-
             URL url = null;
+
             try {
                 url = new URL(address[0]);
             } catch (MalformedURLException e) {
+                result = "Malformed address. Check your WebDav Server setting.";
                 e.printStackTrace();
                 return result;
             }
 
-            String username = address[1];
-            String password = address[2];
-
+            final String username = address[1];
+            final String password = address[2];
             HttpsURLConnection urlConnection = null;
-            try {
 
+            try {
                 String basic_auth = getB64Auth(username,password);
                 urlConnection = (HttpsURLConnection) url.openConnection();
                 urlConnection.setRequestProperty("Authorization", basic_auth);
+                urlConnection.connect();
 
                 try {
-                    BufferedReader r = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
-                    StringBuilder total = new StringBuilder();
-                    String line;
-                    while ((line = r.readLine()) != null) {
-                        total.append(line).append('\n');
-                    }
-
+                    String line = urlConnection.getContent().toString();
                 } catch (IOException e) {
                     InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
                     e.printStackTrace();
@@ -92,7 +81,6 @@ public class ZoteroWebDav {
         }
 
         protected void onPostExecute(String rstring) {
-
             Log.i(TAG, rstring);
             if (rstring != "SUCCESS"){
                 callback.onWebDavComplete(false, rstring);
@@ -102,6 +90,12 @@ public class ZoteroWebDav {
         }
     }
 
+    /**
+     * Given two strings, return a proper basic auth string
+     * @param login
+     * @param pass
+     * @return
+     */
     private String getB64Auth (String login, String pass) {
         String source=login+":"+pass;
         String ret="Basic "+ Base64.encodeToString(source.getBytes(),Base64.URL_SAFE|Base64.NO_WRAP);
@@ -111,18 +105,15 @@ public class ZoteroWebDav {
     /**
      * The async derived class that actually performs the real work.
      */
-
     private class WebDavRequest extends AsyncTask<String,Integer,String> {
 
         ZoteroWebDavCallback callback;
-
         public WebDavRequest(ZoteroWebDavCallback callback){
             this.callback = callback;
         }
 
         protected String doInBackground(String... address) {
-
-            String result = "*FAIL*";
+            String result = "SUCCESS";
             URL url = null;
 
             // Credentials are address[1] / username and address[2] / password
@@ -137,6 +128,7 @@ public class ZoteroWebDav {
                 url = new URL(address[0] + "/" + filename);
             } catch (MalformedURLException e) {
                 e.printStackTrace();
+                result = "Malformed URL.";
                 return result;
             }
 
@@ -171,7 +163,9 @@ public class ZoteroWebDav {
                     while ((bytes_read = zin.read(bytes, 0, bytes.length)) > 0) {
                         out.write(bytes, 0, bytes_read);
                         total_bytes_read += bytes_read;
-                        int progress = (int) Math.round( (float) total_bytes_read / (float) total * 100.0);
+                        // For some reason, this seems to go over 100% - I guess because there are headers
+                        // or some other data not included in the getContentLength field, so we cap it.
+                        int progress = (int) Math.min(Math.round( (float) total_bytes_read / (float) total * 100.0),100.0);
                         publishProgress(progress);
                     }
 
@@ -187,58 +181,76 @@ public class ZoteroWebDav {
                 } catch (IOException e) {
                     InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
                     e.printStackTrace();
-                    result = "*FAIL*ioerror";
+                    result = "I/O error";
                 } finally {
                     urlConnection.disconnect();
                 }
             } catch ( FileNotFoundException e){
                 e.printStackTrace();
-                result = "*FAIL*File not found.";
+                result = "*File not found.";
             } catch (IOException e) {
                 InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
                 // TODO - do something with the error streams at some point
                 e.printStackTrace();
-                result = "*FAIL*ioerror.";
+                result = "I/O error.";
             }
 
             return result;
         }
+
+        /**
+         * Called as the task progresses
+         * @param progress
+         */
 
         protected void onProgressUpdate(Integer... progress) {
             Log.i(TAG,"Progress: " + Integer.toString(progress[0]));
             callback.onWebDavProgess(true, Integer.toString(progress[0]));
         }
 
+        /**
+         * Called once a task has completed
+         * @param rstring
+         */
         protected void onPostExecute(String rstring) {
-
             Log.i(TAG, "Post Execute: " + rstring);
-            if (rstring.startsWith("*FAIL*")){
-                callback.onWebDavComplete(false, rstring.replace("*FAIL*",""));
+            if (rstring != "SUCCESS"){
+                callback.onWebDavComplete(false, rstring);
                 return;
             }
             callback.onWebDavComplete(true, rstring);
         }
     }
 
+    /**
+     * Test the webdav connection to see if it works at all
+     * @param activity
+     * @param callback
+     */
     public void testWebDav(Activity activity, ZoteroWebDavCallback callback){
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(activity);
         String username = settings.getString("settings_webdav_username","username");
         String password = settings.getString("settings_webdav_password","password");
         String server_address = settings.getString("settings_webdav_address","address");
-
         new WebDavTest(callback).execute(server_address, username, password);
     }
 
 
+    /**
+     * Actually download a file and save it to the SDCard if possible.
+     * @param filename
+     * @param file_path
+     * @param final_filename
+     * @param activity
+     * @param callback
+     */
     public void downloadAttachment(String filename, String file_path, String final_filename, Activity activity, ZoteroWebDavCallback callback){
         // Get the credentials we need for this
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(activity);
         String username = settings.getString("settings_webdav_username","username");
         String password = settings.getString("settings_webdav_password","password");
         String server_address = settings.getString("settings_webdav_address","address");
-
         new WebDavRequest(callback).execute(server_address, username, password, filename, file_path, final_filename);
-
     }
 }
 

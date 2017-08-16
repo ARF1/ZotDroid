@@ -118,7 +118,7 @@ public class ZoteroItemsTask extends ZoteroTask {
         try {
             record.set_item_type(jobj.getString("itemType"));
         } catch (JSONException e){
-            record.set_parent("");
+            record.set_item_type("");
         }
 
         try {
@@ -185,7 +185,7 @@ public class ZoteroItemsTask extends ZoteroTask {
 
         // Check we didn't get a failure on that rsync call
         if (rstring == "FAIL"){
-            callback.onItemsCompletion(this, false, rstring, "0000");
+            callback.onItemsCompletion(false, rstring, "0000");
             return;
         }
 
@@ -221,21 +221,21 @@ public class ZoteroItemsTask extends ZoteroTask {
 
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    callback.onItemCompletion(this, false, "", 0, total, null, null,"0000");
+                    callback.onItemCompletion(false, "", 0, total, null, null,"0000");
                     return;
                 }
             }
 
             if (_reset_mode) {
-                callback.onItemCompletion(this, true, "", startItem + jArray.length(), total, records, attachments, version);
+                callback.onItemCompletion(true, "", startItem + jArray.length(), total, records, attachments, version);
             } else {
-                callback.onItemCompletion(this, true, "", records, attachments, version);
+                callback.onItemCompletion(true, "", records, attachments, version);
             }
 
         } catch (JSONException e) {
             e.printStackTrace();
             Log.e(TAG,"Error in parsing JSON Object.");
-            callback.onItemsCompletion(this, false,"Erro in parsing JSON Object.", "0000");
+            callback.onItemsCompletion(false,"Erro in parsing JSON Object.", "0000");
         }
     }
 }

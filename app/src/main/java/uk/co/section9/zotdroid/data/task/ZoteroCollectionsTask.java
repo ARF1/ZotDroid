@@ -72,7 +72,7 @@ public class ZoteroCollectionsTask extends ZoteroTask {
 
         // Check we didn't get a failure on that rsync call
         if (rstring == "FAIL"){
-            callback.onCollectionsCompletion(this, false, rstring, "0000");
+            callback.onCollectionsCompletion(false, rstring, "0000");
             return;
         }
 
@@ -104,21 +104,21 @@ public class ZoteroCollectionsTask extends ZoteroTask {
                     collections.add(processEntry(jobj));
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    callback.onCollectionsCompletion(this, false, "", version);
+                    callback.onCollectionsCompletion(false, "", version);
                     return;
                 }
             }
 
             if (_reset_mode) {
-                callback.onCollectionCompletion(this, true, "", startItem + jArray.length(), total, collections, version);
+                callback.onCollectionCompletion(true, "", startItem + jArray.length(), total, collections, version);
             } else {
-                callback.onCollectionCompletion(this, true, "", collections, version);
+                callback.onCollectionCompletion(true, "", collections, version);
             }
 
         } catch (JSONException e) {
             e.printStackTrace();
             Log.e(TAG,"Error in parsing JSON Object.");
-            callback.onCollectionsCompletion(this, false,"Error in parsing JSON Object.", "0000");
+            callback.onCollectionsCompletion(false,"Error in parsing JSON Object.", "0000");
         }
     }
 

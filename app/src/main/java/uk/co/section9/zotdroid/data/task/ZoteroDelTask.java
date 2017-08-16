@@ -69,12 +69,12 @@ public class ZoteroDelTask extends ZoteroTask {
                 }
             }
 
-            _callback.onSyncDelete(this, true, "New items to delete", item_keys, collection_keys, version );
+            _callback.onSyncDelete(true, "New items to delete", item_keys, collection_keys, version );
 
         } catch (JSONException e) {
             e.printStackTrace();
             Log.e(TAG,"Error in parsing JSON Object.");
-            _callback.onSyncDelete(this, false,"Error in parsing JSON Object.", null, null, "0000");
+            _callback.onSyncDelete(false,"Error in parsing JSON Object.", null, null, "0000");
             return;
         }
 

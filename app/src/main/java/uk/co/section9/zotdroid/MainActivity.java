@@ -7,8 +7,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.widget.SearchView;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
@@ -51,16 +53,19 @@ ZotDroidOps.ZotDroidCaller {
 
     private Dialog                  _loading_dialog;
     private Dialog                  _download_dialog; // TODO - Do we need both?
-
     private ZotDroidOps             _zotdroid_ops;
     private ZoteroCollection        _filter = null; // Current category we are in.
-
     private ExpandableListAdapter   _main_list_adapter;
     private ExpandableListView      _main_list_view;
 
+    // Our main list memory locations
     ArrayList< String >                    _main_list_items = new ArrayList< String >  ();
     ArrayList< String >                    _main_list_collections = new ArrayList< String >  ();
     HashMap< String, ArrayList<String> >   _main_list_sub_items =  new HashMap< String, ArrayList<String> >();
+
+    // Our current mapping, given search and similar. List ID to ZoteroRecord basically
+    HashMap < Integer, ZoteroRecord >       _main_list_map = new HashMap<Integer, ZoteroRecord>();
+    HashMap < Integer, ZoteroCollection >   _collection_list_map = new HashMap<Integer, ZoteroCollection>();
 
     /**
      * onCreate as standard. Attempts to auth and if we arent authed, launches the login screen.
@@ -72,9 +77,33 @@ ZotDroidOps.ZotDroidCaller {
         super.onCreate(savedInstanceState);
         Log.i(TAG,"Creating...");
         setContentView(R.layout.activity_main);
+
+        // Setup the toolbar with the extra search
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View sl = inflater.inflate(R.layout.search, null);
+        toolbar.addView(sl);
+        SearchView sv = (SearchView) findViewById(R.id.recordsearch);
+        sv.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                filterList(query);
+                return false;
+            }
 
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                // I put a check in here to reset if everything is blank
+                if (newText.isEmpty()){
+                    filterList();
+                }
+                return false;
+            }
+        });
+
+
+        // Setup the little floating dot that I like
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -95,9 +124,9 @@ ZotDroidOps.ZotDroidCaller {
 
         // Pass this activity - ZoteroBroker will look for credentials
         ZoteroBroker.passCreds(this,this);
-
         _zotdroid_ops = new ZotDroidOps(this, this);
-        updateList(_filter);
+        filterList();
+        setDrawer();
     }
 
     /**
@@ -171,8 +200,6 @@ ZotDroidOps.ZotDroidCaller {
      */
     protected void resetAndSync() {
         _loading_dialog = launchLoadingDialog();
-        _main_list_items.clear();
-        _main_list_collections.clear();
         _zotdroid_ops.resetAndSync();
     }
 
@@ -185,8 +212,6 @@ ZotDroidOps.ZotDroidCaller {
             return;
         }
         _loading_dialog = launchLoadingDialog();
-        _main_list_items.clear();
-        _main_list_collections.clear();
     }
 
     protected void startTestWebDav() {
@@ -206,7 +231,8 @@ ZotDroidOps.ZotDroidCaller {
     }
 
     public void onSyncFinish(boolean success, String message) {
-        updateList(_filter);
+        filterList();
+        setDrawer();
         _loading_dialog.dismiss();
         Log.i(TAG,"Sync Version: " + _zotdroid_ops.getVersion());
     }
@@ -305,43 +331,49 @@ ZotDroidOps.ZotDroidCaller {
     }
 
     /**
-     * Refine the list when we click on a collection
-     * @param position
+     * Filter the current list just by the collection, using internal _filter class param
      */
-
-    public void chooseCollection(int position) {
-        // First is always *All* so subtract one
-        if (position > 0 ) {
-            _filter = _zotdroid_ops.get_collection(position - 1);
-        }else {
-            _filter = null;
-        }
-        updateList(_filter);
-
+    public void filterList() {
+        filterList("");
     }
 
     /**
-     * Update our list from what is held by ZotDroidOps
-     * @param filter - null or a zotero key
+     * Check a record to see if anything matches the search term.
+     * @param record
+     * @param searchterm
      */
-    public void updateList(ZoteroCollection filter) {
+    private boolean searchRecord(ZoteroRecord record, String searchterm) {
+        if (searchterm == ""){ return true; }
+        if (record.get_author().contains(searchterm)) { return true;}
+        else if (record.get_title().contains(searchterm)){ return true; }
+        return false;
+    }
+
+    /**
+     * Update our list from what is held by ZotDroidOps by choosing a collection
+     * and a potential search term
+     * We use the internal class variable _filter which is set by clicking the drawer
+     * @param searchterm - a term for searching from the search bar
+     */
+    private void filterList( String searchterm) {
         _main_list_items.clear();
-        _main_list_collections.clear();
-        // Make sure we are up to date
-        _zotdroid_ops.update();
+        _main_list_map.clear();
+        _zotdroid_ops.update(); // Make sure we are up to date
 
         Vector<ZoteroRecord> records = _zotdroid_ops.get_records();
 
         for (ZoteroRecord record : records) {
-
-            if (filter == null || record.inCollection(filter)) {
-                String tt = record.get_title() + " - " + record.get_author();
-                _main_list_items.add(tt);
-                ArrayList<String> tl = new ArrayList<String>();
-                for (ZoteroAttachment attachment : record.get_attachments()) {
-                    tl.add(attachment.get_file_name());
+            if (_filter == null || record.inCollection(_filter)) {
+                if (searchRecord(record, searchterm)) {
+                    String tt = record.get_title() + " - " + record.get_author();
+                    _main_list_map.put(new Integer(_main_list_items.size()), record);
+                    _main_list_items.add(tt);
+                    ArrayList<String> tl = new ArrayList<String>();
+                    for (ZoteroAttachment attachment : record.get_attachments()) {
+                        tl.add(attachment.get_file_name());
+                    }
+                    _main_list_sub_items.put(tt, tl);
                 }
-                _main_list_sub_items.put(tt, tl);
             }
         }
 
@@ -353,14 +385,7 @@ ZotDroidOps.ZotDroidCaller {
             @Override
             public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
                 ZoteroRecord record = null;
-                if (_filter == null) {
-                    record = _zotdroid_ops.get_record(groupPosition);
-                } else {
-                    Vector<ZoteroRecord> tv = _filter.get_records();
-                    if (groupPosition < tv.size()) {
-                        record = tv.elementAt(groupPosition);
-                    }
-                }
+                record = _main_list_map.get(new Integer((groupPosition)));
 
                 if (record != null) {
                     _download_dialog = launchDownloadDialog();
@@ -370,13 +395,37 @@ ZotDroidOps.ZotDroidCaller {
             }
         });
 
+    }
+
+    private void recSetDrawer(ZoteroCollection c, int level) {
+        _collection_list_map.put(_main_list_collections.size(),c);
+        String indent = "";
+        for (int i = 0; i < level; i++) { indent += "..."; }
+        _main_list_collections.add(indent + c.get_title());
+        for (ZoteroCollection cc : c.get_sub_collections()) {
+            recSetDrawer(cc,level + 1);
+        }
+    }
+
+    /**
+     * A subroutine to set the left-hand collections drawer
+     */
+    public void setDrawer() {
         // Now create our lefthand drawer from the collections
         ListView drawer_list = (ListView) findViewById(R.id.left_drawer);
-
+        _main_list_collections.clear();
+        _collection_list_map.clear();
+        _collection_list_map.put(new Integer(0),null);
         _main_list_collections.add("All");
 
+        // Firstly, get the top level collections
+        Vector<ZoteroCollection> toplevels = new Vector<ZoteroCollection>();
         for (ZoteroCollection c : _zotdroid_ops._collections) {
-            _main_list_collections.add(c.get_title());
+            if (!c.has_parent()){ toplevels.add(c); }
+        }
+
+        for (ZoteroCollection c: toplevels){
+            recSetDrawer(c,0);
         }
 
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, _main_list_collections);
@@ -388,13 +437,16 @@ ZotDroidOps.ZotDroidCaller {
             @Override
             public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3)
             {
-                String cat = _main_list_collections.get(position).toString();
-                Log.i(TAG,cat);
-                chooseCollection(position);
+                _filter = _collection_list_map.get(position);
+                filterList();
                 Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-                Toast.makeText(getApplicationContext(), "Selecting: " + cat, Toast.LENGTH_SHORT).show();
-
-                toolbar.setTitle("ZotDroid: " + cat);
+                if (_filter != null) {
+                    Toast.makeText(getApplicationContext(), "Selecting: " + _filter.get_title(), Toast.LENGTH_SHORT).show();
+                    toolbar.setTitle("ZotDroid: " + _filter.get_title());
+                } else {
+                    Toast.makeText(getApplicationContext(), "Selecting: ALL", Toast.LENGTH_SHORT).show();
+                    toolbar.setTitle("ZotDroid:");
+                }
             }
         });
     }

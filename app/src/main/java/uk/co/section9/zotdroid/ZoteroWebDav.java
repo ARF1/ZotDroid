@@ -25,6 +25,9 @@ public class ZoteroWebDav {
 
     public static final String TAG = "zotdroid.ZoteroWebDav";
 
+    private WebDavRequest _request;
+    private WebDavTest _test;
+
     public interface ZoteroWebDavCallback {
         void onWebDavProgess(boolean result, String message);
         void onWebDavComplete(boolean result, String message);
@@ -223,6 +226,19 @@ public class ZoteroWebDav {
     }
 
     /**
+     * Stop any current download request.
+     */
+    void stop() {
+        if (_request != null) {
+            _request.cancel(true);
+        }
+
+        if (_test != null) {
+            _test.cancel(true);
+        }
+    }
+
+    /**
      * Test the webdav connection to see if it works at all
      * @param activity
      * @param callback
@@ -232,7 +248,8 @@ public class ZoteroWebDav {
         String username = settings.getString("settings_webdav_username","username");
         String password = settings.getString("settings_webdav_password","password");
         String server_address = settings.getString("settings_webdav_address","address");
-        new WebDavTest(callback).execute(server_address, username, password);
+        _test = new WebDavTest(callback);
+        _test.execute(server_address, username, password);
     }
 
 
@@ -250,7 +267,8 @@ public class ZoteroWebDav {
         String username = settings.getString("settings_webdav_username","username");
         String password = settings.getString("settings_webdav_password","password");
         String server_address = settings.getString("settings_webdav_address","address");
-        new WebDavRequest(callback).execute(server_address, username, password, filename, file_path, final_filename);
+        _request = new WebDavRequest(callback);
+        _request.execute(server_address, username, password, filename, file_path, final_filename);
     }
 }
 

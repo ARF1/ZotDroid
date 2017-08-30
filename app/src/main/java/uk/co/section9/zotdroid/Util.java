@@ -20,6 +20,8 @@ public class Util {
     public static final String DB_DATE_FORMAT = "yyyy-MM-dd HH:mm:ssZ";
 
     public static Date jsonStringToDate(String s) {
+        // This apparently was supposed to work but really doesnt ><
+        /*
         SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT, Locale.getDefault());
         // This effectively removes the 'T' that the DB complains about.
         try {
@@ -27,7 +29,16 @@ public class Util {
         } catch (ParseException e) {
             e.printStackTrace();
         }
+        return new Date();*/
+        SimpleDateFormat dateFormat = new SimpleDateFormat(DB_DATE_FORMAT, Locale.getDefault());
+        try {
+            s.replace('T',' ');
+            return dateFormat.parse(s);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
         return new Date();
+
     }
 
     public static String dateToDBString(Date d){

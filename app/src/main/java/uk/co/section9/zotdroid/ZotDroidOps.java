@@ -6,6 +6,8 @@ import android.os.Environment;
 import android.util.Log;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
@@ -185,11 +187,13 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDa
 
     /**
      * Stop the current task and clear all remaining tasks.
+     * Also cancel any download operations
      */
     public void stop() {
         for (ZoteroTask t : _current_tasks){ t.cancel(true); }
         _current_tasks.clear();
         _num_current_tasks = 0;
+        _zotero_webdav.stop();
     }
 
     /**
@@ -281,7 +285,6 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDa
         }
 
         // Now go with collections
-
         numrows = _zotdroid_db.getNumCollections();
 
         for (int i=0; i < numrows; ++i) {
@@ -290,12 +293,20 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDa
             _collections.add(collection);
         }
 
+        // Sort collection via title each time - consistent for the user
+        Collections.sort(_collections, new Comparator<ZoteroCollection>() {
+            @Override
+            public int compare(ZoteroCollection c0, ZoteroCollection c1) {
+               return c0.get_title().compareTo(c1.get_title());
+            }
+        });
+
         // Go through and create our 'pointers'
         // Could be slow for big collections
 
         for (ZoteroCollection c : _collections){
             for (ZoteroCollection d : _collections){
-                if (d.get_parent() == c.get_zotero_key()){
+                if (d.get_parent().contains(c.get_zotero_key())){ // TODO - Not sure this contains is ideal?
                     c.add_collection(d);
                 }
             }
@@ -337,7 +348,6 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDa
             if (Integer.valueOf(existing.get_version()) < Integer.valueOf(record.get_version())){
                 // Perform an update :)
                 _zotdroid_db.updateRecord(record);
-
                 // At this point the record will likely have different collections too
                 // so we simply rebuild them from our new fresh record
                 _zotdroid_db.removeRecordFromCollections(record.get_zotero_key());

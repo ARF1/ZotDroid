@@ -71,15 +71,13 @@ public class DatabaseTest {
         db.writeSummary(s);
 
         ZoteroSummary summary = db.getSummary();
-        assertEquals(summary.get_last_version_collections(),"0000");
-        assertEquals(summary.get_last_version_items(),"0000");
+        assertEquals(summary.get_last_version(),"0000");
 
-        s.set_last_version_items("1234");
-        s.set_last_version_collections("5678");
+        s.set_last_version("1234");
         db.writeSummary(s);
 
         summary = db.getSummary();
-        assertEquals(summary.get_last_version_items(),"1234");
-        assertEquals(summary.get_last_version_collections(),"5678");
+        assertEquals(summary.get_last_version(),"1234");
+
     }
 }

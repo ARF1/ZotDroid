@@ -13,7 +13,7 @@ Feedback is more than welcome, either here or via email *oni at section9.co.uk*
 Current Version
 ---------------
 
-0.1
+0.2
 
 Building and Testing
 --------------------
@@ -25,6 +25,7 @@ Things that are done
 
 * Reading a fresh copy of a Zotero Library
 * Downloading an attachment via the WebDav interface
+* Basic search on all fields
 * Selecting a collection and viewing the items for just that collection
 * Incremental syncing
 * Backing up via SQLite DB

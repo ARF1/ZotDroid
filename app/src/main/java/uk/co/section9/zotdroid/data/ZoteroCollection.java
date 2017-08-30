@@ -38,6 +38,8 @@ public class ZoteroCollection {
 
     public void add_collection(ZoteroCollection c) { _sub_collections.add(c); }
 
+    public Vector<ZoteroCollection> get_sub_collections() { return _sub_collections;}
+
     public String get_version() {
         return _version;
     }
@@ -49,6 +51,13 @@ public class ZoteroCollection {
     public Vector<ZoteroRecord> get_records() {return _records;}
 
     public void add_record(ZoteroRecord r) {_records.add(r); }
+
+    public boolean has_parent() {
+        boolean r = true;
+        if (_parent.isEmpty()) { r = false; }
+        if (_parent.contains("false")) { r = false; }
+        return r;
+    }
 
     // For now, we cover all the bases we need for all possible items
     // Eventually we might have separate record tables
@@ -67,5 +76,6 @@ public class ZoteroCollection {
         _sub_collections = new Vector<ZoteroCollection>();
         _records = new Vector<ZoteroRecord>();
         _version = "0000";
+        _parent = ""; // Default no parent
     }
 }

@@ -23,7 +23,7 @@
             android:layout_height="wrap_content"
             android:id="@+id/textViewLoading"
             android:textSize="24sp"
-            android:textColor="@color/common_google_signin_btn_text_dark_default" />
+            android:textColor="@color/colorLight" />
 
         <ProgressBar
             style="?android:attr/progressBarStyleLarge"

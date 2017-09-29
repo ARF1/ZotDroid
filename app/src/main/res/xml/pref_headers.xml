@@ -4,12 +4,12 @@
 
     <header
         android:fragment="uk.co.section9.zotdroid.SettingsActivity$GeneralPreferenceFragment"
-        android:icon="@drawable/ic_info_black_24dp"
+        android:icon="@drawable/ic_menu_manage"
         android:title="@string/pref_header_general" />
 
     <header
         android:fragment="uk.co.section9.zotdroid.SettingsActivity$WebDavPreferenceFragment"
-        android:icon="@drawable/ic_sync_black_24dp"
+        android:icon="@drawable/ic_menu_share"
         android:title="WebDav" />
 
 </preference-headers>

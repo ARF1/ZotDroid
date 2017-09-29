@@ -5,11 +5,10 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    style="@style/GenericProgressBackground"
+    style="@style/AppTheme"
     tools:context="uk.co.section9.zotdroid.LoadingFragment"
     android:id="@+id/fragment_loading"
     android:foregroundGravity="center_vertical"
-    app:layout_anchorGravity="center_vertical|center_horizontal"
     android:layout_gravity="center_vertical|center_horizontal">
 
     <LinearLayout
@@ -18,12 +17,12 @@
         android:layout_height="match_parent">
 
         <TextView
-            android:text="Loading"
+            android:id="@+id/textViewLoading"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/textViewLoading"
-            android:textSize="24sp"
-            android:textColor="@color/colorLight" />
+            android:text="Loading"
+            android:textColor="@android:color/black"
+            android:textSize="24sp" />
 
         <ProgressBar
             style="?android:attr/progressBarStyleLarge"

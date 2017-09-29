@@ -2,7 +2,9 @@ package uk.co.section9.zotdroid;
 
 import android.app.Activity;
 import android.content.ContentValues;
+import android.content.SharedPreferences;
 import android.os.Environment;
+import android.preference.PreferenceManager;
 import android.util.Log;
 
 import java.io.File;
@@ -37,13 +39,12 @@ import uk.co.section9.zotdroid.data.task.ZoteroVerItemsTask;
  * TODO - if we cancel a sync, we need to not replace anything!
  */
 
-public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDavCallback {
+public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWebDavCallback {
 
-    private ZoteroWebDav            _zotero_webdav = new ZoteroWebDav();
+    private ZoteroDownload          _zotero_download = new ZoteroDownload();
     private ZotDroidDB              _zotdroid_db;
     private Activity                _activity;
     private ZotDroidCaller          _midnightcaller; // Was listening to Chase and Status ;)
-    private static String           _download_path;
     private Vector<ZoteroTask>      _current_tasks;
 
     protected Vector<ZoteroRecord>      _records = new Vector<ZoteroRecord>();
@@ -60,10 +61,7 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDa
         _zotdroid_db =  new ZotDroidDB(activity);
         _current_tasks = new Vector<ZoteroTask>();
 
-        // Make our working directory, mostly for attachments
-        _download_path = Environment.getExternalStorageDirectory().toString() + "/ZotDroid/";
-        File root_dir = new File(_download_path);
-        root_dir.mkdirs();
+        getDownloadDirectory();
     }
 
     /**
@@ -77,6 +75,31 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDa
     }
 
     /**
+     * Get the download directory we are using
+     * @return
+     */
+
+    private String getDownloadDirectory() {
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(_activity);
+        String download_path = settings.getString("settings_download_location", "");
+
+        if (download_path.length() == 0) {
+            download_path = Environment.getExternalStorageDirectory().toString() + "/ZotDroid/";
+            File root_dir = new File(download_path);
+            if (!root_dir.exists()) {
+                root_dir.mkdirs();
+            }
+        }
+
+        // always have a trailing slash
+        if(download_path.charAt(download_path.length()-1) != '/') {
+            download_path += "/";
+        }
+
+        return download_path;
+    }
+
+    /**
      * Called when a webdav process completes
      * @param result
      * @param message
@@ -86,16 +109,14 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDa
         _midnightcaller.onWebDavTestFinish(result, message);
     }
 
-    public void testWebDav() {
-        _zotero_webdav.testWebDav(_activity, this);
-    }
+    public void testWebDav() { _zotero_download.testWebDav(_activity, this);}
 
     /**
      * A very small class that holds the state for our webdav attachment download
      * Its perhaps a bit complicated but it means we can do multiple requests and
      * not have the main activity worry too much.
      */
-    private class OpsDav implements  ZoteroWebDav.ZoteroWebDavCallback {
+    private class OpsDav implements  ZoteroDownload.ZoteroWebDavCallback {
 
         ZoteroAttachment _attachment;
         private OpsDav(ZoteroAttachment attachment){
@@ -151,9 +172,7 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDa
 
     public boolean sync(){
         ZoteroSummary s = _zotdroid_db.getSummary();
-        if (s.get_last_version() == "0000"){
-            return false;
-        }
+        if (s.get_last_version() == "0000"){ return false;}
 
         ZoteroSyncColTask zs = new ZoteroSyncColTask(this, s.get_last_version());
         _current_tasks.add(zs);
@@ -193,7 +212,7 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDa
         for (ZoteroTask t : _current_tasks){ t.cancel(true); }
         _current_tasks.clear();
         _num_current_tasks = 0;
-        _zotero_webdav.stop();
+        _zotero_download.stop();
     }
 
     /**
@@ -221,9 +240,7 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDa
     }
 
     public ZoteroCollection get_collection(int idx) {
-        if (idx >= 0 && idx < _collections.size()) {
-            return _collections.elementAt(idx);
-        }
+        if (idx >= 0 && idx < _collections.size()) { return _collections.elementAt(idx);}
         return null;
     }
 
@@ -236,14 +253,27 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroWebDav.ZoteroWebDa
     public void startAttachmentDownload(ZoteroRecord record, int attachment_idx){
         if (attachment_idx < record.get_attachments().size()) {
             ZoteroAttachment za = record.get_attachments().elementAt(attachment_idx);
+            SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(_activity);
 
             // If the file already exists, then we dont need to download, just return
-            File file = new File( _download_path + za.get_file_name());
+            File file = new File( getDownloadDirectory() + za.get_file_name());
+
             if (file.exists()){
                 OpsDav op = new OpsDav(za);
-                op.onWebDavComplete(true, _download_path + za.get_file_name());
+                op.onWebDavComplete(true, getDownloadDirectory() + za.get_file_name());
             } else {
-                _zotero_webdav.downloadAttachment(za.get_zotero_key() + ".zip", _download_path, za.get_file_name(), _activity, new OpsDav(za));
+                Boolean usewebdav = settings.getBoolean("settings_use_webdav_storage",false);
+
+                if (usewebdav) {
+                    String username = settings.getString("settings_webdav_username", "username");
+                    String password = settings.getString("settings_webdav_password", "password");
+                    String server_address = settings.getString("settings_webdav_address", "address");
+                    _zotero_download.downloadAttachment(za.get_zotero_key() + ".zip", getDownloadDirectory(),
+                            za.get_file_name(), username, password, server_address, new OpsDav(za));
+                } else {
+                    _zotero_download.downloadAttachmentZotero( getDownloadDirectory(),
+                            za.get_file_name(), za.get_zotero_key(),  new OpsDav(za));
+                }
             }
         }
         // TODO return somekind of false here

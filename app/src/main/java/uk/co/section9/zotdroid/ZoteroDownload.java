@@ -14,6 +14,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipInputStream;
 import javax.net.ssl.HttpsURLConnection;
 
@@ -21,11 +23,12 @@ import javax.net.ssl.HttpsURLConnection;
  * Created by oni on 13/07/2017.
  */
 
-public class ZoteroWebDav {
+public class ZoteroDownload {
 
-    public static final String TAG = "zotdroid.ZoteroWebDav";
+    public static final String TAG = "zotdroid.ZoteroDownload";
+    public static final String API_BASE = "https://api.zotero.org"; // TODO - duplicate to remove
 
-    private WebDavRequest _request;
+    private AsyncTask<String,Integer,String> _request;
     private WebDavTest _test;
 
     public interface ZoteroWebDavCallback {
@@ -131,7 +134,7 @@ public class ZoteroWebDav {
                 url = new URL(address[0] + "/" + filename);
             } catch (MalformedURLException e) {
                 e.printStackTrace();
-                result = "Malformed URL.";
+                result = "Malformed URL." + e.getMessage();
                 return result;
             }
 
@@ -182,23 +185,144 @@ public class ZoteroWebDav {
                     callback.onWebDavComplete(true, result);
 
                 } catch (IOException e) {
-                    InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
-                    e.printStackTrace();
-                    result = "I/O error";
+                    result = cleanup(e, file_path + final_filename);
+                }catch (Exception e) {
+                    result = cleanup(e, file_path + final_filename);
                 } finally {
                     urlConnection.disconnect();
                 }
             } catch ( FileNotFoundException e){
-                e.printStackTrace();
-                result = "*File not found.";
+                result = cleanup(e,file_path + final_filename);
             } catch (IOException e) {
-                InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
-                // TODO - do something with the error streams at some point
-                e.printStackTrace();
-                result = "I/O error.";
+                result = cleanup(e,file_path + final_filename);
             }
 
             return result;
+        }
+
+        private String cleanup(Exception e, String path){
+            //InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
+            // TODO - do something with the error streams at some point
+            e.printStackTrace();
+            File file = new File(path);
+            if (file.exists()) { file.delete(); }
+            return "WebDav download error. " + e.getMessage();
+        }
+
+        /**
+         * Called as the task progresses
+         * @param progress
+         */
+
+        protected void onProgressUpdate(Integer... progress) {
+            Log.i(TAG,"Progress: " + Integer.toString(progress[0]));
+            callback.onWebDavProgess(true, Integer.toString(progress[0]));
+        }
+
+        /**
+         * Called once a task has completed
+         * @param rstring
+         */
+        protected void onPostExecute(String rstring) {
+            Log.i(TAG, "Post Execute: " + rstring);
+            if (rstring != "SUCCESS"){
+                callback.onWebDavComplete(false, rstring);
+                return;
+            }
+            callback.onWebDavComplete(true, rstring);
+        }
+    }
+
+    /**
+     * The async derived class that downloads from Zotero's servers
+     * This usually results in a redirect via a 304 to some final link
+     * We also don't end up with zipped file for some reason.
+     */
+    private class ZoteroRequest extends AsyncTask<String,Integer,String> {
+
+        ZoteroWebDavCallback callback;
+        public ZoteroRequest(ZoteroWebDavCallback callback){
+            this.callback = callback;
+        }
+
+        protected String doInBackground(String... address) {
+            String result = "SUCCESS";
+            URL url = null;
+            String file_path = address[1];
+            String final_filename = address[2];
+
+            try {
+                url = new URL(address[0]);
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+                result = "Malformed URL.";
+                return result;
+            }
+
+            HttpsURLConnection urlConnection = null;
+            try {
+
+                urlConnection = (HttpsURLConnection) url.openConnection();
+                urlConnection.setInstanceFollowRedirects(true);
+                urlConnection.setRequestProperty("Zotero-API-Key", ZoteroBroker.TOKEN_SECRET);
+
+                try {
+                    // https://stackoverflow.com/questions/7887078/android-saving-file-to-external-storage#7887114
+                    File file = new File(file_path + final_filename);
+                    if (file.exists()) file.delete();
+
+                    // Now do the reading but save to a file
+                    byte[] bytes = new byte[1024]; // read in 1024 chunks
+                    InputStream is = urlConnection.getInputStream();
+                    BufferedInputStream buf = new BufferedInputStream(is);
+                    Map<String, List<String>> headers = urlConnection.getHeaderFields();
+                    String tt = headers.get("Content-Length").get(0);
+                    Log.i(TAG,"Bytes Available: " + tt);
+                    int total = Integer.decode(tt);
+                    FileOutputStream out = new FileOutputStream(file);
+                    int total_bytes_read = 0;
+                    int bytes_read = 0;
+
+                    while ((bytes_read = buf.read(bytes, 0, bytes.length)) > 0) {
+                        out.write(bytes, 0, bytes_read);
+                        total_bytes_read += bytes_read;
+                        // For some reason, this seems to go over 100% - I guess because there are headers
+                        // or some other data not included in the getContentLength field, so we cap it.
+                        int progress = (int) Math.min(Math.round( (float) total_bytes_read / (float) total * 100.0),100.0);
+                        publishProgress(progress);
+                    }
+
+                    out.flush();
+                    out.close();
+                    buf.close();
+
+                    // return the full path so we can open it
+                    result = file_path + final_filename;
+                    callback.onWebDavComplete(true, result);
+
+                } catch (IOException e) {
+                    result = cleanup(e,file_path + final_filename);
+                } catch (Exception e) {
+                    result = cleanup(e,file_path + final_filename);
+                } finally {
+                    urlConnection.disconnect();
+                }
+            } catch ( FileNotFoundException e){
+                result = cleanup(e,file_path + final_filename);
+            } catch (IOException e) {
+                result = cleanup(e,file_path + final_filename);
+            }
+
+            return result;
+        }
+
+        private String cleanup(Exception e, String path){
+            //InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
+            // TODO - do something with the error streams at some point
+            e.printStackTrace();
+            File file = new File(path);
+            if (file.exists()) { file.delete(); }
+            return "Attachment download error. " + e.getMessage();
         }
 
         /**
@@ -229,13 +353,8 @@ public class ZoteroWebDav {
      * Stop any current download request.
      */
     void stop() {
-        if (_request != null) {
-            _request.cancel(true);
-        }
-
-        if (_test != null) {
-            _test.cancel(true);
-        }
+        if (_request != null) { _request.cancel(true); }
+        if (_test != null) { _test.cancel(true);}
     }
 
     /**
@@ -254,21 +373,35 @@ public class ZoteroWebDav {
 
 
     /**
-     * Actually download a file and save it to the SDCard if possible.
+     * Actually download a file using the personal webdav and save it to the SDCard if possible.
      * @param filename
      * @param file_path
      * @param final_filename
-     * @param activity
+     * @param username
+     * @param password
+     * @param server_address
      * @param callback
      */
-    public void downloadAttachment(String filename, String file_path, String final_filename, Activity activity, ZoteroWebDavCallback callback){
+    public void downloadAttachment(String filename, String file_path, String final_filename, String username, String password, String server_address, ZoteroWebDavCallback callback){
         // Get the credentials we need for this
-        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(activity);
-        String username = settings.getString("settings_webdav_username","username");
-        String password = settings.getString("settings_webdav_password","password");
-        String server_address = settings.getString("settings_webdav_address","address");
         _request = new WebDavRequest(callback);
         _request.execute(server_address, username, password, filename, file_path, final_filename);
     }
+
+    /**
+     * Download the file using the Zotero provided storage
+     * @param file_path
+     * @param final_filename
+     * @param itemkey
+     * @param callback
+     */
+    public void downloadAttachmentZotero(String file_path, String final_filename, String itemkey, ZoteroWebDavCallback callback){
+        // Get the credentials we need for this
+        _request = new ZoteroRequest(callback);
+        String server_address = API_BASE + "/users/" + ZoteroBroker.USER_ID + "/items/" + itemkey + "/file";
+        _request.execute(server_address, file_path, final_filename);
+    }
+
 }
+
 

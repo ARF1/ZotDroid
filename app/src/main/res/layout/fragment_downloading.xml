@@ -19,7 +19,7 @@
             android:layout_height="wrap_content"
             android:id="@+id/textViewDownloading"
             android:textSize="24sp"
-            android:textColor="@color/colorPrimaryDark" />
+            android:textColor="@color/colorLight" />
 
         <ProgressBar
             style="@style/Widget.AppCompat.ProgressBar.Horizontal"

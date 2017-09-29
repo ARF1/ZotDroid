@@ -35,35 +35,13 @@ public class ZoteroBroker {
     /** Application key -- available from Zotero */
     public static String CONSUMER_KEY = "50e538ada5d8c4f40e01";
     public static String CONSUMER_SECRET = "ef03b60b207aef632c24";
-
     public static String ACCESS_TOKEN = "stuffandting";
     public static String TOKEN_SECRET = "stuffandting";
-
     public static String USER_ID = "toast";
 
     /** This is the zotero:// protocol we intercept
      * It probably shouldn't be changed. */
     public static final String CALLBACK_URL = "zotero://";
-
-    /** This is the Zotero API server. Those who set up independent
-     * Zotero installations will need to change this. */
-    public static final String API_BASE = "https://api.zotero.org";
-
-    /** These are the API GET-only methods */
-    public static final String ITEM_FIELDS = "/itemFields";
-    public static final String ITEM_TYPES = "/itemTypes";
-    public static final String ITEM_TYPE_CREATOR_TYPES = "/itemTypeCreatorTypes";
-    public static final String CREATOR_FIELDS = "/creatorFields";
-    public static final String ITEM_NEW = "/items/new";
-
-    /* These are the manipulation methods */
-    // /users/1/items GET, POST, PUT, DELETE
-    public static final String ITEMS = "/users/USERID/items";
-    public static final String COLLECTIONS = "/users/USERID/collections";
-
-    public static final String TAGS = "/tags";
-    public static final String GROUPS = "/groups";
-
     static CommonsHttp3OAuthConsumer Consumer;
     static OAuthProvider Provider;
 

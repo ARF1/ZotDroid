@@ -212,7 +212,10 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             // guidelines.
             bindPreferenceSummaryToValue(findPreference("settings_webdav_address"));
             bindPreferenceSummaryToValue(findPreference("settings_webdav_username"));
-            bindPreferenceSummaryToValue(findPreference("settings_webdav_password"));
+            //bindPreferenceSummaryToValue(findPreference("settings_webdav_password"));
+
+            Preference settings_webdav_password = findPreference("settings_webdav_password");
+            settings_webdav_password.setSummary("hidden");
         }
 
         @Override

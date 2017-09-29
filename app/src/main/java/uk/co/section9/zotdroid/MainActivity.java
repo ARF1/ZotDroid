@@ -337,7 +337,7 @@ ZotDroidOps.ZotDroidCaller {
         filterList("");
     }
 
-    /**
+    /**\
      * Check a record to see if anything matches the search term.
      * @param record
      * @param searchterm

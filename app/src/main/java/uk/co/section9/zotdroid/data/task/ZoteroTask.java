@@ -24,7 +24,7 @@ import uk.co.section9.zotdroid.ZoteroBroker;
 
 public abstract class ZoteroTask extends AsyncTask<String,Integer,String> {
 
-    protected String BASE_URL = "https://api.zotero.org";
+    protected String BASE_URL = "https://api.zotero.org"; // TODO - another duplication?
 
     public abstract void startZoteroTask();
 

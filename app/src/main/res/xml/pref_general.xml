@@ -23,4 +23,14 @@
         android:singleLine="true"
         android:title="User Secret"
         android:key="settings_user_secret" />
+    <EditTextPreference
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="Downloads Location"
+        android:key="settings_download_location" />
+    <EditTextPreference
+        android:selectAllOnFocus="true"
+        android:singleLine="true"
+        android:title="Database Location"
+        android:key="settings_db_location" />
 </PreferenceScreen>

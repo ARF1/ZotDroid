@@ -13,7 +13,6 @@
         android:title="User ID"
         android:key="settings_user_id" />
     <EditTextPreference
-        android:defaultValue="userKey"
         android:selectAllOnFocus="true"
         android:singleLine="true"
         android:title="User Key"

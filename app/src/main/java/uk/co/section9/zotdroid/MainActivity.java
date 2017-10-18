@@ -75,7 +75,7 @@ ZotDroidOps.ZotDroidCaller {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.i(TAG,"Creating...");
+        Log.i(TAG,"Creating ZotDroid...");
         setContentView(R.layout.activity_main);
 
         // Setup the toolbar with the extra search
@@ -338,14 +338,14 @@ ZotDroidOps.ZotDroidCaller {
     }
 
     /**\
-     * Check a record to see if anything matches the search term.
+     * Check a record to see if anything matches the search term. We ignore case.
      * @param record
      * @param searchterm
      */
     private boolean searchRecord(ZoteroRecord record, String searchterm) {
         if (searchterm == ""){ return true; }
-        if (record.get_author().contains(searchterm)) { return true;}
-        else if (record.get_title().contains(searchterm)){ return true; }
+        if (record.get_author().toLowerCase().contains(searchterm.toLowerCase())) { return true;}
+        else if (record.get_title().toLowerCase().contains(searchterm.toLowerCase())){ return true; }
         return false;
     }
 

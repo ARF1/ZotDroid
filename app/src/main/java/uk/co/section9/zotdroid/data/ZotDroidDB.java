@@ -10,6 +10,8 @@ import android.util.Log;
 import java.util.Date;
 import java.util.Vector;
 
+import uk.co.section9.zotdroid.Util;
+
 /**
  * Created by oni on 11/07/2017.
  */
@@ -18,7 +20,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
 
     // All Static variables
     private static final int DATABASE_VERSION = 1;
-    private static final String DATABASE_NAME = "prf";
+    private static String DATABASE_NAME = "zotdroid.sqlite";
 
     public static final String TAG = "zotdroid.ZotDroidDB";
     private SQLiteDatabase _db;
@@ -32,6 +34,18 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public ZotDroidDB(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
         this._db = getWritableDatabase(); // Should kickstart all the creation we need :S
+        _check_and_create();
+    }
+
+    /**
+     * Alternative constructor for if we change the database location
+     * @param context
+     * @param alternative_location
+     */
+    public ZotDroidDB(Context context, String alternative_location) {
+        // Double check we have no trailing slash
+        super(context, alternative_location + "/zotdroid.sqlite", null, DATABASE_VERSION);
+        this._db = getWritableDatabase();
         _check_and_create();
     }
 

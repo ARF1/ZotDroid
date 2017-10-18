@@ -5,13 +5,16 @@ import android.content.ContentValues;
 import android.content.SharedPreferences;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import java.io.File;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.data.ZotDroidDB;
@@ -58,10 +61,17 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
     public ZotDroidOps(Activity activity, ZotDroidCaller midnightcaller) {
         _activity = activity;
         _midnightcaller = midnightcaller;
-        _zotdroid_db =  new ZotDroidDB(activity);
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(activity);
+        // Check to see if we have an alternative path for our database
+        String database_path = settings.getString("settings_db_location", "");
+        if (Util.path_exists(database_path)) {
+            database_path = Util.remove_trailing_slash(database_path);
+            _zotdroid_db = new ZotDroidDB(activity, database_path);
+        } else {
+            _zotdroid_db = new ZotDroidDB(activity);
+        }
         _current_tasks = new Vector<ZoteroTask>();
-
-        getDownloadDirectory();
+        Util.getDownloadDirectory(_activity); // Naughty, but we create the dir here too!
     }
 
     /**
@@ -74,30 +84,6 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
         // Ignored for now
     }
 
-    /**
-     * Get the download directory we are using
-     * @return
-     */
-
-    private String getDownloadDirectory() {
-        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(_activity);
-        String download_path = settings.getString("settings_download_location", "");
-
-        if (download_path.length() == 0) {
-            download_path = Environment.getExternalStorageDirectory().toString() + "/ZotDroid/";
-            File root_dir = new File(download_path);
-            if (!root_dir.exists()) {
-                root_dir.mkdirs();
-            }
-        }
-
-        // always have a trailing slash
-        if(download_path.charAt(download_path.length()-1) != '/') {
-            download_path += "/";
-        }
-
-        return download_path;
-    }
 
     /**
      * Called when a webdav process completes
@@ -256,11 +242,11 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
             SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(_activity);
 
             // If the file already exists, then we dont need to download, just return
-            File file = new File( getDownloadDirectory() + za.get_file_name());
+            File file = new File( Util.getDownloadDirectory(_activity) + za.get_file_name());
 
             if (file.exists()){
                 OpsDav op = new OpsDav(za);
-                op.onWebDavComplete(true, getDownloadDirectory() + za.get_file_name());
+                op.onWebDavComplete(true, Util.getDownloadDirectory(_activity) + za.get_file_name());
             } else {
                 Boolean usewebdav = settings.getBoolean("settings_use_webdav_storage",false);
 
@@ -268,10 +254,10 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
                     String username = settings.getString("settings_webdav_username", "username");
                     String password = settings.getString("settings_webdav_password", "password");
                     String server_address = settings.getString("settings_webdav_address", "address");
-                    _zotero_download.downloadAttachment(za.get_zotero_key() + ".zip", getDownloadDirectory(),
+                    _zotero_download.downloadAttachment(za.get_zotero_key() + ".zip", Util.getDownloadDirectory(_activity),
                             za.get_file_name(), username, password, server_address, new OpsDav(za));
                 } else {
-                    _zotero_download.downloadAttachmentZotero( getDownloadDirectory(),
+                    _zotero_download.downloadAttachmentZotero( Util.getDownloadDirectory(_activity),
                             za.get_file_name(), za.get_zotero_key(),  new OpsDav(za));
                 }
             }
@@ -317,10 +303,13 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
         // Now go with collections
         numrows = _zotdroid_db.getNumCollections();
 
+        Map<String, ZoteroCollection> clookup = new HashMap<>();
+
         for (int i=0; i < numrows; ++i) {
             ContentValues values = null;
             ZoteroCollection collection = _zotdroid_db.getCollection(i);
             _collections.add(collection);
+            clookup.put(collection.get_zotero_key(),collection);
         }
 
         // Sort collection via title each time - consistent for the user
@@ -331,15 +320,17 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
             }
         });
 
-        // Go through and create our 'pointers'
-        // Could be slow for big collections
-
+        // I suspect this is a little quicker?
         for (ZoteroCollection c : _collections){
-            for (ZoteroCollection d : _collections){
+            ZoteroCollection zp = clookup.get(c.get_parent());
+            if (zp != null){
+                zp.add_collection(c);
+            }
+            /*for (ZoteroCollection d : _collections){
                 if (d.get_parent().contains(c.get_zotero_key())){ // TODO - Not sure this contains is ideal?
                     c.add_collection(d);
                 }
-            }
+            }*/
         }
 
         // This bit could be slow if there are loads of collections. There will be a faster

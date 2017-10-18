@@ -1,5 +1,11 @@
 package uk.co.section9.zotdroid;
 
+import android.app.Activity;
+import android.content.SharedPreferences;
+import android.os.Environment;
+import android.preference.PreferenceManager;
+
+import java.io.File;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -62,4 +68,42 @@ public class Util {
         to.setDate(from.getDate());
         to.setTime(from.getTime());
     }
+
+    public static boolean path_exists(String path) {
+        File root_dir = new File(path);
+        return root_dir.exists();
+    }
+
+    public static String remove_trailing_slash(String path){
+        if(path.endsWith("/")){
+            path = path.substring(0,path.length()-2);
+        }
+        return path;
+    }
+
+    /**
+     * Get the download directory we are using
+     * @return
+     */
+
+    public static String getDownloadDirectory(Activity activity) {
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(activity);
+        String download_path = settings.getString("settings_download_location", "");
+
+        if (!path_exists(download_path)) {
+            download_path = Environment.getExternalStorageDirectory().toString() + "/ZotDroid/";
+            File root_dir = new File(download_path);
+            if (!root_dir.exists()) {
+                root_dir.mkdirs();
+            }
+        }
+
+        // always have a trailing slash
+        if(download_path.charAt(download_path.length()-1) != '/') {
+            download_path += "/";
+        }
+
+        return download_path;
+    }
+
 }

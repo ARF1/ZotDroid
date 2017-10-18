@@ -3,6 +3,7 @@ package uk.co.section9.zotdroid;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Build;
@@ -13,6 +14,8 @@ import android.preference.PreferenceActivity;
 import android.support.v7.app.ActionBar;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatDialog;
 import android.view.MenuItem;
 
 import java.util.List;
@@ -31,7 +34,7 @@ import java.util.List;
 public class SettingsActivity extends AppCompatPreferenceActivity {
 
     private static final String TAG = "uk.co.section9.zotdroid.SettingsActivity";
-
+    private static Context _context; // Used later for popup messages
     /**
      * A preference value change listener that updates the preference's summary
      * to reflect its new value.
@@ -95,6 +98,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        _context = SettingsActivity.this;
         setupActionBar();
     }
 
@@ -142,6 +146,13 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public static class GeneralPreferenceFragment extends PreferenceFragment {
+
+        /**
+         * Another listener that I've made to post messages for certain changes
+         * It creates a popup dialog to warn the user to restart ZotDroid
+         */
+        private Preference.OnPreferenceChangeListener _messenger;
+
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
@@ -155,6 +166,25 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             bindPreferenceSummaryToValue(findPreference("settings_user_id"));
             bindPreferenceSummaryToValue(findPreference("settings_user_secret"));
             bindPreferenceSummaryToValue(findPreference("settings_user_key"));
+
+            _messenger = new Preference.OnPreferenceChangeListener() {
+                AlertDialog.Builder builder  = new AlertDialog.Builder(_context, R.style.ZotDroidAlertDialogStyle);
+                @Override
+                public boolean onPreferenceChange(Preference preference, Object o) {
+                    if (preference == findPreference("settings_db_location")){
+                        builder.setTitle("Changed Database location.")
+                                .setMessage("You will need to close and restart ZotDroid for this change to take effect. Once restarted you will need to resync.")
+                                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {}
+                                })
+                                .setIcon(android.R.drawable.ic_dialog_alert)
+                                .show();
+                    }
+                    return true;
+                }
+            };
+
+            findPreference("settings_db_location").setOnPreferenceChangeListener(_messenger);
         }
 
         @Override
@@ -193,7 +223,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         }
     }
 
-
     /**
      * This fragment shows webdav preferences only. It is used when the
      * activity is showing a two-pane settings UI.
@@ -216,6 +245,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
 
             Preference settings_webdav_password = findPreference("settings_webdav_password");
             settings_webdav_password.setSummary("hidden");
+
         }
 
         @Override
@@ -228,6 +258,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             return super.onOptionsItemSelected(item);
         }
     }
+
+
 
 
 }

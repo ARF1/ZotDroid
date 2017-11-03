@@ -26,4 +26,63 @@
         <item name="android:background">#4CAF50</item>
     </style>
 
+    <style name="MainList" parent="AppTheme">
+        <item name="android:textColor">#000000</item>
+    </style>
+
+    <!-- Font styles for our different areas -->
+    <style name="MainList.Title">
+        <item name="android:textColor">#000000</item>
+    </style>
+
+    <style name="MainList.Title.Small">
+        <item name="android:textSize">8dp</item>
+    </style>
+
+    <style name="MainList.Title.Medium">
+        <item name="android:textSize">14dp</item>
+    </style>
+
+    <style name="MainList.Title.Large">
+        <item name="android:textSize">24dp</item>
+    </style>
+
+    <style name="MainList.SubText">
+        <item name="android:textColor">#444422</item>
+        <item name="colorPrimary">@android:color/holo_blue_light</item>
+        <item name="colorPrimaryDark">@android:color/holo_blue_dark</item>
+    </style>
+
+    <style name="MainList.SubText.Small">
+        <item name="android:textSize">6dp</item>
+        <item name="android:textStyle">italic</item>
+    </style>
+
+    <style name="MainList.SubText.Medium">
+        <item name="android:textSize">12dp</item>
+        <item name="android:textStyle">italic</item>
+    </style>
+
+    <style name="MainList.SubText.Large">
+        <item name="android:textSize">18dp</item>
+        <item name="android:textStyle">italic</item>
+    </style>
+
+    <style name="SideList">
+        <item name="android:textColor">#444422</item>
+    </style>
+
+    <style name="SideList.Small">
+        <item name="android:textSize">8dp</item>
+    </style>
+
+    <style name="SideList.Medium">
+        <item name="android:textSize">16dp</item>
+    </style>
+
+    <style name="SideList.Large">
+        <item name="android:textSize">24dp</item>
+    </style>
+
+
 </resources>

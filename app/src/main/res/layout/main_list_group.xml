@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layout_marginLeft="10dp"
     android:background="@android:color/white"
-    android:padding="8dp"
-    >
+    android:orientation="vertical"
+    android:padding="4dp"
+    android:paddingLeft="10dp">
 
     <TextView
-        android:id="@+id/group"
-        android:textSize="10pt"
+        android:id="@+id/main_list_group"
+        style="@style/MainList.Title.Medium"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:textColor="@android:color/black"
-        android:textStyle="bold" />
+        android:paddingLeft="20dp"
+        android:textStyle="" />
 
 </LinearLayout>

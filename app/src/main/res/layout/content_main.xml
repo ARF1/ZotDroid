@@ -13,10 +13,11 @@
     tools:showIn="@layout/app_bar_main">
 
     <ExpandableListView
+        android:id="@+id/listViewMain"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:id="@+id/listViewMain"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentStart="true" />
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="@dimen/main_content_top_margin"
+        android:paddingTop="@dimen/nav_header_vertical_spacing" />
 
 </RelativeLayout>

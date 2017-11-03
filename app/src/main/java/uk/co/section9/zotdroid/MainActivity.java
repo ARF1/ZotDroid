@@ -2,11 +2,21 @@ package uk.co.section9.zotdroid;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.database.DataSetObserver;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.ListAdapter;
 import android.widget.SearchView;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -28,6 +38,7 @@ import android.widget.ExpandableListAdapter;
 import android.widget.ExpandableListView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -68,6 +79,22 @@ ZotDroidOps.ZotDroidCaller {
     HashMap < Integer, ZoteroCollection >   _collection_list_map = new HashMap<Integer, ZoteroCollection>();
 
     /**
+     * A small class that listens for Intents. Mostly used to change font size on the fly.
+     */
+
+    public class PreferenceChangeBroadcastReceiver extends BroadcastReceiver {
+        public PreferenceChangeBroadcastReceiver () {}
+        private static final String TAG = "PreferenceChangeBroadcastReceiver";
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction() == "FONT_SIZE_PREFERENCE_CHANGED"){ changeFontSize();}
+        }
+    }
+
+
+    PreferenceChangeBroadcastReceiver _broadcast_receiver = new PreferenceChangeBroadcastReceiver();
+
+    /**
      * onCreate as standard. Attempts to auth and if we arent authed, launches the login screen.
      *
      * @param savedInstanceState
@@ -102,31 +129,21 @@ ZotDroidOps.ZotDroidCaller {
             }
         });
 
-
-        // Setup the little floating dot that I like
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Doesn't do much yet but maybe one day.", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
-
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
 
         toggle.syncState();
-
         // Setup the main list of items
         _main_list_view = (ExpandableListView) findViewById(R.id.listViewMain);
-
         // Pass this activity - ZoteroBroker will look for credentials
         ZoteroBroker.passCreds(this,this);
         _zotdroid_ops = new ZotDroidOps(this, this);
         filterList();
         setDrawer();
+        // Set the font preference stuff
+        IntentFilter filter = new IntentFilter("FONT_SIZE_PREFERENCE_CHANGED");
+        this.registerReceiver(_broadcast_receiver,filter);
     }
 
     /**
@@ -162,6 +179,36 @@ ZotDroidOps.ZotDroidCaller {
 
         dialog.show();
         return dialog;
+    }
+
+    private void changeFontSize() {
+        TextView groupTitle = (TextView) _main_list_view.findViewById(R.id.main_list_group);
+        TextView groupSubText = (TextView) _main_list_view.findViewById(R.id.main_list_subtext);
+
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
+        String font_size = settings.getString("settings_font_size","medium");
+
+        if (groupTitle != null ) {
+            if (font_size.contains("small")) {
+                groupTitle.setTextAppearance(this, R.style.MainList_Title_Small);
+            } else if (font_size.contains("medium")) {
+                groupTitle.setTextAppearance(this, R.style.MainList_Title_Medium);
+            } else if (font_size.contains("large")) {
+                groupTitle.setTextAppearance(this, R.style.MainList_Title_Large);
+            } else {
+                groupTitle.setTextAppearance(this, R.style.MainList_Title_Medium);
+            }
+        }
+        if (groupSubText != null ) {
+            if (font_size.contains("small")){ groupSubText.setTextAppearance(this, R.style.MainList_SubText_Small);}
+            else if (font_size.contains("medium")){ groupSubText.setTextAppearance(this, R.style.MainList_SubText_Medium);}
+            else if (font_size.contains("large")) { groupSubText.setTextAppearance(this, R.style.MainList_SubText_Large);}
+            else { groupSubText.setTextAppearance(this, R.style.MainList_SubText_Medium);}
+        }
+
+        // This is expensive but I think it's what we have to do really.
+        filterList();
+        setDrawer();
     }
 
     /**
@@ -360,6 +407,14 @@ ZotDroidOps.ZotDroidCaller {
         _main_list_map.clear();
         _zotdroid_ops.update(); // Make sure we are up to date
 
+        // Possibly a better way to pass font size but for now
+        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
+        String font_size = "medium";
+        font_size = settings.getString("settings_font_size",font_size);
+
+        _main_list_adapter = new ZotDroidListAdapter(this,_main_list_items, _main_list_sub_items,font_size);
+        _main_list_view.setAdapter(_main_list_adapter);
+
         Vector<ZoteroRecord> records = _zotdroid_ops.get_records();
 
         for (ZoteroRecord record : records) {
@@ -376,9 +431,6 @@ ZotDroidOps.ZotDroidCaller {
                 }
             }
         }
-
-        _main_list_adapter = new ZotDroidListAdapter(this,_main_list_items, _main_list_sub_items);
-        _main_list_view.setAdapter(_main_list_adapter);
 
         _main_list_view.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
 
@@ -407,6 +459,8 @@ ZotDroidOps.ZotDroidCaller {
         }
     }
 
+
+
     /**
      * A subroutine to set the left-hand collections drawer
      */
@@ -428,8 +482,29 @@ ZotDroidOps.ZotDroidCaller {
             recSetDrawer(c,0);
         }
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, _main_list_collections);
-        drawer_list.setAdapter(adapter);
+        // Override the adapter so we can set the fontsize
+        drawer_list.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, _main_list_collections) {
+            @Override
+            public View getView(int position, View convertView, ViewGroup parent) {
+                View row = super.getView(position, convertView, parent);
+                TextView tv = (TextView) row;
+                SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this.getContext());
+                String font_size = settings.getString("settings_font_size","medium");
+                // Set fonts here too!
+                if (font_size.contains("small")) {
+                    tv.setTextAppearance(this.getContext(), R.style.SideList_Small);
+                } else if (font_size.contains("medium")) {
+                    tv.setTextAppearance(this.getContext(), R.style.SideList_Medium);
+                } else if (font_size.contains("large")) {
+                    tv.setTextAppearance(this.getContext(), R.style.SideList_Large);
+                } else {
+                    tv.setTextAppearance(this.getContext(), R.style.SideList_Medium);
+                }
+
+                return row;
+            }
+        });
+
 
         // On-click show only these items in a particular collection and set the title to reflect this.
         drawer_list.setOnItemClickListener(new AdapterView.OnItemClickListener()
@@ -519,5 +594,11 @@ ZotDroidOps.ZotDroidCaller {
      */
     @Override
     public void onAuthCompletion(boolean result) {
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(_broadcast_receiver);
     }
 }

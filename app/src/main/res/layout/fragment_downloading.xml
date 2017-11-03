@@ -2,16 +2,17 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="331dp"
     style="@style/AppTheme"
     tools:context="uk.co.section9.zotdroid.LoadingFragment"
     android:id="@+id/fragment_loading">
 
 
     <LinearLayout
-        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:weightSum="1">
 
         <TextView
             android:id="@+id/textViewDownloading"
@@ -22,25 +23,27 @@
             android:textSize="24sp" />
 
         <ProgressBar
-            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="187dp"
             android:id="@+id/progressBarDownload"
+            style="@android:style/Widget.DeviceDefault.Light.ProgressBar.Large"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
             android:layout_centerHorizontal="true"
-            android:verticalScrollbarPosition="defaultPosition"
-            android:layout_gravity="center_vertical|center_horizontal" />
+            android:layout_gravity="center_vertical|center_horizontal"
+            android:layout_marginTop="50dp"
+            android:verticalScrollbarPosition="defaultPosition" />
 
         <Button
-            android:text="Cancel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="110dp"
             android:id="@+id/buttonCancelDownload"
-            android:layout_below="@+id/progressBarDownload"
+            android:layout_width="240dp"
+            android:layout_height="wrap_content"
             android:layout_alignStart="@+id/progressBarDownload"
-            android:maxWidth="172dip" />
+            android:layout_below="@+id/progressBarDownload"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="50dp"
+            android:maxWidth="172dip"
+            android:text="Cancel"
+            android:textAlignment="center" />
 
     </LinearLayout>
 

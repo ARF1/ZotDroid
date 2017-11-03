@@ -13,22 +13,19 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!--<android.support.design.widget.NavigationView
-        android:id="@+id/nav_view"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:layout_gravity="start"
-        android:fitsSystemWindows="true"
-        app:headerLayout="@layout/nav_header_main" /> -->
-
-    <ListView android:id="@+id/left_drawer"
+    <ListView
+        android:id="@+id/left_drawer"
+        style="@style/SideList.Medium"
         android:layout_width="240dp"
         android:layout_height="match_parent"
-        android:layout_gravity="start"
+        android:layout_gravity="top|left|start"
+        android:layout_margin="2dp"
+        android:alwaysDrawnWithCache="false"
+        android:background="#FFF"
         android:choiceMode="singleChoice"
         android:divider="@android:color/transparent"
         android:dividerHeight="0dp"
-        android:background="#FFF"/>
+        android:padding="3dp" />
 
 
 </android.support.v4.widget.DrawerLayout>

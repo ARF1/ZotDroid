@@ -5,6 +5,7 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,6 +17,7 @@ import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatDialog;
+import android.util.Log;
 import android.view.MenuItem;
 
 import java.util.List;
@@ -33,7 +35,7 @@ import java.util.List;
  */
 public class SettingsActivity extends AppCompatPreferenceActivity {
 
-    private static final String TAG = "uk.co.section9.zotdroid.SettingsActivity";
+    private static final String TAG = "zotdroid.Settings";
     private static Context _context; // Used later for popup messages
     /**
      * A preference value change listener that updates the preference's summary
@@ -151,7 +153,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
          * Another listener that I've made to post messages for certain changes
          * It creates a popup dialog to warn the user to restart ZotDroid
          */
-        private Preference.OnPreferenceChangeListener _messenger;
+        private Preference.OnPreferenceChangeListener _messenger_db_location;
+        private Preference.OnPreferenceChangeListener _messenger_font_size;
 
         @Override
         public void onCreate(Bundle savedInstanceState) {
@@ -167,7 +170,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             bindPreferenceSummaryToValue(findPreference("settings_user_secret"));
             bindPreferenceSummaryToValue(findPreference("settings_user_key"));
 
-            _messenger = new Preference.OnPreferenceChangeListener() {
+            _messenger_db_location = new Preference.OnPreferenceChangeListener() {
                 AlertDialog.Builder builder  = new AlertDialog.Builder(_context, R.style.ZotDroidAlertDialogStyle);
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object o) {
@@ -184,7 +187,24 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
                 }
             };
 
-            findPreference("settings_db_location").setOnPreferenceChangeListener(_messenger);
+            _messenger_font_size = new Preference.OnPreferenceChangeListener() {
+                AlertDialog.Builder builder  = new AlertDialog.Builder(_context, R.style.ZotDroidAlertDialogStyle);
+                @Override
+                public boolean onPreferenceChange(Preference preference, Object o) {
+                    if (preference == findPreference("settings_font_size")){
+                        // TODO - change the major text elements here
+                        Intent fontChangeIntent = new Intent();
+                        String value = o.toString();
+                        fontChangeIntent.setAction("FONT_SIZE_PREFERENCE_CHANGED");
+                        fontChangeIntent.putExtra("fontsize",value);
+                        getActivity().sendBroadcast(fontChangeIntent);
+                    }
+                    return true;
+                }
+            };
+
+            findPreference("settings_db_location").setOnPreferenceChangeListener(_messenger_db_location);
+            findPreference("settings_font_size").setOnPreferenceChangeListener(_messenger_font_size);
         }
 
         @Override
@@ -241,8 +261,6 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             // guidelines.
             bindPreferenceSummaryToValue(findPreference("settings_webdav_address"));
             bindPreferenceSummaryToValue(findPreference("settings_webdav_username"));
-            //bindPreferenceSummaryToValue(findPreference("settings_webdav_password"));
-
             Preference settings_webdav_password = findPreference("settings_webdav_password");
             settings_webdav_password.setSummary("hidden");
 

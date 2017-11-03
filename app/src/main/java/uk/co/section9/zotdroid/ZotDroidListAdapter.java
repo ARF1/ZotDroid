@@ -24,12 +24,15 @@ public class ZotDroidListAdapter extends BaseExpandableListAdapter {
     Context _context;
     private ArrayList<String> _list_group;
     private HashMap<String, ArrayList<String>> _list_child;
+    private String _font_size;
 
-    public ZotDroidListAdapter(Context context, ArrayList<String> groups, HashMap<String, ArrayList<String>> children ) {
+
+    public ZotDroidListAdapter(Context context, ArrayList<String> groups, HashMap<String, ArrayList<String>> children, String fontsize ) {
         super();
         _list_group = groups;
         _list_child = children;
         _context = context;
+        _font_size = fontsize;
     }
 
     @Override
@@ -76,9 +79,14 @@ public class ZotDroidListAdapter extends BaseExpandableListAdapter {
         }
 
         String textGroup = (String)getGroup(groupPosition);
-
-        TextView textViewGroup = (TextView)convertView.findViewById(R.id.group);
+        TextView textViewGroup = (TextView)convertView.findViewById(R.id.main_list_group);
         textViewGroup.setText(textGroup);
+
+        // TODO - this duplicates stuff in main. Ideally we would have this elsewhere and with static final strings
+        if (_font_size.contains("small")){ textViewGroup.setTextAppearance(_context, R.style.MainList_Title_Small); }
+        else if (_font_size.contains("medium")){ textViewGroup.setTextAppearance(_context, R.style.MainList_Title_Medium);}
+        else if (_font_size.contains("large")) { textViewGroup.setTextAppearance(_context, R.style.MainList_Title_Large);}
+        else { textViewGroup.setTextAppearance(_context, R.style.MainList_Title_Medium);}
 
         return convertView;
     }
@@ -92,11 +100,14 @@ public class ZotDroidListAdapter extends BaseExpandableListAdapter {
             convertView = infalInflater.inflate(R.layout.main_list_item, null);
         }
 
-        TextView textViewItem =
-                (TextView)convertView.findViewById(R.id.item);
+        TextView textViewItem = (TextView)convertView.findViewById(R.id.main_list_subtext);
+        // TODO - this duplicates stuff in main. Ideally we would have this elsewhere and with static final strings
+        if (_font_size.contains("small")){ textViewItem.setTextAppearance(_context, R.style.MainList_Title_Small); }
+        else if (_font_size.contains("medium")){ textViewItem.setTextAppearance(_context, R.style.MainList_Title_Medium);}
+        else if (_font_size.contains("large")) { textViewItem.setTextAppearance(_context, R.style.MainList_Title_Large);}
+        else { textViewItem.setTextAppearance(_context, R.style.MainList_Title_Medium);}
 
         String text = (String)getChild(groupPosition, childPosition);
-
         textViewItem.setText(text);
         return convertView;
     }

@@ -15,6 +15,7 @@ import java.util.Vector;
 import uk.co.section9.zotdroid.Util;
 import uk.co.section9.zotdroid.ZoteroBroker;
 import uk.co.section9.zotdroid.data.ZoteroAttachment;
+import uk.co.section9.zotdroid.data.ZoteroNote;
 import uk.co.section9.zotdroid.data.ZoteroRecord;
 
 /**
@@ -47,7 +48,6 @@ public class ZoteroItemsTask extends ZoteroTask {
         for (String key: keys){
             _url += key + ",";
         }
-
     }
 
     /**
@@ -73,7 +73,6 @@ public class ZoteroItemsTask extends ZoteroTask {
 
     protected ZoteroRecord processEntry(JSONObject jobj) {
         ZoteroRecord record = new ZoteroRecord();
-
         // TODO - We need to handle these exceptions better - possibly by just ignoring this record
 
         try {
@@ -100,6 +99,15 @@ public class ZoteroItemsTask extends ZoteroTask {
             record.set_date_modified(Util.jsonStringToDate(td));
         } catch (JSONException e) {
             // Pass - go with today's date
+        }
+
+        try {
+            JSONArray tags = jobj.getJSONArray("tags");
+            for ( int i = 0; i < tags.length(); i++){
+                record.add_tag(tags.getJSONObject(i).getString("tag"));
+            }
+        } catch (JSONException e) {
+            // pass - no tags
         }
 
         try {
@@ -143,6 +151,11 @@ public class ZoteroItemsTask extends ZoteroTask {
         return record;
     }
 
+    protected ZoteroNote processNote(JSONObject jobj) {
+        // TODO - complete this
+        return new ZoteroNote();
+    }
+
 
     protected ZoteroAttachment processAttachment(JSONObject jobj) {
         ZoteroAttachment attachment = new ZoteroAttachment();
@@ -182,6 +195,7 @@ public class ZoteroItemsTask extends ZoteroTask {
     protected void onPostExecute(String rstring) {
         Vector<ZoteroRecord> records =  new Vector<ZoteroRecord>();
         Vector<ZoteroAttachment> attachments =  new Vector<ZoteroAttachment>();
+        Vector<ZoteroNote> notes =  new Vector<ZoteroNote>();
 
         // Check we didn't get a failure on that rsync call
         if (rstring == "FAIL"){
@@ -215,6 +229,8 @@ public class ZoteroItemsTask extends ZoteroTask {
                     JSONObject jobj = jobjtop.getJSONObject("data");
                     if (jobj.getString("itemType").contains("attachment")){
                         attachments.add(processAttachment(jobj));
+                    } else if (jobj.getString("itemType").contains("note")) {
+                        notes.add(processNote(jobj));
                     } else {
                         records.add(processEntry(jobj));
                     }

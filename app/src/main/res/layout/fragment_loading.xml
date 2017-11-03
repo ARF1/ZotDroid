@@ -1,50 +1,52 @@
 <merge xmlns:tools="http://schemas.android.com/tools"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    style="@style/AppTheme"
-    tools:context="uk.co.section9.zotdroid.LoadingFragment"
-    android:id="@+id/fragment_loading"
-    android:foregroundGravity="center_vertical"
-    android:layout_gravity="center_vertical|center_horizontal">
 
-    <LinearLayout
-        android:orientation="vertical"
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/fragment_loading"
+        style="@style/AppTheme"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:layout_gravity="center_vertical|center_horizontal"
+        android:foregroundGravity="center_vertical"
+        tools:context="uk.co.section9.zotdroid.LoadingFragment">
 
-        <TextView
-            android:id="@+id/textViewLoading"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Loading"
-            android:textColor="@android:color/black"
-            android:textSize="24sp" />
+            android:orientation="vertical">
 
-        <ProgressBar
-            style="?android:attr/progressBarStyleLarge"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="187dp"
-            android:id="@+id/progressBarDownload"
-            android:layout_alignParentTop="true"
-            android:layout_centerHorizontal="true" />
+            <TextView
+                android:id="@+id/textViewLoading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Loading"
+                android:textColor="@android:color/black"
+                android:textSize="24sp" />
 
-        <Button
-            android:text="Cancel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="110dp"
-            android:id="@+id/buttonCancel"
-            android:layout_below="@+id/progressBarDownload"
-            android:layout_alignStart="@+id/progressBarDownload" />
+            <ProgressBar
+                android:id="@+id/progressBarDownload"
+                style="?android:attr/progressBarStyleLarge"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="50dp" />
 
-    </LinearLayout>
+            <Button
+                android:id="@+id/buttonCancel"
+                android:layout_width="306dp"
+                android:layout_height="wrap_content"
+                android:layout_alignStart="@+id/progressBarDownload"
+                android:layout_below="@+id/progressBarDownload"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="30dp"
+                android:text="Cancel" />
 
-    <!-- TODO: Update blank fragment layout -->
+        </LinearLayout>
 
-</FrameLayout>
+        <!-- TODO: Update blank fragment layout -->
+
+    </FrameLayout>
 </merge>

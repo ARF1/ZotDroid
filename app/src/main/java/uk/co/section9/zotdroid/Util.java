@@ -106,4 +106,15 @@ public class Util {
         return download_path;
     }
 
+    /**
+     * Given an attachmentname, see if it exists in our download folder
+     * @param filename
+     * @param activity
+     * @return
+     */
+    public static boolean fileExists(String filename, Activity activity){
+        String dir = getDownloadDirectory(activity);
+        return  path_exists(dir + "/" + filename);
+    }
+
 }

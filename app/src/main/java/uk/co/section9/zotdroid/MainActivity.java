@@ -66,7 +66,7 @@ ZotDroidOps.ZotDroidCaller {
     private Dialog                  _download_dialog; // TODO - Do we need both?
     private ZotDroidOps             _zotdroid_ops;
     private ZoteroCollection        _filter = null; // Current category we are in.
-    private ExpandableListAdapter   _main_list_adapter;
+    private ZotDroidListAdapter     _main_list_adapter;
     private ExpandableListView      _main_list_view;
 
     // Our main list memory locations
@@ -412,7 +412,7 @@ ZotDroidOps.ZotDroidCaller {
         String font_size = "medium";
         font_size = settings.getString("settings_font_size",font_size);
 
-        _main_list_adapter = new ZotDroidListAdapter(this,_main_list_items, _main_list_sub_items,font_size);
+        _main_list_adapter = new ZotDroidListAdapter(this,this,_main_list_items, _main_list_sub_items,font_size);
         _main_list_view.setAdapter(_main_list_adapter);
 
         Vector<ZoteroRecord> records = _zotdroid_ops.get_records();
@@ -423,7 +423,14 @@ ZotDroidOps.ZotDroidCaller {
                     String tt = record.get_title() + " - " + record.get_author();
                     _main_list_map.put(new Integer(_main_list_items.size()), record);
                     _main_list_items.add(tt);
+
+                    // We add metadata first, followed by attachments (TODO - Add a divider?)
                     ArrayList<String> tl = new ArrayList<String>();
+                    tl.add("Title: " + record.get_title());
+                    tl.add("Author(s): " + record.get_author());
+                    tl.add("Date Added: " + record.get_date_added());
+                    tl.add("Date Modified: " + record.get_date_modified());
+
                     for (ZoteroAttachment attachment : record.get_attachments()) {
                         tl.add(attachment.get_file_name());
                     }
@@ -436,14 +443,15 @@ ZotDroidOps.ZotDroidCaller {
 
             @Override
             public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
-                ZoteroRecord record = null;
+            ZoteroRecord record = null;
+            if (id >= Constants.ATTACHMENT_START_INDEX) {
                 record = _main_list_map.get(new Integer((groupPosition)));
-
                 if (record != null) {
                     _download_dialog = launchDownloadDialog();
-                    _zotdroid_ops.startAttachmentDownload(record, childPosition);
+                    _zotdroid_ops.startAttachmentDownload(record, childPosition - Constants.ATTACHMENT_START_INDEX);
                 }
-                return true;
+            }
+            return true;
             }
         });
 
@@ -458,8 +466,6 @@ ZotDroidOps.ZotDroidCaller {
             recSetDrawer(cc,level + 1);
         }
     }
-
-
 
     /**
      * A subroutine to set the left-hand collections drawer
@@ -478,9 +484,7 @@ ZotDroidOps.ZotDroidCaller {
             if (!c.has_parent()){ toplevels.add(c); }
         }
 
-        for (ZoteroCollection c: toplevels){
-            recSetDrawer(c,0);
-        }
+        for (ZoteroCollection c: toplevels){ recSetDrawer(c,0); }
 
         // Override the adapter so we can set the fontsize
         drawer_list.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, _main_list_collections) {
@@ -504,7 +508,6 @@ ZotDroidOps.ZotDroidCaller {
                 return row;
             }
         });
-
 
         // On-click show only these items in a particular collection and set the title to reflect this.
         drawer_list.setOnItemClickListener(new AdapterView.OnItemClickListener()
@@ -559,6 +562,14 @@ ZotDroidOps.ZotDroidCaller {
                     Log.d(TAG,"Error opening file");
                     e.printStackTrace();
                 }
+                // Change the icon from grey to green
+                Runnable run = new Runnable() {
+                    public void run() {
+                        _main_list_view.invalidateViews();
+                        _main_list_view.refreshDrawableState();
+                    }
+                };
+                runOnUiThread(run);
             } else {
                 String status_message = "Error: " + message  + " does not appear to exist.";
                 TextView messageView = (TextView) _download_dialog.findViewById(R.id.textViewDownloading);

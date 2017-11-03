@@ -82,6 +82,10 @@ public class ZoteroRecord {
 
     public Vector<ZoteroAttachment> get_attachments() {return _attachments;}
 
+    public Vector<String> get_tags() {return _tags;}
+
+    public void add_tag(String tag) { _tags.add(tag); }
+
     public String get_version() {
         return _version;
     }
@@ -93,6 +97,7 @@ public class ZoteroRecord {
     // For now, we cover all the bases we need for all possible items
     // Eventually we might have separate record tables
 
+    // TODO - do we really need _item_type and _content_type? Is it not implicit in the class?
     protected String    _content_type;
     protected String    _title;
     protected String    _item_type;
@@ -105,6 +110,7 @@ public class ZoteroRecord {
     protected Vector<ZoteroAttachment> _attachments;
     protected Vector<ZoteroCollection> _collections;
     protected Vector<String>    _temp_collections;
+    protected Vector<String>    _tags;
 
     public String toString() {
         return _title + " - " + _author;
@@ -116,5 +122,7 @@ public class ZoteroRecord {
         _attachments = new Vector<ZoteroAttachment>();
         _collections = new Vector<ZoteroCollection>();
         _temp_collections = new Vector<String>(); // TODO - temporarily holding collection keys might not be the best way
+        _tags = new Vector<String>(); // TODO - temporarily holding collection keys might not be the best way
+
     }
 }

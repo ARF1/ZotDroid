@@ -5,12 +5,8 @@ package uk.co.section9.zotdroid.ops;
  */
 
 import android.app.Activity;
-import android.content.ContentValues;
-
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.ZotDroidMem;
@@ -68,6 +64,15 @@ public class ZotDroidOps {
      */
 
     protected void rebuildMemory(Vector<Record> records) {
+
+        // Now add trv to our working memory - it always starts with records
+        for (Record record : records) {
+            if (!_zotdroid_mem._key_to_record.containsKey(record.get_zotero_key())) {
+                _zotdroid_mem._key_to_record.put(record.get_zotero_key(), record);
+                _zotdroid_mem._records.add(record);
+            }
+        }
+
         // Move on to any new attachments for our new records
         for (Record record : records) {
             Vector<Attachment> za = _zotdroid_db.getAttachmentsForRecord(record);
@@ -87,9 +92,8 @@ public class ZotDroidOps {
         int numrows = _zotdroid_db.getNumCollections();
 
         for (int i=0; i < numrows; ++i) {
-            ContentValues values = null;
             Collection collection = _zotdroid_db.getCollection(i);
-            if(_zotdroid_mem._key_to_collection.containsKey(collection.get_zotero_key())) {
+            if(!_zotdroid_mem._key_to_collection.containsKey(collection.get_zotero_key())) {
                 _zotdroid_mem._collections.add(collection);
                 _zotdroid_mem._key_to_collection.put(collection.get_zotero_key(), collection);
             }
@@ -144,7 +148,8 @@ public class ZotDroidOps {
 
         // Start with any new records we want to add into memory
         int numrows = _zotdroid_db.getNumRecords();
-        if (end > numrows || end < 0) { return false; }
+        if ( end < 0) { return false; }
+        if (end >= numrows) { end = numrows-1; }
         _zotdroid_mem._end_index = end;
         Vector<Record> newrecords = new Vector<>();
 

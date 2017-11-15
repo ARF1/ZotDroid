@@ -10,6 +10,7 @@ import android.database.sqlite.SQLiteDatabase;
 
 import java.util.Vector;
 
+import uk.co.section9.zotdroid.R;
 import uk.co.section9.zotdroid.data.BaseData;
 import uk.co.section9.zotdroid.data.zotero.Collection;
 import uk.co.section9.zotdroid.data.zotero.CollectionItem;
@@ -55,12 +56,12 @@ public class CollectionsItems extends BaseData {
         return ic;
     }
 
-    public void deleteByRecord(String key, SQLiteDatabase db){
-        db.execSQL("DELETE FROM " + get_table_name() + " where item=\"" + key + "\"");
+    public void deleteByRecord(Record r, SQLiteDatabase db){
+        db.execSQL("DELETE FROM " + get_table_name() + " where item=\"" + r.get_zotero_key() + "\"");
     }
 
-    public void deleteByCollection(String key, SQLiteDatabase db){
-        db.execSQL("DELETE FROM " + get_table_name() + " where collection=\"" + key + "\"");
+    public void deleteByCollection(Collection c, SQLiteDatabase db){
+        db.execSQL("DELETE FROM " + get_table_name() + " where collection=\"" + c.get_zotero_key() + "\"");
     }
 
     public String get_table_name(){
@@ -84,11 +85,11 @@ public class CollectionsItems extends BaseData {
         return citems;
     }
 
-    public Vector<CollectionItem> getCollectionItemForItem(String key, SQLiteDatabase db) {
+    public Vector<CollectionItem> getCollectionItemForItem(Record r, SQLiteDatabase db) {
 
         Vector<CollectionItem> citems = new Vector<>();
         ContentValues values = new ContentValues();
-        Cursor cursor = db.rawQuery("select * from \"" + get_table_name() + "\" where item=\"" + key + "\";", null);
+        Cursor cursor = db.rawQuery("select * from \"" + get_table_name() + "\" where item=\"" + r.get_zotero_key() + "\";", null);
         while (cursor.moveToNext()){
             values.clear();
             for (int i = 0; i < cursor.getColumnCount(); i++){

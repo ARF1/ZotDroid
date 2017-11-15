@@ -64,13 +64,13 @@ public class Attachments extends BaseData {
                 "WHERE zotero_key=\"" + attachment.get_zotero_key() + "\";");
     }
 
-    public Boolean attachmentExists(String key, SQLiteDatabase db){
-        String q =  "select count(*) from \"" + get_table_name() + "\" where zotero_key=\"" + key + "\";";
+    public Boolean attachmentExists(Attachment a, SQLiteDatabase db){
+        String q =  "select count(*) from \"" + get_table_name() + "\" where zotero_key=\"" + a.get_zotero_key() + "\";";
         return exists(q,db);
     }
 
-    public void deleteAttachment(String key, SQLiteDatabase db){
-        db.execSQL("DELETE FROM " + get_table_name() + " WHERE zotero_key=\"" + key + "\";");
+    public void deleteAttachment(Attachment a, SQLiteDatabase db){
+        db.execSQL("DELETE FROM " + get_table_name() + " WHERE zotero_key=\"" + a.get_zotero_key() + "\";");
     }
 
     public void writeAttachment (Attachment attachment, SQLiteDatabase db) {
@@ -87,7 +87,7 @@ public class Attachments extends BaseData {
     public Vector<Attachment> getForRecord(SQLiteDatabase db, String parent_key) {
         Vector<Attachment> zv = new Vector<Attachment>();
         ContentValues values = new ContentValues();
-        Cursor cursor = db.rawQuery("SELECT FROM " + get_table_name() + " WHERE parent=\"" + parent_key + "\";", null);
+        Cursor cursor = db.rawQuery("SELECT * FROM " + get_table_name() + " WHERE parent=\"" + parent_key + "\";", null);
 
         while (cursor.moveToNext()) {
             values.clear();

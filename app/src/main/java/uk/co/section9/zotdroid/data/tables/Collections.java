@@ -57,8 +57,8 @@ public class Collections extends BaseData {
         return TABLE_NAME;
     }
 
-    public boolean collectionExists(String key, SQLiteDatabase db){
-        String q =  "select count(*) from \"" + get_table_name() + "\" where zotero_key=\"" + key + "\";";
+    public boolean collectionExists(Collection c, SQLiteDatabase db){
+        String q =  "select count(*) from \"" + get_table_name() + "\" where zotero_key=\"" + c.get_zotero_key() + "\";";
         return exists(q,db);
     }
 
@@ -67,8 +67,8 @@ public class Collections extends BaseData {
         return getCollectionFromValues(values);
     }
 
-    public void deleteCollection(String key, SQLiteDatabase db){
-        db.execSQL("DELETE FROM " + get_table_name() + " WHERE zotero_key=\"" + key + "\";");
+    public void deleteCollection(Collection c, SQLiteDatabase db){
+        db.execSQL("DELETE FROM " + get_table_name() + " WHERE zotero_key=\"" + c.get_zotero_key() + "\";");
     }
 
     public void updateCollection(Collection collection, SQLiteDatabase db) {

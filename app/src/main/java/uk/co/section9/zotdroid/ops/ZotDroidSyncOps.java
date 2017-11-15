@@ -7,7 +7,6 @@ import android.util.Log;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.Constants;
-import uk.co.section9.zotdroid.Util;
 import uk.co.section9.zotdroid.ZotDroidMem;
 import uk.co.section9.zotdroid.data.ZotDroidDB;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
@@ -79,7 +78,7 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
      * Given a record, do we add it anew or alter an existing?
      */
     private void checkUpdateRecord(Record record) {
-        if (!_zotdroid_db.recordExists(record.get_zotero_key())) {
+        if (!_zotdroid_db.recordExists(record)) {
             _zotdroid_db.writeRecord(record);
             collectionItemsCreate(record); // This is why collections MUST be synced first
         } else {
@@ -90,7 +89,7 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
                 _zotdroid_db.updateRecord(record);
                 // At this point the record will likely have different collections too
                 // so we simply rebuild them from our new fresh record
-                _zotdroid_db.removeRecordFromCollections(record.get_zotero_key());
+                _zotdroid_db.removeRecordFromCollections(record);
                 collectionItemsCreate(record);
 
             } else {
@@ -104,7 +103,7 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
      * @param attachment
      */
     private void checkUpdateAttachment(Attachment attachment) {
-        if (!_zotdroid_db.attachmentExists(attachment.get_zotero_key())) {
+        if (!_zotdroid_db.attachmentExists(attachment)) {
             _zotdroid_db.writeAttachment(attachment);
         } else {
             // Check the version numbers if this exists and update as necessary
@@ -123,7 +122,7 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
      * @param collection
      */
     private void checkUpdateCollection(Collection collection) {
-        if (!_zotdroid_db.collectionExists(collection.get_zotero_key())) {
+        if (!_zotdroid_db.collectionExists(collection)) {
             _zotdroid_db.writeCollection(collection);
         } else {
             // Check the version numbers if this exists and update as necessary
@@ -271,7 +270,7 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
                                        int total, Vector<Collection> collections, String version) {
         if (success) {
             for (Collection collection : collections){
-                if (!_zotdroid_db.collectionExists(collection.get_zotero_key())) {
+                if (!_zotdroid_db.collectionExists(collection)) {
                     _zotdroid_db.writeCollection(collection);
                 } else {
                     // Check the version numbers if this exists and update as necessary
@@ -378,12 +377,17 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
         Log.i(TAG,"Items to delete: " + items.size());
 
         for (String key : items){
+            Record r = _zotdroid_db.getRecord(key);
+            if (r != null){ _zotdroid_db.deleteRecord(r); }
+            Attachment a = _zotdroid_db.getAttachment(key);
             // Could be either but it wont fail if we get the wrong one
-            _zotdroid_db.deleteAttachment(key);
-            _zotdroid_db.deleteRecord(key);
+            if (a != null ) {_zotdroid_db.deleteAttachment(a);}
         }
 
-        for (String key : collections){ _zotdroid_db.deleteCollection(key); }
+        for (String key : collections){
+            Collection c = _zotdroid_db.getCollection(key);
+            if (c != null ){ _zotdroid_db.deleteCollection(c);}
+        }
         if (!nextTask()) { onSyncCompletion(true,"Sync completed", version); }
     }
 
@@ -468,8 +472,8 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
             s.set_last_version(version);
             _zotdroid_db.writeSummary(s);
         }
-        // Call this anyway - it's probably for the best at this point
-        this.populateFromDB(Constants.PAGINATION_SIZE);
+
+        populateFromDB(Constants.PAGINATION_SIZE);
         _midnightcaller.onSyncFinish(success,message);
     }
 

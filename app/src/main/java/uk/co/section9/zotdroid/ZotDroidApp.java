@@ -18,6 +18,10 @@ public class ZotDroidApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        // Create the memory pool
+        _zotdroid_mem = new ZotDroidMem();
+
         // find the database
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
         String database_path = settings.getString("settings_db_location", "");
@@ -29,9 +33,7 @@ public class ZotDroidApp extends Application {
         }
     }
 
-    public ZotDroidMem getMem() {
-        return _zotdroid_mem;
-    }
+    public ZotDroidMem getMem() { return _zotdroid_mem; }
 
     public ZotDroidDB getDB() {
         return _zotdroid_db;

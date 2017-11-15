@@ -134,7 +134,8 @@ public class ZotDroidUserOps extends ZotDroidOps implements ZoteroWebDavCallback
     }
 
     public void reset() {
-        filter(_current_collection,"",_zotdroid_mem._end_index);
+        populateFromDB(Constants.PAGINATION_SIZE);
+        filter(_current_collection,"",Constants.PAGINATION_SIZE);
     }
 
 

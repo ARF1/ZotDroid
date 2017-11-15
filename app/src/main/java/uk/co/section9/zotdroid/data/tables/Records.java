@@ -66,8 +66,8 @@ public class Records extends BaseData {
         return record;
     }
 
-    public Boolean recordExists(String key, SQLiteDatabase db) {
-        String q = "select count(*) from \"" + get_table_name() + "\" where zotero_key=\"" + key + "\";";
+    public Boolean recordExists(Record r, SQLiteDatabase db) {
+        String q = "select count(*) from \"" + get_table_name() + "\" where zotero_key=\"" + r.get_zotero_key() + "\";";
         return exists(q,db);
     }
 
@@ -94,12 +94,11 @@ public class Records extends BaseData {
         db.insert(get_table_name(), null, values);
     }
 
-    public void deleteRecord( String key, SQLiteDatabase db ){
-        Log.i(TAG,"Deleting from Records Table: " + key);
-        db.execSQL("DELETE FROM " + get_table_name() + " WHERE zotero_key=\"" + key + "\";");
+    public void deleteRecord( Record r, SQLiteDatabase db ){
+        db.execSQL("DELETE FROM " + get_table_name() + " WHERE zotero_key=\"" + r.get_zotero_key() + "\";");
     }
 
-    public Record getRecord(String key, SQLiteDatabase db){
+    public Record getRecordByKey(String key, SQLiteDatabase db){
         return getRecordFromValues(getSingle(db,key));
     }
 

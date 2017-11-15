@@ -11,6 +11,7 @@ import java.util.Vector;
 
 import uk.co.section9.zotdroid.R;
 import uk.co.section9.zotdroid.data.tables.Attachments;
+import uk.co.section9.zotdroid.data.tables.Authors;
 import uk.co.section9.zotdroid.data.tables.CollectionsItems;
 import uk.co.section9.zotdroid.data.tables.Collections;
 import uk.co.section9.zotdroid.data.tables.Records;
@@ -33,13 +34,12 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public static final String TAG = "zotdroid.ZotDroidDB";
     private SQLiteDatabase _db;
 
-    private Collections _collectionsTable       = new Collections();
-    private Attachments _attachmentsTable       = new Attachments();
-    private Records _recordsTable           = new Records();
-    private Summary _summaryTable           = new Summary();
-    private CollectionsItems _collectionsItemsTable  = new CollectionsItems();
-
-    // TODO - replace any reference to keys to the object instead, and extract the key here. It's cleaner!
+    private Collections         _collectionsTable       = new Collections();
+    private Attachments         _attachmentsTable       = new Attachments();
+    private Records             _recordsTable           = new Records();
+    private Summary             _summaryTable           = new Summary();
+    private CollectionsItems    _collectionsItemsTable  = new CollectionsItems();
+    private Authors             _authorsTable = new Authors();
 
     public ZotDroidDB(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -94,6 +94,10 @@ public class ZotDroidDB extends SQLiteOpenHelper {
             _collectionsItemsTable.createTable(_db);
         }
 
+        if (!checkTableExists(_authorsTable.get_table_name())) {
+            _authorsTable.createTable(_db);
+        }
+
         if (!checkTableExists(_summaryTable.get_table_name())) {
             _summaryTable.createTable(_db);
             uk.co.section9.zotdroid.data.zotero.Summary s = new uk.co.section9.zotdroid.data.zotero.Summary();
@@ -117,7 +121,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS \"" + _collectionsTable.get_table_name() + "\"");
         db.execSQL("DROP TABLE IF EXISTS \"" + _attachmentsTable.get_table_name() + "\"");
         db.execSQL("DROP TABLE IF EXISTS \"" + _collectionsItemsTable.get_table_name() + "\"");
-
+        db.execSQL("DROP TABLE IF EXISTS \"" + _authorsTable.get_table_name() + "\"");
         onCreate(db);
     }
 
@@ -137,6 +141,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + _summaryTable.get_table_name());
         db.execSQL("DROP TABLE IF EXISTS " + _attachmentsTable.get_table_name());
         db.execSQL("DROP TABLE IF EXISTS " + _collectionsItemsTable.get_table_name());
+        db.execSQL("DROP TABLE IF EXISTS " + _authorsTable.get_table_name());
         // Create tables again
         onCreate(db);
     }
@@ -177,9 +182,9 @@ public class ZotDroidDB extends SQLiteOpenHelper {
 
 
     // Existence methods
-    public boolean recordExists(String key) { return _recordsTable.recordExists(key,_db);}
-    public boolean collectionExists(String key) { return _collectionsTable.collectionExists(key,_db); }
-    public boolean attachmentExists(String key) { return _attachmentsTable.attachmentExists(key,_db); }
+    public boolean recordExists(Record r) { return _recordsTable.recordExists(r,_db);}
+    public boolean collectionExists(Collection c) { return _collectionsTable.collectionExists(c,_db); }
+    public boolean attachmentExists(Attachment a) { return _attachmentsTable.attachmentExists(a,_db); }
 
     // Update methods
     public void updateCollection(Collection collection) {
@@ -239,7 +244,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
 
     // TODO - could do this as an actual SQL query I suppose?
     public Vector<Collection> getCollectionForItem(Record record){
-        Vector<CollectionItem> tci = _collectionsItemsTable.getCollectionItemForItem(record.get_zotero_key(),_db);
+        Vector<CollectionItem> tci = _collectionsItemsTable.getCollectionItemForItem(record,_db);
         Vector<Collection> tc = new Vector<>();
 
         for (CollectionItem ci : tci) {
@@ -254,7 +259,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         Vector<Record> tc = new Vector<>();
 
         for (CollectionItem ci : tci) {
-            tc.add(_recordsTable.getRecord(ci.get_item(),_db));
+            tc.add(_recordsTable.getRecordByKey(ci.get_item(),_db));
         }
         return tc;
     }
@@ -279,19 +284,19 @@ public class ZotDroidDB extends SQLiteOpenHelper {
 
 
     // Delete methods
-    public void deleteAttachment(String key) {_attachmentsTable.deleteAttachment(key,_db);}
+    public void deleteAttachment(Attachment a) {_attachmentsTable.deleteAttachment(a,_db);}
 
-    public void deleteRecord(String key) {
-        _recordsTable.deleteRecord(key,_db);
-        _collectionsItemsTable.deleteByRecord(key,_db);
+    public void deleteRecord(Record r) {
+        _recordsTable.deleteRecord(r,_db);
+        _collectionsItemsTable.deleteByRecord(r,_db);
     }
-    public void deleteCollection(String key) {
-        _collectionsTable.deleteCollection(key,_db);
-        _collectionsItemsTable.deleteByCollection(key,_db);
+    public void deleteCollection(Collection c) {
+        _collectionsTable.deleteCollection(c,_db);
+        _collectionsItemsTable.deleteByCollection(c,_db);
     }
 
-    public void removeRecordFromCollections(String key){
-        _collectionsItemsTable.deleteByRecord(key,_db);
+    public void removeRecordFromCollections(Record r){
+        _collectionsItemsTable.deleteByRecord(r,_db);
     }
 
     // Search methods

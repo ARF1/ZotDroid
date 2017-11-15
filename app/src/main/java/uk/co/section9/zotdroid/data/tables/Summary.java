@@ -2,10 +2,8 @@ package uk.co.section9.zotdroid.data.tables;
 
 import android.content.ContentValues;
 import android.database.sqlite.SQLiteDatabase;
-
 import uk.co.section9.zotdroid.Util;
 import uk.co.section9.zotdroid.data.BaseData;
-import uk.co.section9.zotdroid.data.zotero.Summary;
 
 /**
  * Created by oni on 11/07/2017.

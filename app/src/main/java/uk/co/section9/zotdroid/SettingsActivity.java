@@ -249,6 +249,9 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
     public static class WebDavPreferenceFragment extends PreferenceFragment {
+
+        private Preference.OnPreferenceChangeListener webdav_settings_verifier;
+
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
@@ -264,6 +267,16 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             Preference settings_webdav_password = findPreference("settings_webdav_password");
             settings_webdav_password.setSummary("hidden");
 
+            webdav_settings_verifier = new Preference.OnPreferenceChangeListener() {
+                AlertDialog.Builder builder  = new AlertDialog.Builder(_context, R.style.ZotDroidAlertDialogStyle);
+                @Override
+                public boolean onPreferenceChange(Preference preference, Object o) {
+                    if (preference == findPreference("settings_webdav_address")){
+                        // TODO - Make sure its https in here - warn user otherwise!
+                    }
+                    return true;
+                }
+            };
         }
 
         @Override

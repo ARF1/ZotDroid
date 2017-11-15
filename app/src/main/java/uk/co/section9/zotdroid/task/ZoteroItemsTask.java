@@ -1,4 +1,4 @@
-package uk.co.section9.zotdroid.data.task;
+package uk.co.section9.zotdroid.task;
 
 /**
  * Created by oni on 21/07/2017.
@@ -13,10 +13,10 @@ import org.json.JSONObject;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.Util;
-import uk.co.section9.zotdroid.ZoteroBroker;
-import uk.co.section9.zotdroid.data.ZoteroAttachment;
-import uk.co.section9.zotdroid.data.ZoteroNote;
-import uk.co.section9.zotdroid.data.ZoteroRecord;
+import uk.co.section9.zotdroid.auth.ZoteroBroker;
+import uk.co.section9.zotdroid.data.zotero.Attachment;
+import uk.co.section9.zotdroid.data.zotero.Note;
+import uk.co.section9.zotdroid.data.zotero.Record;
 
 /**
  * Extend our items task so that we can do some processing on the data returned
@@ -71,8 +71,8 @@ public class ZoteroItemsTask extends ZoteroTask {
     }
 
 
-    protected ZoteroRecord processEntry(JSONObject jobj) {
-        ZoteroRecord record = new ZoteroRecord();
+    protected Record processEntry(JSONObject jobj) {
+        Record record = new Record();
         // TODO - We need to handle these exceptions better - possibly by just ignoring this record
 
         try {
@@ -151,14 +151,14 @@ public class ZoteroItemsTask extends ZoteroTask {
         return record;
     }
 
-    protected ZoteroNote processNote(JSONObject jobj) {
+    protected Note processNote(JSONObject jobj) {
         // TODO - complete this
-        return new ZoteroNote();
+        return new Note();
     }
 
 
-    protected ZoteroAttachment processAttachment(JSONObject jobj) {
-        ZoteroAttachment attachment = new ZoteroAttachment();
+    protected Attachment processAttachment(JSONObject jobj) {
+        Attachment attachment = new Attachment();
 
         try {
             attachment.set_zotero_key(jobj.getString("key"));
@@ -193,9 +193,9 @@ public class ZoteroItemsTask extends ZoteroTask {
     }
 
     protected void onPostExecute(String rstring) {
-        Vector<ZoteroRecord> records =  new Vector<ZoteroRecord>();
-        Vector<ZoteroAttachment> attachments =  new Vector<ZoteroAttachment>();
-        Vector<ZoteroNote> notes =  new Vector<ZoteroNote>();
+        Vector<Record> records =  new Vector<Record>();
+        Vector<Attachment> attachments =  new Vector<Attachment>();
+        Vector<Note> notes =  new Vector<Note>();
 
         // Check we didn't get a failure on that rsync call
         if (rstring == "FAIL"){

@@ -1,4 +1,4 @@
-package uk.co.section9.zotdroid.data.task;
+package uk.co.section9.zotdroid.task;
 
 /**
  * Created by oni on 21/07/2017.
@@ -15,7 +15,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import javax.net.ssl.HttpsURLConnection;
-import uk.co.section9.zotdroid.ZoteroBroker;
+import uk.co.section9.zotdroid.auth.ZoteroBroker;
 
 /**
  * Generic task that executes in the background, making requests of Zotero

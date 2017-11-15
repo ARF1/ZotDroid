@@ -5,12 +5,20 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
 import java.util.Date;
 import java.util.Vector;
 
-import uk.co.section9.zotdroid.Util;
+import uk.co.section9.zotdroid.R;
+import uk.co.section9.zotdroid.data.tables.Attachments;
+import uk.co.section9.zotdroid.data.tables.CollectionsItems;
+import uk.co.section9.zotdroid.data.tables.Collections;
+import uk.co.section9.zotdroid.data.tables.Records;
+import uk.co.section9.zotdroid.data.tables.Summary;
+import uk.co.section9.zotdroid.data.zotero.Attachment;
+import uk.co.section9.zotdroid.data.zotero.Collection;
+import uk.co.section9.zotdroid.data.zotero.CollectionItem;
+import uk.co.section9.zotdroid.data.zotero.Record;
 
 /**
  * Created by oni on 11/07/2017.
@@ -25,11 +33,13 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public static final String TAG = "zotdroid.ZotDroidDB";
     private SQLiteDatabase _db;
 
-    private CollectionsTable        _collectionsTable       = new CollectionsTable();
-    private AttachmentsTable        _attachmentsTable       = new AttachmentsTable();
-    private RecordsTable            _recordsTable           = new RecordsTable();
-    private SummaryTable            _summaryTable           = new SummaryTable();
-    private CollectionsItemsTable   _collectionsItemsTable  = new CollectionsItemsTable();
+    private Collections _collectionsTable       = new Collections();
+    private Attachments _attachmentsTable       = new Attachments();
+    private Records _recordsTable           = new Records();
+    private Summary _summaryTable           = new Summary();
+    private CollectionsItems _collectionsItemsTable  = new CollectionsItems();
+
+    // TODO - replace any reference to keys to the object instead, and extract the key here. It's cleaner!
 
     public ZotDroidDB(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -86,7 +96,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
 
         if (!checkTableExists(_summaryTable.get_table_name())) {
             _summaryTable.createTable(_db);
-            ZoteroSummary s = new ZoteroSummary();
+            uk.co.section9.zotdroid.data.zotero.Summary s = new uk.co.section9.zotdroid.data.zotero.Summary();
             s.set_date_synced(new Date());
             s.set_last_version("0000");
             _summaryTable.writeSummary(s,_db);
@@ -172,73 +182,83 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public boolean attachmentExists(String key) { return _attachmentsTable.attachmentExists(key,_db); }
 
     // Update methods
-    public void updateCollection(ZoteroCollection collection) {
+    public void updateCollection(Collection collection) {
         _collectionsTable.updateCollection(collection,_db);
     }
-    public void updateRecord(ZoteroRecord record) {
+    public void updateRecord(Record record) {
         _recordsTable.updateRecord(record,_db);
     }
 
-    public void updateAttachment(ZoteroAttachment attachment) {
+    public void updateAttachment(Attachment attachment) {
         _attachmentsTable.updateAttachment(attachment,_db);
     }
 
-    // Get methods
-
-    /**
-     * Get all the records from our database into memory
-     * @return
-     */
-    public Vector<ZoteroRecord> getRecords() {
-        int result = 0;
-        Vector<ZoteroRecord> records = new Vector<ZoteroRecord>();
-        ContentValues values = new ContentValues();
-        Cursor cursor = _db.rawQuery("select * from \"" + _recordsTable.get_table_name() + "\";", null);
-        while (cursor.moveToNext()){
-            values.clear();
-            for (int i = 0; i < cursor.getColumnCount(); i++){
-                values.put(cursor.getColumnName(i),cursor.getString(i));
-            }
-            records.add(_recordsTable.getRecordFromValues(values));
-        }
-
-        cursor.close();
-        return records;
-    }
-
-    public ZoteroCollection getCollection(String key) {
+    public Collection getCollection(String key) {
         return _collectionsTable.getCollection(key,_db);
     }
 
-    public ZoteroSummary getSummary() { return _summaryTable.getSummaryFromValues( readRow(_summaryTable.get_table_name(),0)); }
+    public uk.co.section9.zotdroid.data.zotero.Summary getSummary() { return _summaryTable.getSummaryFromValues( readRow(_summaryTable.get_table_name(),0)); }
 
-    public ZoteroCollection getCollection(int rownum) {
+    public Collection getCollection(int rownum) {
         return _collectionsTable.getCollectionFromValues(readRow(_collectionsTable.get_table_name(),rownum));
     }
 
-    public ZoteroRecord getRecord(String key) {
+    public Record getRecord(String key) {
         return _recordsTable.getRecordFromValues( _recordsTable.getSingle(_db, key));
     }
 
-    public ZoteroRecord getRecord(int rownumber) {
+    public Record getRecord(int rownumber) {
         return _recordsTable.getRecordFromValues(readRow(_recordsTable.get_table_name(),rownumber));
     }
 
-    public ZoteroAttachment getAttachment(String key) {
+    public Vector<Record> getRecords(int end) {
+        return _recordsTable.getRecords(end, _db);
+    }
+
+    public Attachment getAttachment(String key) {
         return _attachmentsTable.getAttachmentFromValues(_attachmentsTable.getSingle(_db,key));
     }
 
-    public ZoteroAttachment getAttachment(int rownumber) {
+    public  Vector<Attachment> getAttachmentsForRecord(Record record) {
+         return _attachmentsTable.getForRecord(_db,record.get_zotero_key());
+    }
+
+    public Attachment getAttachment(int rownumber) {
         return _attachmentsTable.getAttachmentFromValues(readRow(_attachmentsTable.get_table_name(),rownumber));
     }
 
-    public ZoteroCollectionItem getCollectionItem(String key) {
+    public CollectionItem getCollectionItem(String key) {
         return _collectionsItemsTable.getCollectionItemFromValues(_collectionsItemsTable.getSingle(_db,key));
     }
 
-    public ZoteroCollectionItem getCollectionItem(int rownumber) {
+    public CollectionItem getCollectionItem(int rownumber) {
         return _collectionsItemsTable.getCollectionItemFromValues(readRow(_collectionsItemsTable.get_table_name(), rownumber));
     }
+
+    // Composite Get methods
+
+    // TODO - could do this as an actual SQL query I suppose?
+    public Vector<Collection> getCollectionForItem(Record record){
+        Vector<CollectionItem> tci = _collectionsItemsTable.getCollectionItemForItem(record.get_zotero_key(),_db);
+        Vector<Collection> tc = new Vector<>();
+
+        for (CollectionItem ci : tci) {
+            tc.add(_collectionsTable.getCollection(ci.get_collection(),_db));
+        }
+        return tc;
+    }
+
+    // TODO - could do this as an actual SQL query I suppose?
+    public Vector<Record> getItemsForCollection (Collection collection){
+        Vector<CollectionItem> tci = _collectionsItemsTable.getItemsForCollection(collection.get_zotero_key(),_db);
+        Vector<Record> tc = new Vector<>();
+
+        for (CollectionItem ci : tci) {
+            tc.add(_recordsTable.getRecord(ci.get_item(),_db));
+        }
+        return tc;
+    }
+
 
     // Get number methods
 
@@ -249,13 +269,13 @@ public class ZotDroidDB extends SQLiteOpenHelper {
 
     // Write methods
 
-    public void writeCollection(ZoteroCollection collection){ _collectionsTable.writeCollection(collection,_db); }
-    public void writeRecord(ZoteroRecord record){
+    public void writeCollection(Collection collection){ _collectionsTable.writeCollection(collection,_db); }
+    public void writeRecord(Record record){
         _recordsTable.writeRecord(record,_db);
     }
-    public void writeAttachment(ZoteroAttachment attachment){ _attachmentsTable.writeAttachment(attachment,_db); }
-    public void writeSummary(ZoteroSummary summary){ _summaryTable.writeSummary(summary,_db); }
-    public void writeCollectionItem(ZoteroCollectionItem ic){ _collectionsItemsTable.writeCollection(ic,_db); }
+    public void writeAttachment(Attachment attachment){ _attachmentsTable.writeAttachment(attachment,_db); }
+    public void writeSummary(uk.co.section9.zotdroid.data.zotero.Summary summary){ _summaryTable.writeSummary(summary,_db); }
+    public void writeCollectionItem(CollectionItem ic){ _collectionsItemsTable.writeCollection(ic,_db); }
 
 
     // Delete methods
@@ -273,5 +293,9 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public void removeRecordFromCollections(String key){
         _collectionsItemsTable.deleteByRecord(key,_db);
     }
+
+    // Search methods
+
+
 
 }

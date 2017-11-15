@@ -1,4 +1,4 @@
-package uk.co.section9.zotdroid;
+package uk.co.section9.zotdroid.webdav;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.zip.ZipInputStream;
 import javax.net.ssl.HttpsURLConnection;
 
+import uk.co.section9.zotdroid.auth.ZoteroBroker;
+
 /**
  * Created by oni on 13/07/2017.
  */
@@ -30,11 +32,6 @@ public class ZoteroDownload {
 
     private AsyncTask<String,Integer,String> _request;
     private WebDavTest _test;
-
-    public interface ZoteroWebDavCallback {
-        void onWebDavProgess(boolean result, String message);
-        void onWebDavComplete(boolean result, String message);
-    }
 
     /**
      * A class that is used to test the WebDav connection
@@ -352,7 +349,7 @@ public class ZoteroDownload {
     /**
      * Stop any current download request.
      */
-    void stop() {
+    public void stop() {
         if (_request != null) { _request.cancel(true); }
         if (_test != null) { _test.cancel(true);}
     }

@@ -1,12 +1,12 @@
-package uk.co.section9.zotdroid.data;
+package uk.co.section9.zotdroid.data.zotero;
 
 /**
  * Created by oni on 14/07/2017.
  */
 
-public class ZoteroAttachment {
+public class Attachment {
 
-    public static final String TAG = "zotdroid.data.ZoteroAttachment";
+    public static final String TAG = "zotdroid.data.Attachment";
 
     protected String _file_name;
     protected String _zotero_key;
@@ -50,6 +50,14 @@ public class ZoteroAttachment {
         this._file_type = _file_type;
     }
 
-    public ZoteroAttachment() {
+    public void copy(Attachment att){
+        _file_name = att._file_name;
+        _zotero_key = att._zotero_key;
+        _parent = att._parent;
+        _file_type = att._file_type;
+        _version = att._version;
+    }
+
+    public Attachment() {
     }
 }

@@ -1,4 +1,4 @@
-package uk.co.section9.zotdroid.data;
+package uk.co.section9.zotdroid.data.zotero;
 
 /**
  * Created by oni on 21/07/2017.
@@ -10,9 +10,9 @@ import java.util.Vector;
  * Created by oni on 14/07/2017.
  */
 
-public class ZoteroCollection {
+public class Collection {
 
-    public static final String TAG = "zotdroid.data.ZoteroCollection";
+    public static final String TAG = "zotdroid.data.Collection";
 
     public String get_zotero_key() {
         return _zotero_key;
@@ -36,9 +36,9 @@ public class ZoteroCollection {
         this._parent = parent;
     }
 
-    public void add_collection(ZoteroCollection c) { _sub_collections.add(c); }
+    public void add_collection(Collection c) { _sub_collections.add(c); }
 
-    public Vector<ZoteroCollection> get_sub_collections() { return _sub_collections;}
+    public Vector<Collection> get_sub_collections() { return _sub_collections;}
 
     public String get_version() {
         return _version;
@@ -48,9 +48,9 @@ public class ZoteroCollection {
         this._version = _version;
     }
 
-    public Vector<ZoteroRecord> get_records() {return _records;}
+    public Vector<Record> get_records() {return _records;}
 
-    public void add_record(ZoteroRecord r) {_records.add(r); }
+    public void add_record(Record r) {_records.add(r); }
 
     public boolean has_parent() {
         boolean r = true;
@@ -66,15 +66,15 @@ public class ZoteroCollection {
     protected String    _zotero_key;
     protected String    _parent;
     protected String    _version;
-    protected Vector<ZoteroCollection> _sub_collections; // In-efficient in memory terms but whatever
-    protected Vector<ZoteroRecord> _records;
+    protected Vector<Collection> _sub_collections; // In-efficient in memory terms but whatever
+    protected Vector<Record> _records;
 
     public String toString() {
         return _title;
     }
-    public ZoteroCollection(){
-        _sub_collections = new Vector<ZoteroCollection>();
-        _records = new Vector<ZoteroRecord>();
+    public Collection(){
+        _sub_collections = new Vector<Collection>();
+        _records = new Vector<Record>();
         _version = "0000";
         _parent = ""; // Default no parent
     }

@@ -11,6 +11,8 @@ import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.Toast;
 
+import uk.co.section9.zotdroid.auth.ZoteroBroker;
+
 
 /**
  * A screen that fires up the OAuth we need for Zotero

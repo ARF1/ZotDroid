@@ -1,4 +1,4 @@
-package uk.co.section9.zotdroid.data.task;
+package uk.co.section9.zotdroid.task;
 
 import android.util.Log;
 
@@ -8,8 +8,8 @@ import org.json.JSONObject;
 
 import java.util.Vector;
 
-import uk.co.section9.zotdroid.ZoteroBroker;
-import uk.co.section9.zotdroid.data.ZoteroCollection;
+import uk.co.section9.zotdroid.auth.ZoteroBroker;
+import uk.co.section9.zotdroid.data.zotero.Collection;
 
 /**
  * Created by oni on 21/07/2017.
@@ -68,7 +68,7 @@ public class ZoteroCollectionsTask extends ZoteroTask {
     }
 
     protected void onPostExecute(String rstring) {
-        Vector<ZoteroCollection> collections =  new Vector<ZoteroCollection>();
+        Vector<Collection> collections =  new Vector<Collection>();
 
         // Check we didn't get a failure on that rsync call
         if (rstring == "FAIL"){
@@ -122,8 +122,8 @@ public class ZoteroCollectionsTask extends ZoteroTask {
         }
     }
 
-    protected ZoteroCollection processEntry(JSONObject jobj) {
-        ZoteroCollection collection = new ZoteroCollection();
+    protected Collection processEntry(JSONObject jobj) {
+        Collection collection = new Collection();
 
         try {
             collection.set_zotero_key(jobj.getString("key"));

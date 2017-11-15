@@ -1,4 +1,4 @@
-package uk.co.section9.zotdroid.data;
+package uk.co.section9.zotdroid.data.zotero;
 
 import java.util.Date;
 
@@ -6,8 +6,8 @@ import java.util.Date;
  * Created by oni on 03/11/2017.
  */
 
-public class ZoteroNote {
-    public static final String TAG = "zotdroid.data.ZoteroNote";
+public class Note {
+    public static final String TAG = "zotdroid.data.Note";
 
     public String get_zotero_key() {
         return _zotero_key;
@@ -73,7 +73,7 @@ public class ZoteroNote {
 
     public String toString() { return _note; }
 
-    public ZoteroNote() {
+    public Note() {
         _date_added = new Date();
         _date_modified = new Date();
     }

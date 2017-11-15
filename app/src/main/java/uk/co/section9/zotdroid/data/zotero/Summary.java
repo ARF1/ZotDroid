@@ -1,4 +1,4 @@
-package uk.co.section9.zotdroid.data;
+package uk.co.section9.zotdroid.data.zotero;
 
 /**
  * Created by oni on 27/07/2017.
@@ -6,12 +6,14 @@ package uk.co.section9.zotdroid.data;
 
 import java.util.Date;
 
+import uk.co.section9.zotdroid.data.BaseData;
+
 /**
  * Created by oni on 11/07/2017.
  */
 
-public class ZoteroSummary extends BaseData {
-    public static final String TAG = "zotdroid.data.ZoteroSummary";
+public class Summary extends BaseData {
+    public static final String TAG = "zotdroid.data.Summary";
 
     public Date get_date_synced() {
         return _date_synced;
@@ -32,7 +34,7 @@ public class ZoteroSummary extends BaseData {
     protected Date _date_synced;
     protected String _last_version;
 
-    public ZoteroSummary() {
+    public Summary() {
         _date_synced = new Date();
         _last_version = "0000";
     }

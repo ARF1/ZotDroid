@@ -1,7 +1,13 @@
-package uk.co.section9.zotdroid.data;
+package uk.co.section9.zotdroid.data.tables;
 
 import android.content.ContentValues;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+
+import java.util.Vector;
+
+import uk.co.section9.zotdroid.data.BaseData;
+import uk.co.section9.zotdroid.data.zotero.Attachment;
 
 /**
  * Created by oni on 14/07/2017.
@@ -9,9 +15,9 @@ import android.database.sqlite.SQLiteDatabase;
 
 // TODO - We should add some inheritence here as many functions are the same across tables
 
-public class AttachmentsTable extends BaseData {
+public class Attachments extends BaseData {
 
-    public static final String TAG = "zotdroid.data.AttachmentsTable";
+    public static final String TAG = "zotdroid.data.Attachments";
 
     protected static final String TABLE_NAME = "attachments";
 
@@ -29,7 +35,7 @@ public class AttachmentsTable extends BaseData {
         db.execSQL("DROP TABLE IF EXISTS " + get_table_name());
     }
 
-    public static ContentValues getValues (ZoteroAttachment attachment) {
+    public static ContentValues getValues (Attachment attachment) {
         ContentValues values = new ContentValues();
         values.put("zotero_key", attachment.get_zotero_key());
         values.put("file_type", attachment.get_file_type());
@@ -39,8 +45,8 @@ public class AttachmentsTable extends BaseData {
         return values;
     }
 
-    public static ZoteroAttachment getAttachmentFromValues(ContentValues values) {
-        ZoteroAttachment attachment = new ZoteroAttachment();
+    public static Attachment getAttachmentFromValues(ContentValues values) {
+        Attachment attachment = new Attachment();
         attachment.set_zotero_key((String)values.get("zotero_key"));
         attachment.set_file_type((String)values.get("file_type"));
         attachment.set_file_name((String)values.get("file_name"));
@@ -49,7 +55,7 @@ public class AttachmentsTable extends BaseData {
         return attachment;
     }
 
-    public void updateAttachment(ZoteroAttachment attachment, SQLiteDatabase db) {
+    public void updateAttachment(Attachment attachment, SQLiteDatabase db) {
         db.execSQL("UPDATE " + get_table_name() +
                 " SET file_type=\"" + attachment.get_file_type() + "\", " +
                 "file_name=\"" + attachment.get_file_name() + "\", " +
@@ -67,9 +73,31 @@ public class AttachmentsTable extends BaseData {
         db.execSQL("DELETE FROM " + get_table_name() + " WHERE zotero_key=\"" + key + "\";");
     }
 
-    public void writeAttachment (ZoteroAttachment attachment, SQLiteDatabase db) {
+    public void writeAttachment (Attachment attachment, SQLiteDatabase db) {
         ContentValues values = getValues(attachment);
         db.insert(get_table_name(), null, values);
+    }
+
+    /**
+     * Grrab all the attachments for a particular record - useful in pagination.
+     * @param db
+     * @param parent_key
+     * @return
+     */
+    public Vector<Attachment> getForRecord(SQLiteDatabase db, String parent_key) {
+        Vector<Attachment> zv = new Vector<Attachment>();
+        ContentValues values = new ContentValues();
+        Cursor cursor = db.rawQuery("SELECT FROM " + get_table_name() + " WHERE parent=\"" + parent_key + "\";", null);
+
+        while (cursor.moveToNext()) {
+            values.clear();
+            for (int i = 0; i < cursor.getColumnCount(); i++) {
+                values.put(cursor.getColumnName(i), cursor.getString(i));
+            }
+            zv.add(getAttachmentFromValues(values));
+        }
+        cursor.close();
+        return zv;
     }
 
 }

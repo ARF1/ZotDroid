@@ -1,23 +1,23 @@
-package uk.co.section9.zotdroid.data;
+package uk.co.section9.zotdroid.data.tables;
 
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
-import java.util.Date;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.Util;
-import uk.co.section9.zotdroid.ZotDroidOps;
+import uk.co.section9.zotdroid.data.BaseData;
+import uk.co.section9.zotdroid.data.zotero.Record;
 
 /**
  * Created by oni on 11/07/2017.
  */
 
-public class RecordsTable extends BaseData {
+public class Records extends BaseData {
 
-    public final String TAG = "RecordsTable";
+    public final String TAG = "Records";
 
     protected final String TABLE_NAME = "records";
 
@@ -36,7 +36,7 @@ public class RecordsTable extends BaseData {
         db.execSQL("DROP TABLE IF EXISTS " + get_table_name());
     }
 
-    public ContentValues getValues (ZoteroRecord record) {
+    public ContentValues getValues (Record record) {
         ContentValues values = new ContentValues();
         values.put("date_added", Util.dateToDBString(record.get_date_added()));
         values.put("date_modified", Util.dateToDBString(record.get_date_modified()));
@@ -51,8 +51,8 @@ public class RecordsTable extends BaseData {
         return values;
     }
 
-    public ZoteroRecord getRecordFromValues(ContentValues values) {
-        ZoteroRecord record = new ZoteroRecord();
+    public Record getRecordFromValues(ContentValues values) {
+        Record record = new Record();
         record.set_date_added( Util.dbStringToDate((String)values.get("date_added")));
         record.set_date_modified( Util.dbStringToDate((String)values.get("date_modified")));
         record.set_content_type((String)values.get("content_type"));
@@ -71,7 +71,7 @@ public class RecordsTable extends BaseData {
         return exists(q,db);
     }
 
-    public void updateRecord(ZoteroRecord record, SQLiteDatabase db) {
+    public void updateRecord(Record record, SQLiteDatabase db) {
         db.execSQL("UPDATE " + get_table_name() +
                 " SET date_added=\"" +  Util.dateToDBString(record.get_date_added()) + "\", " +
                 "date_modified=\"" +  Util.dateToDBString(record.get_date_modified()) + "\", " +
@@ -87,8 +87,9 @@ public class RecordsTable extends BaseData {
     /**
      * Take a record and write it to the database
      * @param record
+     * @param db
      */
-    public void writeRecord( ZoteroRecord record, SQLiteDatabase db) {
+    public void writeRecord(Record record, SQLiteDatabase db) {
         ContentValues values = getValues(record);
         db.insert(get_table_name(), null, values);
     }
@@ -98,8 +99,32 @@ public class RecordsTable extends BaseData {
         db.execSQL("DELETE FROM " + get_table_name() + " WHERE zotero_key=\"" + key + "\";");
     }
 
-    public ZoteroRecord getRecord(String key, SQLiteDatabase db){
+    public Record getRecord(String key, SQLiteDatabase db){
         return getRecordFromValues(getSingle(db,key));
+    }
+
+    // Get methods
+
+    /**
+     * Get all the records from our database upto the end limit
+     * @param end
+     * @param db
+     * @return
+     */
+    public Vector<Record> getRecords (int end, SQLiteDatabase db) {
+        Vector<Record> records = new Vector<Record>();
+        ContentValues values = new ContentValues();
+        Cursor cursor = db.rawQuery("select * from \"" + get_table_name() + "\" limit " + end + ";", null);
+        while (cursor.moveToNext()){
+            values.clear();
+            for (int i = 0; i < cursor.getColumnCount(); i++){
+                values.put(cursor.getColumnName(i),cursor.getString(i));
+            }
+            records.add(getRecordFromValues(values));
+        }
+
+        cursor.close();
+        return records;
     }
 
 }

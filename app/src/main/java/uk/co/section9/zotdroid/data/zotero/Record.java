@@ -1,4 +1,4 @@
-package uk.co.section9.zotdroid.data;
+package uk.co.section9.zotdroid.data.zotero;
 
 import java.util.Date;
 import java.util.Vector;
@@ -7,9 +7,9 @@ import java.util.Vector;
  * Created by oni on 14/07/2017.
  */
 
-public class ZoteroRecord {
+public class Record {
 
-    public static final String TAG = "zotdroid.data.ZoteroRecord";
+    public static final String TAG = "zotdroid.data.Record";
 
     public String get_zotero_key() {
         return _zotero_key;
@@ -71,16 +71,16 @@ public class ZoteroRecord {
         this._date_modified = date_added;
     }
 
-    public void addAttachment(ZoteroAttachment attachment) { _attachments.add(attachment); }
+    public void addAttachment(Attachment attachment) { _attachments.add(attachment); }
 
-    public void addCollection(ZoteroCollection c) { _collections.add(c);}
+    public void addCollection(Collection c) { _collections.add(c);}
 
     public Vector<String> get_temp_collections() { return _temp_collections; }
 
     public void addTempCollection(String s) { _temp_collections.add(s);}
-    public boolean inCollection(ZoteroCollection c) { return  _collections.contains(c); }
+    public boolean inCollection(Collection c) { return  _collections.contains(c); }
 
-    public Vector<ZoteroAttachment> get_attachments() {return _attachments;}
+    public Vector<Attachment> get_attachments() {return _attachments;}
 
     public Vector<String> get_tags() {return _tags;}
 
@@ -92,6 +92,13 @@ public class ZoteroRecord {
 
     public void set_version(String _version) {
         this._version = _version;
+    }
+
+    public boolean search(String term) {
+        String tt = term.toLowerCase();
+        if (_author.toLowerCase().contains(tt)) {return true;}
+        if (_title.toLowerCase().contains(tt)) {return true;}
+        return false;
     }
 
     // For now, we cover all the bases we need for all possible items
@@ -107,8 +114,8 @@ public class ZoteroRecord {
     protected String    _author; // TODO - Just one for now but we will add more
     protected String    _zotero_key;
     protected String    _parent;
-    protected Vector<ZoteroAttachment> _attachments;
-    protected Vector<ZoteroCollection> _collections;
+    protected Vector<Attachment> _attachments;
+    protected Vector<Collection> _collections;
     protected Vector<String>    _temp_collections;
     protected Vector<String>    _tags;
 
@@ -116,11 +123,11 @@ public class ZoteroRecord {
         return _title + " - " + _author;
     }
 
-    public ZoteroRecord(){
+    public Record(){
         _date_added = new Date();
         _date_modified = new Date();
-        _attachments = new Vector<ZoteroAttachment>();
-        _collections = new Vector<ZoteroCollection>();
+        _attachments = new Vector<Attachment>();
+        _collections = new Vector<Collection>();
         _temp_collections = new Vector<String>(); // TODO - temporarily holding collection keys might not be the best way
         _tags = new Vector<String>(); // TODO - temporarily holding collection keys might not be the best way
 

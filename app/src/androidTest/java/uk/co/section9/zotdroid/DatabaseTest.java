@@ -9,10 +9,9 @@ import org.junit.runner.RunWith;
 
 import java.util.Date;
 
-import uk.co.section9.zotdroid.data.RecordsTable;
 import uk.co.section9.zotdroid.data.ZotDroidDB;
-import uk.co.section9.zotdroid.data.ZoteroRecord;
-import uk.co.section9.zotdroid.data.ZoteroSummary;
+import uk.co.section9.zotdroid.data.zotero.Record;
+import uk.co.section9.zotdroid.data.zotero.Summary;
 
 import static org.junit.Assert.*;
 
@@ -37,7 +36,7 @@ public class DatabaseTest {
         Context appContext = InstrumentationRegistry.getTargetContext();
         ZotDroidDB db = new ZotDroidDB(appContext);
 
-        ZoteroRecord record = new ZoteroRecord();
+        Record record = new Record();
         record.set_version("1234");
         record.set_author("author");
         record.set_content_type("pdf");
@@ -49,7 +48,7 @@ public class DatabaseTest {
         db.writeRecord(record);
 
         int numrow = db.getNumRecords();
-        ZoteroRecord r2 = db.getRecord(numrow-1);
+        Record r2 = db.getRecord(numrow-1);
 
         assertEquals(r2.get_version(),"1234");
         assertEquals(r2.get_author(),"author");
@@ -66,11 +65,11 @@ public class DatabaseTest {
         Context appContext = InstrumentationRegistry.getTargetContext();
         ZotDroidDB db = new ZotDroidDB(appContext);
 
-        ZoteroSummary s = new ZoteroSummary();
+        Summary s = new Summary();
 
         db.writeSummary(s);
 
-        ZoteroSummary summary = db.getSummary();
+        Summary summary = db.getSummary();
         assertEquals(summary.get_last_version(),"0000");
 
         s.set_last_version("1234");

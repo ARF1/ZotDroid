@@ -1,138 +1,45 @@
-package uk.co.section9.zotdroid;
+package uk.co.section9.zotdroid.ops;
 
 import android.app.Activity;
-import android.content.ContentValues;
 import android.content.SharedPreferences;
-import android.os.Environment;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
 import android.util.Log;
-
-import java.io.File;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import java.util.Vector;
 
+import uk.co.section9.zotdroid.Constants;
+import uk.co.section9.zotdroid.Util;
+import uk.co.section9.zotdroid.ZotDroidMem;
 import uk.co.section9.zotdroid.data.ZotDroidDB;
-import uk.co.section9.zotdroid.data.ZoteroAttachment;
-import uk.co.section9.zotdroid.data.ZoteroCollection;
-import uk.co.section9.zotdroid.data.ZoteroCollectionItem;
-import uk.co.section9.zotdroid.data.ZoteroRecord;
-import uk.co.section9.zotdroid.data.ZoteroSummary;
-import uk.co.section9.zotdroid.data.task.ZoteroDelTask;
-import uk.co.section9.zotdroid.data.task.ZoteroItemsTask;
-import uk.co.section9.zotdroid.data.task.ZoteroCollectionsTask;
-import uk.co.section9.zotdroid.data.task.ZoteroSyncColTask;
-import uk.co.section9.zotdroid.data.task.ZoteroSyncItemsTask;
-import uk.co.section9.zotdroid.data.task.ZoteroTask;
-import uk.co.section9.zotdroid.data.task.ZoteroTaskCallback;
-import uk.co.section9.zotdroid.data.task.ZoteroVerColTask;
-import uk.co.section9.zotdroid.data.task.ZoteroVerItemsTask;
+import uk.co.section9.zotdroid.data.zotero.Attachment;
+import uk.co.section9.zotdroid.data.zotero.Collection;
+import uk.co.section9.zotdroid.data.zotero.CollectionItem;
+import uk.co.section9.zotdroid.data.zotero.Record;
+import uk.co.section9.zotdroid.data.zotero.Summary;
+import uk.co.section9.zotdroid.task.ZotDroidSyncCaller;
+import uk.co.section9.zotdroid.task.ZoteroCollectionsTask;
+import uk.co.section9.zotdroid.task.ZoteroDelTask;
+import uk.co.section9.zotdroid.task.ZoteroItemsTask;
+import uk.co.section9.zotdroid.task.ZoteroSyncColTask;
+import uk.co.section9.zotdroid.task.ZoteroSyncItemsTask;
+import uk.co.section9.zotdroid.task.ZoteroTask;
+import uk.co.section9.zotdroid.task.ZoteroTaskCallback;
+import uk.co.section9.zotdroid.task.ZoteroVerColTask;
+import uk.co.section9.zotdroid.task.ZoteroVerItemsTask;
 
 /**
- * Created by oni on 14/07/2017.
- *
- * This class performs the operations needed between Zotero and our
- * database and in-memory representation of the Zotero Library in question.
- *
- * TODO - if we cancel a sync, we need to not replace anything!
+ * Created by oni on 15/11/2017.
  */
 
-public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWebDavCallback {
+public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  {
 
-    private ZoteroDownload          _zotero_download = new ZoteroDownload();
-    private ZotDroidDB              _zotdroid_db;
-    private Activity                _activity;
-    private ZotDroidCaller          _midnightcaller; // Was listening to Chase and Status ;)
-    private Vector<ZoteroTask>      _current_tasks;
+    private ZotDroidSyncCaller              _midnightcaller;
 
-    protected Vector<ZoteroRecord>      _records = new Vector<ZoteroRecord>();
-    protected Vector<ZoteroAttachment>  _attachments = new Vector<ZoteroAttachment>();
-    protected Map<String,ZoteroRecord>  _key_to_record = new HashMap<String, ZoteroRecord>();
-    protected Vector<ZoteroCollection>  _collections = new Vector<ZoteroCollection>();
+    public static final String TAG = "ZotDroidSyncOps";
 
-    private int _num_current_tasks = 0;
-    public static final String TAG = "zotdroid.ZotDroidOps";
-
-    public ZotDroidOps(Activity activity, ZotDroidCaller midnightcaller) {
-        _activity = activity;
+    public ZotDroidSyncOps(ZotDroidDB zotdroid_db, Activity activity, ZotDroidMem mem, ZotDroidSyncCaller midnightcaller) {
+        super(activity, zotdroid_db, mem);
         _midnightcaller = midnightcaller;
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(activity);
-        // Check to see if we have an alternative path for our database
-        String database_path = settings.getString("settings_db_location", "");
-        if (Util.path_exists(database_path)) {
-            database_path = Util.remove_trailing_slash(database_path);
-            _zotdroid_db = new ZotDroidDB(activity, database_path);
-        } else {
-            _zotdroid_db = new ZotDroidDB(activity);
-        }
-        _current_tasks = new Vector<ZoteroTask>();
-        Util.getDownloadDirectory(_activity); // Naughty, but we create the dir here too!
-    }
-
-    /**
-     * Called as WebDav process runs
-     * @param result
-     * @param message
-     */
-    @Override
-    public void onWebDavProgess(boolean result, String message) {
-        // Ignored for now
-    }
-
-
-    /**
-     * Called when a webdav process completes
-     * @param result
-     * @param message
-     */
-    @Override
-    public void onWebDavComplete(boolean result, String message) {
-        _midnightcaller.onWebDavTestFinish(result, message);
-    }
-
-    public void testWebDav() { _zotero_download.testWebDav(_activity, this);}
-
-    /**
-     * A very small class that holds the state for our webdav attachment download
-     * Its perhaps a bit complicated but it means we can do multiple requests and
-     * not have the main activity worry too much.
-     */
-    private class OpsDav implements  ZoteroDownload.ZoteroWebDavCallback {
-
-        ZoteroAttachment _attachment;
-        private OpsDav(ZoteroAttachment attachment){
-            _attachment = attachment;
-        }
-
-        @Override
-        public void onWebDavProgess(boolean result, String message) {
-            if (result) {
-                _midnightcaller.onDownloadProgress(Float.parseFloat(message));
-            }
-        }
-
-        @Override
-        public void onWebDavComplete(boolean result, String message) {
-            _midnightcaller.onDownloadFinish(result, message, _attachment.get_file_type());
-        }
-    }
-
-    /**
-    * Define the callbacks we want to use with our various activities
-    */
-
-    public interface ZotDroidCaller {
-        void onSyncProgress(float progress);
-        void onSyncFinish(boolean success, String message);
-        void onDownloadProgress(float progress);
-        void onDownloadFinish(boolean success, String message, String type);
-        // Called when WebDav Test completes
-        void onWebDavTestFinish(boolean success, String message);
     }
 
     /**
@@ -143,7 +50,7 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
      */
     public void resetAndSync() {
         _zotdroid_db.reset();
-        nukeMemory(); // Eventualy do something better.
+        _zotdroid_mem.nukeMemory();
         _current_tasks.add(new ZoteroCollectionsTask(this,0,25));
         _current_tasks.add(new ZoteroItemsTask(this,0,25));
         nextTask();
@@ -157,9 +64,8 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
      */
 
     public boolean sync(){
-        ZoteroSummary s = _zotdroid_db.getSummary();
+        Summary s = _zotdroid_db.getSummary();
         if (s.get_last_version() == "0000"){ return false;}
-
         ZoteroSyncColTask zs = new ZoteroSyncColTask(this, s.get_last_version());
         _current_tasks.add(zs);
         ZoteroSyncItemsTask zt = new ZoteroSyncItemsTask(this,s.get_last_version());
@@ -168,204 +74,17 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
         return true;
     }
 
-    /**
-     * Erase all the currently held records, collections etc, in memory.
-     */
-    private void nukeMemory(){
-        _records.clear();
-        _collections.clear();
-        _attachments.clear();
-        _key_to_record.clear();
-    }
-
-    /**
-     * Remove the finished task, and start the next in the queue, returning true
-     * Returns false if this was the last task.
-     * @return
-     */
-    private boolean nextTask() {
-        if (_current_tasks.isEmpty()) { return false; }
-        _current_tasks.get(0).startZoteroTask();
-        _current_tasks.remove(0);
-        return true;
-    }
-
-    /**
-     * Stop the current task and clear all remaining tasks.
-     * Also cancel any download operations
-     */
-    public void stop() {
-        for (ZoteroTask t : _current_tasks){ t.cancel(true); }
-        _current_tasks.clear();
-        _num_current_tasks = 0;
-        _zotero_download.stop();
-    }
-
-    /**
-     * @return the records in memory
-     */
-    public Vector<ZoteroRecord> get_records() {
-        return _records;
-    }
-
-    /**
-     * get a particular record
-     * @param idx
-     * @return a particular record at position idx
-     */
-    public ZoteroRecord get_record(int idx) {
-        if (idx > 0 && idx < _records.size()) { return _records.elementAt(idx); }
-        return null;
-    }
-
-    /**
-     * Return the collections in memory
-     */
-    public Vector<ZoteroCollection> get_collections() {
-        return _collections;
-    }
-
-    public ZoteroCollection get_collection(int idx) {
-        if (idx >= 0 && idx < _collections.size()) { return _collections.elementAt(idx);}
-        return null;
-    }
-
-    /**
-     * Download an attachement, unless it already exists, in which case, callback immediately
-     * @param record
-     * @param attachment_idx
-     */
-
-    public void startAttachmentDownload(ZoteroRecord record, int attachment_idx){
-        if (attachment_idx < record.get_attachments().size()) {
-            ZoteroAttachment za = record.get_attachments().elementAt(attachment_idx);
-            SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(_activity);
-
-            // If the file already exists, then we dont need to download, just return
-            File file = new File( Util.getDownloadDirectory(_activity) + za.get_file_name());
-
-            if (file.exists()){
-                OpsDav op = new OpsDav(za);
-                op.onWebDavComplete(true, Util.getDownloadDirectory(_activity) + za.get_file_name());
-            } else {
-                Boolean usewebdav = settings.getBoolean("settings_use_webdav_storage",false);
-
-                if (usewebdav) {
-                    String username = settings.getString("settings_webdav_username", "username");
-                    String password = settings.getString("settings_webdav_password", "password");
-                    String server_address = settings.getString("settings_webdav_address", "address");
-                    _zotero_download.downloadAttachment(za.get_zotero_key() + ".zip", Util.getDownloadDirectory(_activity),
-                            za.get_file_name(), username, password, server_address, new OpsDav(za));
-                } else {
-                    _zotero_download.downloadAttachmentZotero( Util.getDownloadDirectory(_activity),
-                            za.get_file_name(), za.get_zotero_key(),  new OpsDav(za));
-                }
-            }
-        }
-        // TODO return somekind of false here
-    }
-
-    /**
-     * Make sure our internal memory is up to date, either from DB or Zotero
-     * Eventually, we will add a proper sync check in here as well.
-     */
-
-    public void update(){
-        if (_records.isEmpty()) { populateFromDB(); }
-    }
-
-    /**
-     * Get all the records and attachments we have in the database and populate what we need in Memory
-     */
-
-    public void populateFromDB() {
-        nukeMemory();
-        // Start with Records
-        int numrows = _zotdroid_db.getNumRecords();
-
-        for (int i=0; i < numrows; ++i){
-            ZoteroRecord record = _zotdroid_db.getRecord(i);
-            _key_to_record.put(record.get_zotero_key(),record);
-            _records.add(record);
-        }
-
-        // Move on to attachments
-        numrows = _zotdroid_db.getNumAttachments();
-
-        for (int i=0; i < numrows; ++i){
-            ZoteroAttachment attachment = _zotdroid_db.getAttachment(i);
-            ZoteroRecord record = null;
-            record = _key_to_record.get(attachment.get_parent());
-            if (record != null){ record.addAttachment(attachment); }
-            _attachments.add(attachment);
-        }
-
-        // Now go with collections
-        numrows = _zotdroid_db.getNumCollections();
-
-        Map<String, ZoteroCollection> clookup = new HashMap<>();
-
-        for (int i=0; i < numrows; ++i) {
-            ContentValues values = null;
-            ZoteroCollection collection = _zotdroid_db.getCollection(i);
-            _collections.add(collection);
-            clookup.put(collection.get_zotero_key(),collection);
-        }
-
-        // Sort collection via title each time - consistent for the user
-        Collections.sort(_collections, new Comparator<ZoteroCollection>() {
-            @Override
-            public int compare(ZoteroCollection c0, ZoteroCollection c1) {
-               return c0.get_title().compareTo(c1.get_title());
-            }
-        });
-
-        // I suspect this is a little quicker?
-        for (ZoteroCollection c : _collections){
-            ZoteroCollection zp = clookup.get(c.get_parent());
-            if (zp != null){
-                zp.add_collection(c);
-            }
-            /*for (ZoteroCollection d : _collections){
-                if (d.get_parent().contains(c.get_zotero_key())){ // TODO - Not sure this contains is ideal?
-                    c.add_collection(d);
-                }
-            }*/
-        }
-
-        // This bit could be slow if there are loads of collections. There will be a faster
-        // way to do it I would say.
-        // Add the records to the collections they belong to.
-        numrows = _zotdroid_db.getNumCollectionsItems();
-
-        for (int i=0; i < numrows; ++i) {
-            ZoteroCollectionItem ct = _zotdroid_db.getCollectionItem(i);
-
-            for (ZoteroCollection c : _collections){
-                if (ct.get_collection().contains(c.get_zotero_key())){
-                    for (ZoteroRecord r : _records){
-                        if ( ct.get_item().contains(r.get_zotero_key())){
-                            r.addCollection(c);
-                            c.add_record(r);
-                            break;
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-    }
 
     /**
      * Given a record, do we add it anew or alter an existing?
      */
-    private void checkUpdateRecord(ZoteroRecord record) {
+    private void checkUpdateRecord(Record record) {
         if (!_zotdroid_db.recordExists(record.get_zotero_key())) {
             _zotdroid_db.writeRecord(record);
             collectionItemsCreate(record); // This is why collections MUST be synced first
         } else {
             // Check the version numbers if this exists and update as necessary
-            ZoteroRecord existing = _zotdroid_db.getRecord(record.get_zotero_key());
+            Record existing = _zotdroid_db.getRecord(record.get_zotero_key());
             if (Integer.valueOf(existing.get_version()) < Integer.valueOf(record.get_version())){
                 // Perform an update :)
                 _zotdroid_db.updateRecord(record);
@@ -384,12 +103,12 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
      * Given an attachment, do we add it anew or alter an existing?
      * @param attachment
      */
-    private void checkUpdateAttachment(ZoteroAttachment attachment) {
+    private void checkUpdateAttachment(Attachment attachment) {
         if (!_zotdroid_db.attachmentExists(attachment.get_zotero_key())) {
             _zotdroid_db.writeAttachment(attachment);
         } else {
             // Check the version numbers if this exists and update as necessary
-            ZoteroAttachment existing = _zotdroid_db.getAttachment(attachment.get_zotero_key());
+            Attachment existing = _zotdroid_db.getAttachment(attachment.get_zotero_key());
             if (Integer.valueOf(existing.get_version()) < Integer.valueOf(attachment.get_version())){
                 // Perform an update :)
                 _zotdroid_db.updateAttachment(attachment);
@@ -403,12 +122,12 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
      * Given a collection, do we add it anew or alter existing?
      * @param collection
      */
-    private void checkUpdateCollection(ZoteroCollection collection) {
+    private void checkUpdateCollection(Collection collection) {
         if (!_zotdroid_db.collectionExists(collection.get_zotero_key())) {
             _zotdroid_db.writeCollection(collection);
         } else {
             // Check the version numbers if this exists and update as necessary
-            ZoteroCollection existing = _zotdroid_db.getCollection(collection.get_zotero_key());
+            Collection existing = _zotdroid_db.getCollection(collection.get_zotero_key());
             if (Integer.valueOf(existing.get_version()) < Integer.valueOf(collection.get_version())){
                 // Perform an update. This is tricky because we could essentially change a collection
                 // and move an object :/
@@ -431,12 +150,12 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
      */
 
     @Override
-    public void onItemCompletion(boolean success, String message, Vector<ZoteroRecord> records,
-                                 Vector<ZoteroAttachment> attachments, String version) {
+    public void onItemCompletion(boolean success, String message, Vector<Record> records,
+                                 Vector<Attachment> attachments, String version) {
         _midnightcaller.onSyncProgress( (float)(_num_current_tasks  - _current_tasks.size()) / (float)_num_current_tasks);
         if (success) {
-            for (ZoteroRecord record : records){ checkUpdateRecord(record); }
-            for (ZoteroAttachment attachment : attachments){ checkUpdateAttachment(attachment); }
+            for (Record record : records){ checkUpdateRecord(record); }
+            for (Attachment attachment : attachments){ checkUpdateAttachment(attachment); }
             if (!nextTask()) { onItemsCompletion(true, message, version); }
         } else {
             stop();
@@ -451,13 +170,13 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
      * @param success
      */
     @Override
-    public void onItemCompletion( boolean success, String message, int new_index,
-                                 int total, Vector<ZoteroRecord> records,
-                                 Vector<ZoteroAttachment> attachments, String version) {
+    public void onItemCompletion(boolean success, String message, int new_index,
+                                 int total, Vector<Record> records,
+                                 Vector<Attachment> attachments, String version) {
         String status_message = "";
         if (success) {
-            for (ZoteroRecord record : records){ checkUpdateRecord(record); }
-            for (ZoteroAttachment attachment : attachments) { checkUpdateAttachment(attachment);}
+            for (Record record : records){ checkUpdateRecord(record); }
+            for (Attachment attachment : attachments) { checkUpdateAttachment(attachment);}
 
             _midnightcaller.onSyncProgress((float)new_index / (float)total);
             // We fire off another task from here if success and we have more to go
@@ -487,7 +206,7 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
     @Override
     public void onItemsCompletion( boolean success, String message, String version) {
         if (success) {
-            ZoteroSummary s = _zotdroid_db.getSummary();
+            Summary s = _zotdroid_db.getSummary();
             Log.i(TAG,"Items Complete Version: " + version);
             ZoteroDelTask dt = new ZoteroDelTask(this, s.get_last_version());
             _current_tasks.add(0,dt);
@@ -508,11 +227,11 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
 
     public void onCollectionsCompletion( boolean success, String message, String version) {
         if (success) {
-            ZoteroSummary s = _zotdroid_db.getSummary();
+            Summary s = _zotdroid_db.getSummary();
             Log.i(TAG,"Collections Complete Version: " + version);
             nextTask();
         } else {
-           stop();
+            stop();
             _midnightcaller.onSyncFinish(false, message);
         }
     }
@@ -525,9 +244,9 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
      * @param version
      */
 
-    public void onCollectionCompletion( boolean success, String message, Vector<ZoteroCollection> collections, String version) {
+    public void onCollectionCompletion(boolean success, String message, Vector<Collection> collections, String version) {
         if (success) {
-            for (ZoteroCollection collection : collections){
+            for (Collection collection : collections){
                 checkUpdateCollection(collection);
             }
             if (!nextTask()) { onCollectionsCompletion(true, message, version); }
@@ -549,14 +268,14 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
      */
 
     public void onCollectionCompletion(boolean success, String message, int new_index,
-                                       int total, Vector<ZoteroCollection> collections, String version) {
+                                       int total, Vector<Collection> collections, String version) {
         if (success) {
-            for (ZoteroCollection collection : collections){
+            for (Collection collection : collections){
                 if (!_zotdroid_db.collectionExists(collection.get_zotero_key())) {
                     _zotdroid_db.writeCollection(collection);
                 } else {
                     // Check the version numbers if this exists and update as necessary
-                    ZoteroCollection existing = _zotdroid_db.getCollection(collection.get_zotero_key());
+                    Collection existing = _zotdroid_db.getCollection(collection.get_zotero_key());
                     if (Integer.valueOf(existing.get_version()) < Integer.valueOf(collection.get_version())){
                         // Perform an update :)
                     } else {
@@ -717,9 +436,9 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
      * We create the CollectionItems entries in the database for use later
      */
 
-    private void collectionItemsCreate(ZoteroRecord record) {
+    private void collectionItemsCreate(Record record) {
         for (String ts : record.get_temp_collections()){
-            ZoteroCollectionItem ci = new ZoteroCollectionItem();
+            CollectionItem ci = new CollectionItem();
             ci.set_item(record.get_zotero_key());
             ci.set_collection(ts);
             _zotdroid_db.writeCollectionItem(ci);
@@ -745,12 +464,13 @@ public class ZotDroidOps implements ZoteroTaskCallback, ZoteroDownload.ZoteroWeb
 
         if (success) {
             // If we've succeeded then we can write our latest version to the place
-            ZoteroSummary s = _zotdroid_db.getSummary();
+            Summary s = _zotdroid_db.getSummary();
             s.set_last_version(version);
             _zotdroid_db.writeSummary(s);
         }
         // Call this anyway - it's probably for the best at this point
-        this.populateFromDB();
+        this.populateFromDB(Constants.PAGINATION_SIZE);
         _midnightcaller.onSyncFinish(success,message);
     }
+
 }

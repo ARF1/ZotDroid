@@ -1,4 +1,4 @@
-package uk.co.section9.zotdroid.data.task;
+package uk.co.section9.zotdroid.task;
 
 import android.util.Log;
 
@@ -6,10 +6,9 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.Iterator;
 import java.util.Vector;
 
-import uk.co.section9.zotdroid.ZoteroBroker;
+import uk.co.section9.zotdroid.auth.ZoteroBroker;
 
 /**
  * Created by oni on 27/07/2017.

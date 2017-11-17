@@ -2,6 +2,7 @@ package uk.co.section9.zotdroid.data.zotero;
 
 import java.util.Date;
 import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by oni on 14/07/2017.
@@ -19,12 +20,12 @@ public class Record {
         this._zotero_key = key;
     }
 
-    public String get_author() {
-        return _author;
+    public Vector<Author> get_authors() {
+        return _authors;
     }
 
-    public void set_author(String author) {
-        _author = author;
+    public void add_author(Author author) {
+        _authors.add(author);
     }
 
     public String get_title() {
@@ -57,17 +58,25 @@ public class Record {
         this._item_type = item_type;
     }
 
-    public Date get_date_added() {
-        return _date_added;
-    }
+    /*public Date get_date_added() { return _date_added; }
 
     public void set_date_added(Date date_added) { this._date_added = date_added; }
 
-    public Date get_date_modified() {
+    public Date get_date_modified() { return _date_modified; }
+
+    public void set_date_modified(Date date_added) { this._date_modified = date_added;} */
+
+    public String get_date_added() {
+        return _date_added;
+    }
+
+    public void set_date_added(String date_added) { this._date_added = date_added; }
+
+    public String get_date_modified() {
         return _date_modified;
     }
 
-    public void set_date_modified(Date date_added) {
+    public void set_date_modified(String date_added) {
         this._date_modified = date_added;
     }
 
@@ -96,7 +105,11 @@ public class Record {
 
     public boolean search(String term) {
         String tt = term.toLowerCase();
-        if (_author.toLowerCase().contains(tt)) {return true;}
+        for (Author author : _authors) {
+            if (author._name.toLowerCase().contains(tt)) {
+                return true;
+            }
+        }
         if (_title.toLowerCase().contains(tt)) {return true;}
         return false;
     }
@@ -108,24 +121,28 @@ public class Record {
     protected String    _content_type;
     protected String    _title;
     protected String    _item_type;
-    protected Date      _date_added;
-    protected Date      _date_modified;
+    // TODO - decided to change from Date to string as Date conversion takes for ages! ><
+    protected String      _date_added;
+    protected String      _date_modified;
+    //protected Date      _date_added;
+    //protected Date      _date_modified;
     protected String    _version;
-    protected String    _author; // TODO - Just one for now but we will add more
     protected String    _zotero_key;
     protected String    _parent;
     protected Vector<Attachment> _attachments;
     protected Vector<Collection> _collections;
     protected Vector<String>    _temp_collections;
     protected Vector<String>    _tags;
+    protected Vector<Author>    _authors;
 
     public String toString() {
-        return _title + " - " + _author;
+        return _title + " - " + _authors.firstElement();
     }
 
     public Record(){
-        _date_added = new Date();
-        _date_modified = new Date();
+        _authors = new Vector<Author>();
+        _date_added = "no date";
+        _date_modified = "no date";
         _attachments = new Vector<Attachment>();
         _collections = new Vector<Collection>();
         _temp_collections = new Vector<String>(); // TODO - temporarily holding collection keys might not be the best way

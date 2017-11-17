@@ -10,8 +10,6 @@ import android.database.sqlite.SQLiteDatabase;
 
 import java.util.Vector;
 
-import uk.co.section9.zotdroid.R;
-import uk.co.section9.zotdroid.data.BaseData;
 import uk.co.section9.zotdroid.data.zotero.Collection;
 import uk.co.section9.zotdroid.data.zotero.CollectionItem;
 import uk.co.section9.zotdroid.data.zotero.Record;

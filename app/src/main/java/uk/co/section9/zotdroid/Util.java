@@ -53,6 +53,12 @@ public class Util {
         return dd;
     }
 
+    /**
+     * Convert the database string to a java Date - this function actually takes forever so I've
+     * decided not to bother with it as I doubt we will order by date yet.
+     * @param s
+     * @return
+     */
     public static Date dbStringToDate(String s) {
         // For some stupid Java reason we need to remove the T in our format
         SimpleDateFormat dateFormat = new SimpleDateFormat(DB_DATE_FORMAT, Locale.getDefault());
@@ -114,7 +120,7 @@ public class Util {
      */
     public static boolean fileExists(String filename, Activity activity){
         String dir = getDownloadDirectory(activity);
-        return  path_exists(dir + "/" + filename);
+        return  path_exists(dir + filename);
     }
 
 }

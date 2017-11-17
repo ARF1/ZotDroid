@@ -3,13 +3,11 @@ package uk.co.section9.zotdroid.data.tables;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
 
 import java.util.Vector;
 
-import uk.co.section9.zotdroid.Util;
-import uk.co.section9.zotdroid.data.BaseData;
 import uk.co.section9.zotdroid.data.zotero.Author;
+import uk.co.section9.zotdroid.data.zotero.Record;
 
 /**
  * Created by oni on 15/11/2017.
@@ -41,6 +39,23 @@ public class Authors extends BaseData {
         return values;
     }
 
+    public Vector<Author> getAuthorsForRecord(Record r, SQLiteDatabase db){
+        ContentValues values = new ContentValues();
+        Vector<Author> authors = new Vector<>();
+        Cursor cursor = db.rawQuery("select * from \"" + get_table_name() + "\" where record_key=\"" + r.get_zotero_key() + "\";", null);
+        while (cursor.moveToNext()){
+            values.clear();
+            for (int i = 0; i < cursor.getColumnCount(); i++){
+                values.put(cursor.getColumnName(i),cursor.getString(i));
+            }
+
+            Author a = getAuthorFromValues(values);
+            authors.add(a);
+        }
+        cursor.close();
+        return authors;
+    }
+
     public Author getAuthorFromValues(ContentValues values) {
         Author author = new Author("", "");
         author.set_name((String) values.get("author"));
@@ -61,6 +76,10 @@ public class Authors extends BaseData {
 
     public void deleteAuthor(Author author, SQLiteDatabase db) {
         db.execSQL("DELETE FROM " + get_table_name() + " WHERE author=\"" + author.get_name() + "\" and record_key=\"" + author.get_record_key() + "\";");
+    }
+
+    public void deleteByRecord(Record r, SQLiteDatabase db){
+        db.execSQL("DELETE FROM " + get_table_name() + " where record_key=\"" + r.get_zotero_key() + "\"");
     }
 
 }

@@ -13,7 +13,7 @@ Feedback is more than welcome, either here or via email *me@benjamin.computer*
 Current Version
 ---------------
 
-0.4
+0.6
 
 Building and Testing
 --------------------
@@ -26,6 +26,7 @@ If you follow the instructions on that page, you should get a set of jars that y
 Things that are done
 --------------------
 
+* Pagination (still in progress)
 * Reading a fresh copy of a Zotero Library
 * Downloading an attachment via the WebDav interface
 * Basic search on all fields
@@ -33,20 +34,21 @@ Things that are done
 * Incremental syncing
 * Backing up via SQLite DB
 * Support for Zotero cloud storage
+* Storing the database on an SDCard
+* Option as to where to save attachments
+* Icons to show if an attachment is downloaded already (partial)
+* Multiple Author records
+
 
 Things still to do
 ------------------
 * More testing!
-* Storing the database on an SDCard
 * Tag support
 * Label support
-* Option as to where to save attachments
-* Icons to show if an attachment is downloaded already
 * Adding notes
 * Removing records
 * Removing collections
 * Modifying records
-* Multiple Author records
 * Sorting via multiple options such as date
 * More robust recovery from internet problems
 * Better UX design
@@ -57,7 +59,7 @@ Acknowledgements
 
 * The [Zotero](https://www.zotero.org) crew for making a wicked awesome program!
 * ZotDroid makes use of [Signpost](https://github.com/mttkay/signpost). This lives in the external directory for these who wish to build ZotDroid themselves.
-* The [Zandy](https://github.com/avram/zandy) project. Whilst this didn't work right for me, it did get me started on this road.
+* The [Zandy](https://github.com/avram/zandy) project, for an idea on how OAUTH works.
 
 Licence
 -------

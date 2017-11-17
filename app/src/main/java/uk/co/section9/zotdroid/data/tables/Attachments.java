@@ -6,7 +6,6 @@ import android.database.sqlite.SQLiteDatabase;
 
 import java.util.Vector;
 
-import uk.co.section9.zotdroid.data.BaseData;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
 
 /**

@@ -6,7 +6,7 @@ package uk.co.section9.zotdroid.data.zotero;
 
 import java.util.Date;
 
-import uk.co.section9.zotdroid.data.BaseData;
+import uk.co.section9.zotdroid.data.tables.BaseData;
 
 /**
  * Created by oni on 11/07/2017.

@@ -5,7 +5,5 @@ package uk.co.section9.zotdroid;
  */
 
 public class Constants {
-    public static int ATTACHMENT_START_INDEX = 4;
-    public static final int PAGINATION_SIZE = 100;
-
+    public static final int PAGINATION_SIZE = 50;
 }

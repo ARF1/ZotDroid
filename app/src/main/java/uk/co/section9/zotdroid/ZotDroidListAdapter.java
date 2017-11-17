@@ -5,12 +5,16 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.BaseExpandableListAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+
+import static android.widget.AbsListView.OnScrollListener.SCROLL_STATE_IDLE;
 
 /**
  * Created by oni on 14/07/2017.
@@ -27,6 +31,7 @@ public class ZotDroidListAdapter extends BaseExpandableListAdapter {
     private ArrayList<String> _list_group;
     private HashMap<String, ArrayList<String>> _list_child;
     private String _font_size;
+    private int _current_scroll_state;
 
     public ZotDroidListAdapter(Activity activity, Context context, ArrayList<String> groups, HashMap<String, ArrayList<String>> children, String fontsize ) {
         super();
@@ -112,7 +117,7 @@ public class ZotDroidListAdapter extends BaseExpandableListAdapter {
         String text = (String)getChild(groupPosition, childPosition);
         textViewItem.setText(text);
 
-        if (childPosition >= Constants.ATTACHMENT_START_INDEX){
+        if (text.contains("Attachment")){
             if (Util.fileExists(text,_activity)) {
                 ImageView imgViewChild = (ImageView) convertView.findViewById(R.id.main_list_icon_download);
                 String uri = "@android:drawable/presence_online";
@@ -133,4 +138,6 @@ public class ZotDroidListAdapter extends BaseExpandableListAdapter {
     public boolean isChildSelectable(int groupPosition, int childPosition) {
         return true;
     }
+
+
 }

@@ -15,6 +15,7 @@ import java.util.Vector;
 import uk.co.section9.zotdroid.Util;
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
+import uk.co.section9.zotdroid.data.zotero.Author;
 import uk.co.section9.zotdroid.data.zotero.Note;
 import uk.co.section9.zotdroid.data.zotero.Record;
 
@@ -89,14 +90,17 @@ public class ZoteroItemsTask extends ZoteroTask {
 
         try {
             String td = jobj.getString("dateAdded");
-            record.set_date_added(Util.jsonStringToDate(td));
+            //record.set_date_added(Util.jsonStringToDate(td));
+            record.set_date_added(td);
+
         } catch (JSONException e) {
             // Pass - go with today's date
         }
 
         try {
             String td = jobj.getString("dateModified");
-            record.set_date_modified(Util.jsonStringToDate(td));
+            //record.set_date_modified(Util.jsonStringToDate(td));
+            record.set_date_modified(td);
         } catch (JSONException e) {
             // Pass - go with today's date
         }
@@ -111,10 +115,14 @@ public class ZoteroItemsTask extends ZoteroTask {
         }
 
         try {
-            JSONObject creator = jobj.getJSONArray("creators").getJSONObject(0);
-            record.set_author(creator.getString("lastName") + ", " + creator.getString("firstName"));
+            JSONArray authors = jobj.getJSONArray("creators");
+            for (int i =0; i < authors.length(); i++) {
+                JSONObject creator = authors.getJSONObject(i);
+                // TODO - Can we ALWAYS guarantee we have the current record zotero key?
+                record.add_author(new Author(creator.getString("lastName") + ", " + creator.getString("firstName"), record.get_zotero_key()));
+            }
         } catch (JSONException e){
-            record.set_author("No author(s)");
+            // pass, no authors
         }
 
         try {

@@ -38,9 +38,9 @@ public class DatabaseTest {
 
         Record record = new Record();
         record.set_version("1234");
-        record.set_author("author");
+        record.add_author("author");
         record.set_content_type("pdf");
-        record.set_date_added(new Date());
+        record.set_date_added("testdate");
         record.set_parent("abcd");
         record.set_title("title");
         record.set_item_type("type");
@@ -51,7 +51,7 @@ public class DatabaseTest {
         Record r2 = db.getRecord(numrow-1);
 
         assertEquals(r2.get_version(),"1234");
-        assertEquals(r2.get_author(),"author");
+        assertEquals(r2.get_authors().elementAt(0),"author");
         assertEquals(r2.get_content_type(),"pdf");
         assertEquals(r2.get_parent(),"abcd");
         assertEquals(r2.get_title(),"title");

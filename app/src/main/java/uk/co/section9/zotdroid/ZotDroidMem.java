@@ -37,6 +37,7 @@ public class ZotDroidMem {
         _attachments.clear();
         _key_to_record.clear();
         _key_to_collection.clear();
+        _end_index = 0;
     }
 
 }

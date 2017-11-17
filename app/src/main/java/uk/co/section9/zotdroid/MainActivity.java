@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.os.Debug;
 import android.preference.PreferenceManager;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.SearchView;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -41,8 +42,8 @@ import java.util.HashMap;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
-import uk.co.section9.zotdroid.data.ZotDroidDB;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
+import uk.co.section9.zotdroid.data.zotero.Author;
 import uk.co.section9.zotdroid.data.zotero.Collection;
 import uk.co.section9.zotdroid.data.zotero.Record;
 import uk.co.section9.zotdroid.ops.ZotDroidSyncOps;
@@ -62,7 +63,8 @@ public class MainActivity extends AppCompatActivity
     private static int              ZOTERO_LOGIN_REQUEST = 1667;
 
     private Dialog                  _loading_dialog;
-    private Dialog                  _download_dialog;   // TODO - Do we need both?
+    private Dialog                  _download_dialog;
+    private Dialog                  _init_dialog;
     private ZotDroidUserOps         _zotdroid_user_ops;
     private ZotDroidSyncOps         _zotdroid_sync_ops;
     private ZotDroidListAdapter     _main_list_adapter;
@@ -103,20 +105,30 @@ public class MainActivity extends AppCompatActivity
         Log.i(TAG,"Creating ZotDroid...");
         setContentView(R.layout.activity_main);
 
-        // Start tracing the bootup
-        Debug.startMethodTracing("zotdroid_trace_startup");
-
         // Setup the toolbar with the extra search
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         LayoutInflater inflater = LayoutInflater.from(this);
         View sl = inflater.inflate(R.layout.search, null);
         toolbar.addView(sl);
+
+        // Magical runnable that performs re-layout when the list changes
+        final Runnable run_layout = new Runnable() {
+            public void run() {
+                redrawRecordList();
+                setDrawer();
+                // Set the font preference stuff
+                IntentFilter filter = new IntentFilter("FONT_SIZE_PREFERENCE_CHANGED");
+                registerReceiver(_broadcast_receiver,filter);
+            }
+        };
+
         SearchView sv = (SearchView) findViewById(R.id.recordsearch);
         sv.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 _zotdroid_user_ops.search(query);
+                runOnUiThread(run_layout);
                 return false;
             }
 
@@ -125,6 +137,7 @@ public class MainActivity extends AppCompatActivity
                 // I put a check in here to reset if everything is blank
                 if (newText.isEmpty()){
                     _zotdroid_user_ops.reset();
+                    runOnUiThread(run_layout);
                 }
                 return false;
             }
@@ -135,24 +148,59 @@ public class MainActivity extends AppCompatActivity
                 this, drawer, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
 
         toggle.syncState();
+
+        // A runnable that goes ahead and loads more items into our main list
+        final Runnable load_more_items = new Runnable() {
+            public void run() {
+                _zotdroid_user_ops.getMoreResults(Constants.PAGINATION_SIZE);
+                runOnUiThread(run_layout);
+            }
+        };
+
         // Setup the main list of items
         _main_list_view = (ExpandableListView) findViewById(R.id.listViewMain);
+        _main_list_view.setOnScrollListener(new AbsListView.OnScrollListener() {
+
+            public void onScrollStateChanged(AbsListView view, int scrollState) {}
+
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                if(firstVisibleItem+visibleItemCount == totalItemCount && totalItemCount!=0) {
+                    if (_zotdroid_user_ops.hasMoreResults()) {
+                        Toast.makeText(getApplicationContext(), "Loading more items", Toast.LENGTH_SHORT).show();
+                        _zotdroid_user_ops.getMoreResults(Constants.PAGINATION_SIZE);
+                        runOnUiThread(run_layout);
+                    }
+                }
+            }
+        });
+
         // Pass this activity - ZoteroBroker will look for credentials
         ZoteroBroker.passCreds(this,this);
         Util.getDownloadDirectory(this); // Naughty, but we create the dir here too!
+        _init_dialog = launchInitDialog();
 
+        // Start initialisation in a separate thread for now.
+        Runnable run = new Runnable() {
+            public void run() {
+                // Start tracing the bootup
+                Debug.startMethodTracing("zotdroid_trace_startup");
+                initialise();
+                // Stop tracing here.
+                Debug.stopMethodTracing();
+                _init_dialog.dismiss();
+                runOnUiThread(run_layout);
+            }
+        };
+
+        Thread thread = new Thread(null, run, "Background");
+        thread.start();
+    }
+
+    private void initialise(){
         ZotDroidApp app = (ZotDroidApp) getApplication();
         _zotdroid_user_ops = new ZotDroidUserOps(app.getDB(), this, app.getMem(), this);
         _zotdroid_sync_ops = new ZotDroidSyncOps(app.getDB(), this, app.getMem(), this);
         _zotdroid_user_ops.reset();
-        redrawRecordList();
-        setDrawer();
-        // Set the font preference stuff
-        IntentFilter filter = new IntentFilter("FONT_SIZE_PREFERENCE_CHANGED");
-        this.registerReceiver(_broadcast_receiver,filter);
-
-        // Stop tracing here.
-        Debug.stopMethodTracing();
     }
 
     /**
@@ -174,39 +222,52 @@ public class MainActivity extends AppCompatActivity
         _main_list_view.setAdapter(_main_list_adapter);
 
         for (Record record : mem._records ) {
-            String tt = record.get_title() + " - " + record.get_author();
+            String tt = record.get_title();
             _main_list_map.put(new Integer(_main_list_items.size()), record);
             _main_list_items.add(tt);
 
             // We add metadata first, followed by attachments (TODO - Add a divider?)
             ArrayList<String> tl = new ArrayList<String>();
             tl.add("Title: " + record.get_title());
-            tl.add("Author(s): " + record.get_author());
+            for (Author author : record.get_authors()) {
+                tl.add("Author: " + author.get_name());
+            }
             tl.add("Date Added: " + record.get_date_added());
             tl.add("Date Modified: " + record.get_date_modified());
 
             for (Attachment attachment : record.get_attachments()) {
-                tl.add(attachment.get_file_name());
+                tl.add("Attachment:" + attachment.get_file_name());
             }
             _main_list_sub_items.put(tt, tl);
         }
 
+        // What happens when we click on a subitem
         _main_list_view.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
-
             @Override
             public boolean onChildClick(ExpandableListView parent, View v, int groupPosition, int childPosition, long id) {
                 Record record = null;
-                if (id >= Constants.ATTACHMENT_START_INDEX) {
+                // TODO - Eventually we will replace TextView with some better class for this.
+                int total = _main_list_adapter.getChildrenCount(groupPosition);
+                // Overkill and messy ><
+                int idx = 0;
+                for (idx = 0; idx < total; idx++){
+                    String tv = (String)_main_list_adapter.getChild(groupPosition,idx);
+                    if (tv.contains("Attachment")){
+                        break;
+                    }
+                }
+                String tv = (String)_main_list_adapter.getChild(groupPosition,childPosition);
+                // This is a bit flimsy! :(
+                if (tv.contains("Attachment")) {
                     record = _main_list_map.get(new Integer((groupPosition)));
                     if (record != null) {
                         _download_dialog = launchDownloadDialog();
-                        _zotdroid_user_ops.startAttachmentDownload(record, childPosition - Constants.ATTACHMENT_START_INDEX);
+                        _zotdroid_user_ops.startAttachmentDownload(record, childPosition - idx);
                     }
                 }
                 return true;
             }
         });
-
     }
 
     /**
@@ -240,6 +301,21 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
+        dialog.show();
+        return dialog;
+    }
+
+    private Dialog launchInitDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.fragment_init);
+        dialog.setCanceledOnTouchOutside(false);
+        ProgressBar pb = (ProgressBar) dialog.findViewById(R.id.progressBarDownload);
+        pb.setVisibility(View.VISIBLE);
+        DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
+        int dialogWidth = (int)(displayMetrics.widthPixels * 0.85);
+        int dialogHeight = (int)(displayMetrics.heightPixels * 0.85);
+        dialog.getWindow().setLayout(dialogWidth, dialogHeight);
         dialog.show();
         return dialog;
     }
@@ -442,8 +518,6 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
-
-
     private void recSetDrawer(Collection c, int level) {
         _collection_list_map.put(_main_list_collections.size(),c);
         String indent = "";
@@ -510,13 +584,8 @@ public class MainActivity extends AppCompatActivity
                 redrawRecordList();
 
                 Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-                if (filter != null) {
-                    Toast.makeText(getApplicationContext(), "Selecting: " + filter.get_title(), Toast.LENGTH_SHORT).show();
-                    toolbar.setTitle("ZotDroid: " + filter.get_title());
-                } else {
-                    Toast.makeText(getApplicationContext(), "Selecting: ALL", Toast.LENGTH_SHORT).show();
-                    toolbar.setTitle("ZotDroid:");
-                }
+                if (filter != null) { toolbar.setTitle("ZotDroid: " + filter.get_title());}
+                else { toolbar.setTitle("ZotDroid:");}
             }
         });
     }

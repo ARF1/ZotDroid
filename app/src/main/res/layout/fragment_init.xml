@@ -1,0 +1,42 @@
+<merge xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/fragment_loading"
+        style="@style/AppTheme"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="center_vertical|center_horizontal"
+        android:foregroundGravity="center_vertical"
+        tools:context="uk.co.section9.zotdroid.LoadingFragment">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/textViewLoading"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Initialising database. Please wait."
+                android:textColor="@android:color/black"
+                android:textSize="24sp" />
+
+            <ProgressBar
+                android:id="@+id/progressBarDownload"
+                style="?android:attr/progressBarStyleLarge"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_alignParentTop="true"
+                android:layout_centerHorizontal="true"
+                android:layout_marginTop="50dp" />
+
+        </LinearLayout>
+
+        <!-- TODO: Update blank fragment layout -->
+
+    </FrameLayout>
+</merge>

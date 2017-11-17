@@ -17,6 +17,7 @@ import uk.co.section9.zotdroid.data.tables.Collections;
 import uk.co.section9.zotdroid.data.tables.Records;
 import uk.co.section9.zotdroid.data.tables.Summary;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
+import uk.co.section9.zotdroid.data.zotero.Author;
 import uk.co.section9.zotdroid.data.zotero.Collection;
 import uk.co.section9.zotdroid.data.zotero.CollectionItem;
 import uk.co.section9.zotdroid.data.zotero.Record;
@@ -40,6 +41,15 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     private Summary             _summaryTable           = new Summary();
     private CollectionsItems    _collectionsItemsTable  = new CollectionsItems();
     private Authors             _authorsTable = new Authors();
+
+    // A small class to hold caching info
+    private class SearchCache {
+        public String last_search;
+        public int last_num_results;
+        public boolean valid = false;
+    }
+
+    private SearchCache             _cache = new SearchCache();
 
     public ZotDroidDB(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -163,6 +173,23 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         return result;
     }
 
+    // Get the number of Zotero Records in a particular collection (or ALL if c is null)
+    public int getNumRecordsCollection(Collection c){
+        int result = 0;
+        Cursor cursor = _db.rawQuery("select count(*) from \"" +  _recordsTable.get_table_name() + "\";", null);
+        if (c != null) {
+            cursor = _db.rawQuery("select count(*) from \"" +
+                    _collectionsItemsTable.get_table_name() + "\" where collection = \"" +
+                    c.get_zotero_key() + "\";", null);
+        }
+        if (cursor != null) {
+            cursor.moveToFirst();
+            result = cursor.getInt(0);
+        }
+        cursor.close();
+        return result;
+    }
+
 
     // reads the first cursor
     // TODO - might be a faster way when we are grabbing them all?
@@ -179,7 +206,6 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         cursor.close();
         return values;
     }
-
 
     // Existence methods
     public boolean recordExists(Record r) { return _recordsTable.recordExists(r,_db);}
@@ -208,18 +234,6 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         return _collectionsTable.getCollectionFromValues(readRow(_collectionsTable.get_table_name(),rownum));
     }
 
-    public Record getRecord(String key) {
-        return _recordsTable.getRecordFromValues( _recordsTable.getSingle(_db, key));
-    }
-
-    public Record getRecord(int rownumber) {
-        return _recordsTable.getRecordFromValues(readRow(_recordsTable.get_table_name(),rownumber));
-    }
-
-    public Vector<Record> getRecords(int end) {
-        return _recordsTable.getRecords(end, _db);
-    }
-
     public Attachment getAttachment(String key) {
         return _attachmentsTable.getAttachmentFromValues(_attachmentsTable.getSingle(_db,key));
     }
@@ -241,6 +255,36 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     }
 
     // Composite Get methods
+
+    public Record getRecord(String key) {
+        if (_recordsTable.recordExists(key,_db)) {
+            Record r = _recordsTable.getRecordFromValues(_recordsTable.getSingle(_db, key));
+            for (Author a : _authorsTable.getAuthorsForRecord(r, _db)) {
+                r.add_author(a);
+            }
+            return r;
+        }
+        return null;
+    }
+
+    // TODO - add protections around this one
+    public Record getRecord(int rownumber) {
+        Record r = _recordsTable.getRecordFromValues(readRow(_recordsTable.get_table_name(),rownumber));
+        for(Author a : _authorsTable.getAuthorsForRecord(r,_db)){
+            r.add_author(a);
+        }
+        return r;
+    }
+
+    public Vector<Record> getRecords(int end) {
+        Vector<Record> records = _recordsTable.getRecords(end, _db);
+        for(Record r : records){
+            for(Author a : _authorsTable.getAuthorsForRecord(r,_db)){
+                r.add_author(a);
+            }
+        }
+        return records;
+    }
 
     // TODO - could do this as an actual SQL query I suppose?
     public Vector<Collection> getCollectionForItem(Record record){
@@ -264,6 +308,76 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         return tc;
     }
 
+    public Vector<Record> searchRecords (Collection collection, String searchterm, int end){
+        Vector<Record> records = new Vector<Record>();
+        _cache.last_num_results = 0;
+
+        // Annoyingly we must search the entire collection - this could be slow in certain cases
+        if (collection == null){
+            ContentValues values = new ContentValues();
+            Cursor cursor = _db.rawQuery("select * from \"" + _recordsTable.get_table_name() + "\";", null);
+            while (cursor.moveToNext()){
+                values.clear();
+                for (int i = 0; i < cursor.getColumnCount(); i++){
+                    values.put(cursor.getColumnName(i),cursor.getString(i));
+                }
+
+                Record r = _recordsTable.getRecordFromValues(values);
+                if (r.search(searchterm) || searchterm.isEmpty()) {
+                    _cache.last_num_results +=1;
+                    if (records.size() < end) {
+                        records.add(r);
+                    }
+                };
+            }
+            cursor.close();
+        } else {
+            Vector<CollectionItem> tci = _collectionsItemsTable.getItemsForCollection(collection.get_zotero_key(),_db);
+            for (CollectionItem ci : tci) {
+                Record r = _recordsTable.getRecordByKey(ci.get_item(),_db);
+                if (r.search(searchterm) || searchterm.isEmpty()) {
+                    _cache.last_num_results += 1;
+                    if (records.size() < end) {
+                        records.add(r);
+                    }
+                }
+            }
+        }
+        _cache.valid = true;
+        _cache.last_search = searchterm;
+
+        return records;
+    }
+
+    // This is slow, so we cache the results of the previous search operation for extra speed
+    public int getNumRecordsSearch (Collection collection, String searchterm) {
+        int tt = 0;
+        if (_cache.last_search.equals(searchterm)) { return _cache.last_num_results; }
+
+        if (collection == null){
+            ContentValues values = new ContentValues();
+            Cursor cursor = _db.rawQuery("select count(*) from \"" + _recordsTable.get_table_name() + "\";", null);
+            while (cursor.moveToNext() ){
+                values.clear();
+                for (int i = 0; i < cursor.getColumnCount(); i++){
+                    values.put(cursor.getColumnName(i),cursor.getString(i));
+                }
+                Record r = _recordsTable.getRecordFromValues(values);
+                if (r.search(searchterm) || searchterm.isEmpty()) { tt+=1; };
+            }
+
+            cursor.close();
+        } else {
+            Vector<CollectionItem> tci = _collectionsItemsTable.getItemsForCollection(collection.get_zotero_key(),_db);
+
+            for (CollectionItem ci : tci) {
+                Record r = _recordsTable.getRecordByKey(ci.get_item(),_db);
+                if (r.search(searchterm) || searchterm.isEmpty()) { tt+=1; };
+            }
+        }
+        return tt;
+    }
+
 
     // Get number methods
 
@@ -275,12 +389,18 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     // Write methods
 
     public void writeCollection(Collection collection){ _collectionsTable.writeCollection(collection,_db); }
-    public void writeRecord(Record record){
-        _recordsTable.writeRecord(record,_db);
-    }
     public void writeAttachment(Attachment attachment){ _attachmentsTable.writeAttachment(attachment,_db); }
     public void writeSummary(uk.co.section9.zotdroid.data.zotero.Summary summary){ _summaryTable.writeSummary(summary,_db); }
     public void writeCollectionItem(CollectionItem ic){ _collectionsItemsTable.writeCollection(ic,_db); }
+
+    // Composite write methods
+
+    public void writeRecord(Record record){
+        _recordsTable.writeRecord(record,_db);
+        for (Author a : record.get_authors()){
+            _authorsTable.writeAuthor(a,_db);
+        }
+    }
 
 
     // Delete methods
@@ -289,6 +409,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public void deleteRecord(Record r) {
         _recordsTable.deleteRecord(r,_db);
         _collectionsItemsTable.deleteByRecord(r,_db);
+        _authorsTable.deleteByRecord(r,_db);
     }
     public void deleteCollection(Collection c) {
         _collectionsTable.deleteCollection(c,_db);

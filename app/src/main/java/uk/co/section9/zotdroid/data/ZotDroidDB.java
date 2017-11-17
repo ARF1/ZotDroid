@@ -235,7 +235,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     }
 
     public Attachment getAttachment(String key) {
-        return _attachmentsTable.getAttachmentFromValues(_attachmentsTable.getSingle(_db,key));
+        return _attachmentsTable.getAttachmentByKey(key,_db);
     }
 
     public  Vector<Attachment> getAttachmentsForRecord(Record record) {

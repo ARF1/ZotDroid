@@ -66,8 +66,7 @@ public class Records extends BaseData {
     }
 
     public Boolean recordExists(Record r, SQLiteDatabase db) {
-        String q = "select count(*) from \"" + get_table_name() + "\" where zotero_key=\"" + r.get_zotero_key() + "\";";
-        return exists(q,db);
+        return exists(get_table_name(),r.get_zotero_key(),db);
     }
 
     public void updateRecord(Record record, SQLiteDatabase db) {
@@ -99,7 +98,7 @@ public class Records extends BaseData {
     }
 
     public boolean recordExists(String key, SQLiteDatabase db){
-        return exists("select * from " + get_table_name() + " where zotero_key=\"" + key + "\";", db);
+        return exists(get_table_name(), key, db);
     }
 
     public Record getRecordByKey(String key, SQLiteDatabase db){

@@ -84,16 +84,16 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
         } else {
             // Check the version numbers if this exists and update as necessary
             Record existing = _zotdroid_db.getRecord(record.get_zotero_key());
-            if (Integer.valueOf(existing.get_version()) < Integer.valueOf(record.get_version())){
-                // Perform an update :)
-                _zotdroid_db.updateRecord(record);
-                // At this point the record will likely have different collections too
-                // so we simply rebuild them from our new fresh record
-                _zotdroid_db.removeRecordFromCollections(record);
-                collectionItemsCreate(record);
+            if (existing != null) {
+                if (Integer.valueOf(existing.get_version()) < Integer.valueOf(record.get_version())) {
+                    // Perform an update :)
+                    _zotdroid_db.updateRecord(record);
+                    // At this point the record will likely have different collections too
+                    // so we simply rebuild them from our new fresh record
+                    _zotdroid_db.removeRecordFromCollections(record);
+                    collectionItemsCreate(record);
 
-            } else {
-                Log.d(TAG, "A record brought down has an older/same version.");
+                }
             }
         }
     }
@@ -108,11 +108,11 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
         } else {
             // Check the version numbers if this exists and update as necessary
             Attachment existing = _zotdroid_db.getAttachment(attachment.get_zotero_key());
-            if (Integer.valueOf(existing.get_version()) < Integer.valueOf(attachment.get_version())){
-                // Perform an update :)
-                _zotdroid_db.updateAttachment(attachment);
-            } else {
-                Log.d(TAG, "An attachment brought down has an older/same version.");
+            if (existing != null) {
+                if (Integer.valueOf(existing.get_version()) < Integer.valueOf(attachment.get_version())) {
+                    // Perform an update :)
+                    _zotdroid_db.updateAttachment(attachment);
+                }
             }
         }
     }
@@ -127,14 +127,14 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
         } else {
             // Check the version numbers if this exists and update as necessary
             Collection existing = _zotdroid_db.getCollection(collection.get_zotero_key());
-            if (Integer.valueOf(existing.get_version()) < Integer.valueOf(collection.get_version())){
-                // Perform an update. This is tricky because we could essentially change a collection
-                // and move an object :/
-                // For now we just update the values but we should check whether or not this collection is in the trash
-                _zotdroid_db.updateCollection(collection);
+            if (existing != null) {
+                if (Integer.valueOf(existing.get_version()) < Integer.valueOf(collection.get_version())) {
+                    // Perform an update. This is tricky because we could essentially change a collection
+                    // and move an object :/
+                    // For now we just update the values but we should check whether or not this collection is in the trash
+                    _zotdroid_db.updateCollection(collection);
 
-            } else {
-                Log.d(TAG, "A collection brought down has an older version.");
+                }
             }
         }
     }
@@ -275,10 +275,10 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
                 } else {
                     // Check the version numbers if this exists and update as necessary
                     Collection existing = _zotdroid_db.getCollection(collection.get_zotero_key());
-                    if (Integer.valueOf(existing.get_version()) < Integer.valueOf(collection.get_version())){
-                        // Perform an update :)
-                    } else {
-                        Log.d(TAG, "A collection brought down has an older version.");
+                    if (existing != null) {
+                        if (Integer.valueOf(existing.get_version()) < Integer.valueOf(collection.get_version())) {
+                            // Perform an update :)
+                        }
                     }
                 }
             }

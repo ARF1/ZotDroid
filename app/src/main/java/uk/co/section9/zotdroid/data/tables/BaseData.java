@@ -24,15 +24,14 @@ public class BaseData {
         return values;
     }
 
-    protected boolean exists(String q, SQLiteDatabase db ){
+    protected boolean exists(String table, String key, SQLiteDatabase db ){
+        String q = "select count(*) from " + table + " where zotero_key=\"" + key + "\";";
         Cursor cursor = db.rawQuery(q, null);
         if (cursor != null) {
-            return cursor.moveToFirst();
-            /*if (cursor.g() > 0) {
-                if (cursor.getInt(0) != 0) {
-                    return true;
-                }
-            }*/
+            cursor.moveToFirst();
+            if (cursor.getInt(0) != 0) {
+                return true;
+            }
         }
         return false;
     }

@@ -10,6 +10,7 @@ import org.junit.runner.RunWith;
 import java.util.Date;
 
 import uk.co.section9.zotdroid.data.ZotDroidDB;
+import uk.co.section9.zotdroid.data.zotero.Author;
 import uk.co.section9.zotdroid.data.zotero.Record;
 import uk.co.section9.zotdroid.data.zotero.Summary;
 
@@ -38,15 +39,13 @@ public class DatabaseTest {
 
         Record record = new Record();
         record.set_version("1234");
-        record.add_author("author");
+        record.add_author(new Author("author","1234"));
         record.set_content_type("pdf");
         record.set_date_added("testdate");
         record.set_parent("abcd");
         record.set_title("title");
         record.set_item_type("type");
-
         db.writeRecord(record);
-
         int numrow = db.getNumRecords();
         Record r2 = db.getRecord(numrow-1);
 

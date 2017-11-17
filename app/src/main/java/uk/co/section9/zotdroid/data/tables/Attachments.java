@@ -54,6 +54,17 @@ public class Attachments extends BaseData {
         return attachment;
     }
 
+    public boolean attachmentExists(String key, SQLiteDatabase db){
+        return exists(get_table_name(), key, db);
+    }
+
+    public Attachment getAttachmentByKey(String key, SQLiteDatabase db){
+        if (attachmentExists(key,db)) {
+            return getAttachmentFromValues(getSingle(db, key));
+        }
+        return null;
+    }
+
     public void updateAttachment(Attachment attachment, SQLiteDatabase db) {
         db.execSQL("UPDATE " + get_table_name() +
                 " SET file_type=\"" + attachment.get_file_type() + "\", " +
@@ -64,8 +75,7 @@ public class Attachments extends BaseData {
     }
 
     public Boolean attachmentExists(Attachment a, SQLiteDatabase db){
-        String q =  "select count(*) from \"" + get_table_name() + "\" where zotero_key=\"" + a.get_zotero_key() + "\";";
-        return exists(q,db);
+        return exists(get_table_name(),a.get_zotero_key(),db);
     }
 
     public void deleteAttachment(Attachment a, SQLiteDatabase db){

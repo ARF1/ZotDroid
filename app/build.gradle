@@ -7,7 +7,7 @@ android {
         applicationId "uk.co.section9.zotdroid"
         minSdkVersion 19
         targetSdkVersion 26
-        versionCode 10
+        versionCode 11
         versionName '0.6'
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 

@@ -91,10 +91,13 @@ public class ZotDroidOps {
         // but for now it makes sense to have it here.
         int numrows = _zotdroid_db.getNumCollections();
 
+        Vector<Collection> newcollections = new Vector<>();
+
         for (int i=0; i < numrows; ++i) {
             Collection collection = _zotdroid_db.getCollection(i);
             if(!_zotdroid_mem._key_to_collection.containsKey(collection.get_zotero_key())) {
                 _zotdroid_mem._collections.add(collection);
+                newcollections.add(collection);
                 _zotdroid_mem._key_to_collection.put(collection.get_zotero_key(), collection);
             }
         }
@@ -108,7 +111,7 @@ public class ZotDroidOps {
         });
 
         // Now link each collection to it's parent. Memory duplication I fear :/
-        for (Collection c : _zotdroid_mem._collections){
+        for (Collection c : newcollections){
             Collection zp = _zotdroid_mem._key_to_collection.get(c.get_parent());
             if (zp != null){
                 zp.add_collection(c);
@@ -123,7 +126,7 @@ public class ZotDroidOps {
         for (int i=0; i < numrows; ++i) {
             CollectionItem ct = _zotdroid_db.getCollectionItem(i);
 
-            for (Collection c : _zotdroid_mem._collections){
+            for (Collection c : newcollections){
                 if (ct.get_collection().contains(c.get_zotero_key())){
                     for (Record r : records){
                         if ( ct.get_item().contains(r.get_zotero_key())){
@@ -145,7 +148,6 @@ public class ZotDroidOps {
      */
 
     public boolean populateFromDB(int end) {
-
         // Start with any new records we want to add into memory
         int numrows = _zotdroid_db.getNumRecords();
         if ( end < 0) { return false; }
@@ -163,7 +165,6 @@ public class ZotDroidOps {
         }
 
         rebuildMemory(newrecords);
-
         return true;
     }
 

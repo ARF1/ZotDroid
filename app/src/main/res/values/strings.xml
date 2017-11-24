@@ -83,5 +83,12 @@
 
     <string name="title_activity_main">ZotDroid</string>
 
+    <!-- XList related stuff -->
+    <string name="xlistview_header_hint_normal">Scrolling up does nothing yet.</string>
+    <string name="xlistview_header_hint_ready">Still not doing anything.</string>
+    <string name="xlistview_header_hint_loading">Nope!</string>
+    <string name="xlistview_header_last_time">...</string>
+    <string name="xlistview_footer_hint_normal">Scroll down to load more items.</string>
+    <string name="xlistview_footer_hint_ready">Release to load more.</string>
 
 </resources>

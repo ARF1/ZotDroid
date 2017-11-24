@@ -13,7 +13,7 @@ Feedback is more than welcome, either here or via email *me@benjamin.computer*
 Current Version
 ---------------
 
-0.6
+0.7
 
 Building and Testing
 --------------------
@@ -60,6 +60,7 @@ Acknowledgements
 * The [Zotero](https://www.zotero.org) crew for making a wicked awesome program!
 * ZotDroid makes use of [Signpost](https://github.com/mttkay/signpost). This lives in the external directory for these who wish to build ZotDroid themselves.
 * The [Zandy](https://github.com/avram/zandy) project, for an idea on how OAUTH works.
+* [XListView-Android](https://github.com/Maxwin-z/XListView-Android) - For the very handy list dragging animations and event handling.
 
 Licence
 -------

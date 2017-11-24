@@ -12,7 +12,7 @@
     tools:context="uk.co.section9.zotdroid.MainActivity"
     tools:showIn="@layout/app_bar_main">
 
-    <ExpandableListView
+    <me.maxwin.view.XListView
         android:id="@+id/listViewMain"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

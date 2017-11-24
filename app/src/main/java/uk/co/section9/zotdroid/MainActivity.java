@@ -10,6 +10,7 @@ import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Debug;
+import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
@@ -41,6 +42,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Vector;
 
+import me.maxwin.view.XListView;
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
 import uk.co.section9.zotdroid.data.zotero.Author;
@@ -57,7 +59,7 @@ import uk.co.section9.zotdroid.task.ZotDroidWebDavCaller;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, ZoteroBroker.ZoteroAuthCallback,
-        ZotDroidSyncCaller, ZotDroidWebDavCaller {
+        ZotDroidSyncCaller, ZotDroidWebDavCaller, XListView.IXListViewListener {
 
     public static final String      TAG = "zotdroid.MainActivity";
     private static int              ZOTERO_LOGIN_REQUEST = 1667;
@@ -68,7 +70,8 @@ public class MainActivity extends AppCompatActivity
     private ZotDroidUserOps         _zotdroid_user_ops;
     private ZotDroidSyncOps         _zotdroid_sync_ops;
     private ZotDroidListAdapter     _main_list_adapter;
-    private ExpandableListView      _main_list_view;
+    private XListView               _main_list_view;
+    private Handler                 _handler;
 
     // Our main list memory locations
     ArrayList< String >                    _main_list_items = new ArrayList< String >  ();
@@ -158,8 +161,10 @@ public class MainActivity extends AppCompatActivity
         };
 
         // Setup the main list of items
-        _main_list_view = (ExpandableListView) findViewById(R.id.listViewMain);
-        _main_list_view.setOnScrollListener(new AbsListView.OnScrollListener() {
+        _main_list_view = (XListView) findViewById(R.id.listViewMain);
+        _main_list_view.setPullLoadEnable(true);
+        _handler = new Handler();
+        /*_main_list_view.setOnScrollListener(new AbsListView.OnScrollListener() {
 
             public void onScrollStateChanged(AbsListView view, int scrollState) {}
 
@@ -169,10 +174,13 @@ public class MainActivity extends AppCompatActivity
                         Toast.makeText(getApplicationContext(), "Loading more items", Toast.LENGTH_SHORT).show();
                         _zotdroid_user_ops.getMoreResults(Constants.PAGINATION_SIZE);
                         runOnUiThread(run_layout);
+                        _main_list_view.setSelection(_main_list_adapter.getGroupCount() - 1);
                     }
                 }
             }
-        });
+        });*/
+
+        _main_list_view.setXListViewListener(this);
 
         // Pass this activity - ZoteroBroker will look for credentials
         ZoteroBroker.passCreds(this,this);
@@ -196,11 +204,64 @@ public class MainActivity extends AppCompatActivity
         thread.start();
     }
 
+    /**
+     * Function when the Special Scrolling Listview is refreshed
+     * This does nothing for now but might do later
+     */
+    @Override
+    public void onRefresh() {
+        _handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                listLoaded();
+            }
+        }, 1000);
+    }
+    private void listLoaded() {
+        _main_list_view.stopRefresh();
+        _main_list_view.stopLoadMore();
+        _main_list_view.setRefreshTime("testtime");
+    }
+
+    /**
+     * Called when our special list view wants to load more things
+     */
+    @Override
+    public void onLoadMore() {
+        _handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                _zotdroid_user_ops.getMoreResults(Constants.PAGINATION_SIZE);
+                expandRecordList();
+                _main_list_adapter.notifyDataSetChanged();
+                listLoaded();
+            }
+        }, 2000);
+    }
+
     private void initialise(){
         ZotDroidApp app = (ZotDroidApp) getApplication();
         _zotdroid_user_ops = new ZotDroidUserOps(app.getDB(), this, app.getMem(), this);
         _zotdroid_sync_ops = new ZotDroidSyncOps(app.getDB(), this, app.getMem(), this);
         _zotdroid_user_ops.reset();
+    }
+
+    /**
+     * Don't redraw completely, just check the size of the _main_list_items and add more
+     */
+    private void expandRecordList() {
+        ZotDroidApp app = (ZotDroidApp) getApplication();
+        ZotDroidMem mem = app.getMem();
+
+        int idx = 0;
+        for (Record record : mem._records) {
+            if (idx >= _main_list_items.size()) {
+                String tt = record.get_title();
+                _main_list_map.put(new Integer(_main_list_items.size()), record);
+                _main_list_items.add(tt);
+            }
+            idx +=1;
+        }
     }
 
     /**

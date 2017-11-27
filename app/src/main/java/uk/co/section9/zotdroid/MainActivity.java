@@ -9,11 +9,9 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
 import android.widget.SearchView;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -35,7 +33,6 @@ import android.widget.ExpandableListView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -191,10 +188,10 @@ public class MainActivity extends AppCompatActivity
         Runnable run = new Runnable() {
             public void run() {
                 // Start tracing the bootup
-                Debug.startMethodTracing("zotdroid_trace_startup");
+                //Debug.startMethodTracing("zotdroid_trace_startup");
                 initialise();
                 // Stop tracing here.
-                Debug.stopMethodTracing();
+                //Debug.stopMethodTracing();
                 _init_dialog.dismiss();
                 runOnUiThread(run_layout);
             }

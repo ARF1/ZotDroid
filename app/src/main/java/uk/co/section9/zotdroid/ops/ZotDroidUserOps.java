@@ -143,6 +143,13 @@ public class ZotDroidUserOps extends ZotDroidOps implements ZoteroWebDavCallback
         filter(_current_collection, "", Constants.PAGINATION_SIZE);
     }
 
+    /**
+     * Filter the collection based on the previous state of the system and the new state as
+     * passed in by searchterm, end index and current collection.
+     * @param collection
+     * @param searchterm
+     * @param end
+     */
     protected void filter(Collection collection, String searchterm, int end) {
         // Swapping collections with no search or enhance
         if (collection != _current_collection) {
@@ -161,10 +168,13 @@ public class ZotDroidUserOps extends ZotDroidOps implements ZoteroWebDavCallback
         // Search is an entirely new view across the entire collection, not just what is
         // visible currently. I figure that might be better. This does make the scroll harder
         // TODO - create a method to see if there are more records available in current search
-        if (!searchterm.isEmpty()) {
+        if (!searchterm.isEmpty() && _search_term != searchterm) {
             _zotdroid_mem.nukeMemory();
             Vector<Record> matching = new Vector<>();
             trv = _zotdroid_db.searchRecords(_current_collection, searchterm, Constants.PAGINATION_SIZE);
+            _search_term = searchterm;
+        } else if (!searchterm.isEmpty() && _search_term == searchterm){
+            trv = _zotdroid_db.searchRecords(_current_collection, searchterm, end);
         }
 
         // Make sure the size is correct
@@ -178,7 +188,7 @@ public class ZotDroidUserOps extends ZotDroidOps implements ZoteroWebDavCallback
     }
 
     public void getMoreResults(int more) {
-        filter(_current_collection, "", _zotdroid_mem._end_index + more);
+        filter(_current_collection, _search_term, _zotdroid_mem._end_index + more);
     }
 
     /**
@@ -208,7 +218,6 @@ public class ZotDroidUserOps extends ZotDroidOps implements ZoteroWebDavCallback
     }
 
     public void search(String term) {
-        _search_term = term;
         filter(_current_collection, term, Constants.PAGINATION_SIZE);
     }
 

@@ -92,7 +92,13 @@ public class Record {
 
     public Vector<Tag> get_tags() {return _tags;}
 
-    public void add_tag(Tag tag) { _tags.add(tag); }
+    public boolean add_tag(Tag tag) {
+        for (Tag t : _tags){
+            if (t.get_name() == tag.get_name()) { return false; }
+        }
+        _tags.add(tag);
+        return true;
+    }
 
     public void remove_tag(Tag tag) {
         for (int i = 0; i < _tags.size(); i++) {

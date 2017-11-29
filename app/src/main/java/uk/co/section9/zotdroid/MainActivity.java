@@ -70,6 +70,7 @@ public class MainActivity extends AppCompatActivity
     private Dialog                  _download_dialog;
     private Dialog                  _init_dialog;
     private Dialog                  _tag_dialog;
+    private Dialog                  _note_dialog;
     private ZotDroidUserOps         _zotdroid_user_ops;
     private ZotDroidSyncOps         _zotdroid_sync_ops;
     private ZotDroidListAdapter     _main_list_adapter;
@@ -307,25 +308,33 @@ public class MainActivity extends AppCompatActivity
                 // TODO - Eventually we will replace TextView with some better class for this.
                 int total = _main_list_adapter.getChildrenCount(groupPosition);
                 // Overkill and messy ><
-                int idx = 0;
-                for (idx = 0; idx < total; idx++){
-                    String tv = (String)_main_list_adapter.getChild(groupPosition,idx);
+                int aidx = 0;
+                for (aidx = 0; aidx < total; aidx++){
+                    String tv = (String)_main_list_adapter.getChild(groupPosition,aidx);
                     if (tv.contains("Attachment")){
+                        break;
+                    }
+                }
+
+                int nidx = 0;
+                for (nidx = 0; nidx < total; nidx++){
+                    String tv = (String)_main_list_adapter.getChild(groupPosition,nidx);
+                    if (tv.contains("Note")){
                         break;
                     }
                 }
                 String tv = (String)_main_list_adapter.getChild(groupPosition,childPosition);
                 // This is a bit flimsy! :(
                 if (tv.contains("Attachment")) {
-                    record = _main_list_map.get(new Integer((groupPosition)));
+                    record = _main_list_map.get(Integer.valueOf(groupPosition));
                     if (record != null) {
                         launchDownloadDialog();
-                        _zotdroid_user_ops.startAttachmentDownload(record, childPosition - idx);
+                        _zotdroid_user_ops.startAttachmentDownload(record, childPosition - aidx);
                     }
                 } else if (tv.contains("Tags")) {
                     launchTagDialog(groupPosition);
                 } else if (tv.contains("Note")) {
-                    // TODO note launch!
+                    launchNoteDialog(groupPosition,childPosition - nidx);
                 }
 
                 return true;
@@ -383,6 +392,34 @@ public class MainActivity extends AppCompatActivity
         return dialog;
     }
 
+    protected void _addTag(Tag t, Record record, LinearLayout topview, int dialogWidth) {
+        final Tag tag = t;
+        final Record r = record;
+        final LinearLayout ll = topview;
+        final LinearLayout lt = new LinearLayout(this);
+        lt.setOrientation(LinearLayout.HORIZONTAL);
+        lt.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
+        final TextView tf = new TextView(this);
+        tf.setText(tag.get_name());
+        tf.setMinimumWidth((int)(dialogWidth * 0.65));
+        lt.addView(tf);
+        // Button for removal of tags
+        final Button bf = new Button(this);
+        bf.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        bf.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                r.remove_tag(tag);
+                ll.removeView(lt);
+                // TODO - need to somehow refresh the main_list_view of tags as well
+            }
+        });
+        bf.setText("-");
+        lt.addView(bf);
+        lt.setVisibility(View.VISIBLE);
+        ll.addView(lt,0);
+    }
+
     protected Dialog launchTagDialog(int record_index){
         final Dialog dialog = new Dialog(this);
         _tag_dialog = dialog;
@@ -390,49 +427,65 @@ public class MainActivity extends AppCompatActivity
         dialog.setContentView(R.layout.fragment_tags);
         dialog.setCanceledOnTouchOutside(true);
         DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
-        int dialogWidth = (int)(displayMetrics.widthPixels * 0.75);
+        final int dialogWidth = (int)(displayMetrics.widthPixels * 0.75);
         int dialogHeight = (int)(displayMetrics.heightPixels * 0.75);
         dialog.getWindow().setLayout(dialogWidth, dialogHeight);
 
         final Record r = _main_list_map.get(record_index);
+        final LinearLayout ll = (LinearLayout) dialog.findViewById(R.id.fragment_tags_list);
 
-        Button qb = (Button) dialog.findViewById(R.id.fragment_tags_quit);
+        Button qb = (Button) dialog.findViewById(R.id.fragment_tags_newtag_button);
+        final TextView tv = (TextView) dialog.findViewById(R.id.fragment_tags_newtag);
         qb.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                for (Tag tt : r.get_tags()){
+                    if (tt.get_name() == tv.getText().toString()){ return; }
+                }
+
+                Tag newtag = new Tag(tv.getText().toString(),r.get_zotero_key());
+                r.add_tag(newtag);
+                _addTag(newtag,r,ll, dialogWidth);
+            }
+        });
+
+        Button ab = (Button) dialog.findViewById(R.id.fragment_tags_quit);
+        ab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 _tag_dialog.dismiss();
             }
         });
-
-        LinearLayout ll = (LinearLayout) dialog.findViewById(R.id.fragment_tags_list);
-
-        for (Tag t : r.get_tags()){
-            final Tag tag = t;
-            LinearLayout lt = new LinearLayout(this);
-            lt.setOrientation(LinearLayout.HORIZONTAL);
-            lt.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
-            TextView tf = new TextView(this);
-            tf.setText(tag.get_name());
-            tf.setMinimumWidth((int)(dialogWidth * 0.65));
-            lt.addView(tf);
-            // Button for removal of tags
-            Button bf = new Button(this);
-            bf.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-            bf.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    r.remove_tag(tag);
-                }
-            });
-            bf.setText("-");
-            lt.addView(bf);
-            lt.setVisibility(View.VISIBLE);
-            ll.addView(lt,0);
-        }
-
+        for (Tag t : r.get_tags()){ _addTag(t,r,ll,dialogWidth); }
         dialog.show();
         return dialog;
     }
+
+    protected Dialog launchNoteDialog(int record_index, int note_index){
+        final Dialog dialog = new Dialog(this);
+        _note_dialog = dialog;
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.fragment_notes);
+        dialog.setCanceledOnTouchOutside(true);
+        DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
+        int dialogWidth = (int)(displayMetrics.widthPixels * 0.75);
+        int dialogHeight = (int)(displayMetrics.heightPixels * 0.75);
+        dialog.getWindow().setLayout(dialogWidth, dialogHeight);
+        final Record r = _main_list_map.get(record_index);
+        Note n = r.get_notes().get(note_index);
+        Button qb = (Button) dialog.findViewById(R.id.fragment_notes_quit);
+        qb.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                _note_dialog.dismiss();
+            }
+        });
+        TextView ll = (TextView) dialog.findViewById(R.id.fragment_notes_note);
+        ll.setText(n.get_note());
+        dialog.show();
+        return dialog;
+    }
+
 
     private void changeFontSize() {
         TextView groupTitle = (TextView) _main_list_view.findViewById(R.id.main_list_group);

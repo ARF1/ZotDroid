@@ -9,18 +9,21 @@ import android.database.sqlite.SQLiteOpenHelper;
 import java.util.Date;
 import java.util.Vector;
 
-import uk.co.section9.zotdroid.R;
 import uk.co.section9.zotdroid.data.tables.Attachments;
 import uk.co.section9.zotdroid.data.tables.Authors;
 import uk.co.section9.zotdroid.data.tables.CollectionsItems;
 import uk.co.section9.zotdroid.data.tables.Collections;
+import uk.co.section9.zotdroid.data.tables.Notes;
 import uk.co.section9.zotdroid.data.tables.Records;
 import uk.co.section9.zotdroid.data.tables.Summary;
+import uk.co.section9.zotdroid.data.tables.Tags;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
 import uk.co.section9.zotdroid.data.zotero.Author;
 import uk.co.section9.zotdroid.data.zotero.Collection;
 import uk.co.section9.zotdroid.data.zotero.CollectionItem;
+import uk.co.section9.zotdroid.data.zotero.Note;
 import uk.co.section9.zotdroid.data.zotero.Record;
+import uk.co.section9.zotdroid.data.zotero.Tag;
 
 /**
  * Created by oni on 11/07/2017.
@@ -40,7 +43,11 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     private Records             _recordsTable           = new Records();
     private Summary             _summaryTable           = new Summary();
     private CollectionsItems    _collectionsItemsTable  = new CollectionsItems();
-    private Authors             _authorsTable = new Authors();
+    private Authors             _authorsTable           = new Authors();
+    private Tags                _tagsTable              = new Tags();
+    private Notes               _notesTable             = new Notes();
+
+
 
     // A small class to hold caching info
     private class SearchCache {
@@ -108,6 +115,14 @@ public class ZotDroidDB extends SQLiteOpenHelper {
             _authorsTable.createTable(_db);
         }
 
+        if (!checkTableExists(_tagsTable.get_table_name())) {
+            _tagsTable.createTable(_db);
+        }
+
+        if (!checkTableExists(_notesTable.get_table_name())) {
+            _notesTable.createTable(_db);
+        }
+
         if (!checkTableExists(_summaryTable.get_table_name())) {
             _summaryTable.createTable(_db);
             uk.co.section9.zotdroid.data.zotero.Summary s = new uk.co.section9.zotdroid.data.zotero.Summary();
@@ -132,6 +147,8 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS \"" + _attachmentsTable.get_table_name() + "\"");
         db.execSQL("DROP TABLE IF EXISTS \"" + _collectionsItemsTable.get_table_name() + "\"");
         db.execSQL("DROP TABLE IF EXISTS \"" + _authorsTable.get_table_name() + "\"");
+        db.execSQL("DROP TABLE IF EXISTS \"" + _tagsTable.get_table_name() + "\"");
+        db.execSQL("DROP TABLE IF EXISTS \"" + _notesTable.get_table_name() + "\"");
         onCreate(db);
     }
 
@@ -273,6 +290,14 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         for(Author a : _authorsTable.getAuthorsForRecord(r,_db)){
             r.add_author(a);
         }
+
+        for(Tag t : _tagsTable.getTagsForRecord(r,_db)){
+            r.add_tag(t);
+        }
+
+        for(Note n : _notesTable.getNotesForRecord(r,_db)){
+            r.add_note(n);
+        }
         return r;
     }
 
@@ -281,6 +306,9 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         for(Record r : records){
             for(Author a : _authorsTable.getAuthorsForRecord(r,_db)){
                 r.add_author(a);
+            }
+            for(Tag t : _tagsTable.getTagsForRecord(r,_db)){
+                r.add_tag(t);
             }
         }
         return records;
@@ -400,6 +428,9 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         for (Author a : record.get_authors()){
             _authorsTable.writeAuthor(a,_db);
         }
+        for(Tag t : record.get_tags()){
+            _tagsTable.writeTag(t,_db);
+        }
     }
 
 
@@ -410,6 +441,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         _recordsTable.deleteRecord(r,_db);
         _collectionsItemsTable.deleteByRecord(r,_db);
         _authorsTable.deleteByRecord(r,_db);
+        _tagsTable.deleteByRecord(r,_db);
     }
     public void deleteCollection(Collection c) {
         _collectionsTable.deleteCollection(c,_db);

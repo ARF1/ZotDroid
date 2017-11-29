@@ -1,8 +1,7 @@
 package uk.co.section9.zotdroid.data.zotero;
 
-import java.util.Date;
+//import java.util.Date;
 import java.util.Vector;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by oni on 14/07/2017.
@@ -91,9 +90,31 @@ public class Record {
 
     public Vector<Attachment> get_attachments() {return _attachments;}
 
-    public Vector<String> get_tags() {return _tags;}
+    public Vector<Tag> get_tags() {return _tags;}
 
-    public void add_tag(String tag) { _tags.add(tag); }
+    public void add_tag(Tag tag) { _tags.add(tag); }
+
+    public void remove_tag(Tag tag) {
+        for (int i = 0; i < _tags.size(); i++) {
+            if (_tags.get(i).get_record_key() == tag.get_record_key() &&
+                    _tags.get(i).get_name() == tag.get_name()) {
+                _tags.remove(i);
+            }
+        }
+    }
+
+    public Vector<Note> get_notes() {return _notes;}
+
+    public void add_note(Note note) { _notes.add(note); }
+
+    public void remove_note(Note note) {
+        for (int i = 0; i < _notes.size(); i++) {
+            if (_notes.get(i).get_record_key() == note.get_record_key() &&
+                    _notes.get(i).get_zotero_key() == note.get_zotero_key()) {
+                _notes.remove(i);
+            }
+        }
+    }
 
     public String get_version() {
         return _version;
@@ -103,6 +124,11 @@ public class Record {
         this._version = _version;
     }
 
+    /**
+     * Search the title, authors and tags for this particular record
+     * @param term
+     * @return
+     */
     public boolean search(String term) {
         String tt = term.toLowerCase();
         for (Author author : _authors) {
@@ -111,6 +137,13 @@ public class Record {
             }
         }
         if (_title.toLowerCase().contains(tt)) {return true;}
+
+        for (Tag tag : _tags) {
+            if (tag._name.toLowerCase().contains(tt)) {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -132,7 +165,8 @@ public class Record {
     protected Vector<Attachment> _attachments;
     protected Vector<Collection> _collections;
     protected Vector<String>    _temp_collections;
-    protected Vector<String>    _tags;
+    protected Vector<Tag>       _tags;
+    protected Vector<Note>      _notes;
     protected Vector<Author>    _authors;
 
     public String toString() {
@@ -146,7 +180,8 @@ public class Record {
         _attachments = new Vector<Attachment>();
         _collections = new Vector<Collection>();
         _temp_collections = new Vector<String>(); // TODO - temporarily holding collection keys might not be the best way
-        _tags = new Vector<String>(); // TODO - temporarily holding collection keys might not be the best way
+        _tags = new Vector<Tag>(); // TODO - temporarily holding collection keys might not be the best way
+        _notes = new Vector<Note>(); // TODO - temporarily holding collection keys might not be the best way
 
     }
 }

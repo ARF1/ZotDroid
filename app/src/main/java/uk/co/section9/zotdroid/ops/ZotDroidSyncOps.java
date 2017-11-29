@@ -189,7 +189,7 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
             }
 
         } else {
-            Log.e(TAG,"Error returned in onItemCompletion");
+            //Log.e(TAG,"Error returned in onItemCompletion");
             stop();
             _midnightcaller.onSyncFinish(false, "Error grabbing items from Zotero.");
         }
@@ -206,7 +206,7 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
     public void onItemsCompletion( boolean success, String message, String version) {
         if (success) {
             Summary s = _zotdroid_db.getSummary();
-            Log.i(TAG,"Items Complete Version: " + version);
+            //Log.i(TAG,"Items Complete Version: " + version);
             ZoteroDelTask dt = new ZoteroDelTask(this, s.get_last_version());
             _current_tasks.add(0,dt);
             nextTask();
@@ -227,7 +227,7 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
     public void onCollectionsCompletion( boolean success, String message, String version) {
         if (success) {
             Summary s = _zotdroid_db.getSummary();
-            Log.i(TAG,"Collections Complete Version: " + version);
+            //Log.i(TAG,"Collections Complete Version: " + version);
             nextTask();
         } else {
             stop();
@@ -373,8 +373,8 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
      */
     @Override
     public void onSyncDelete(boolean success, String message, Vector<String> items, Vector<String> collections, String version) {
-        Log.i(TAG,"Collections to delete: " + collections.size());
-        Log.i(TAG,"Items to delete: " + items.size());
+        //Log.i(TAG,"Collections to delete: " + collections.size());
+        //Log.i(TAG,"Items to delete: " + items.size());
 
         for (String key : items){
             Record r = _zotdroid_db.getRecord(key);
@@ -401,7 +401,7 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
     public void onSyncCollectionsVersion( boolean success, String message, String version) {
 
         if (success) {
-            Log.i(TAG,"Current Sync Collections: " + getVersion() + " New Version: " + version);
+            //Log.i(TAG,"Current Sync Collections: " + getVersion() + " New Version: " + version);
             // Start with collections sync and then items afterwards
             if (getVersion() != version) {
                 ZoteroVerColTask zc = new ZoteroVerColTask(this, getVersion());
@@ -422,7 +422,7 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
     @Override
     public void onSyncItemsVersion(boolean success, String message, String version) {
         if (success) {
-            Log.i(TAG,"Current Sync Items: " + getVersion() + " New Version: " + version);
+            //Log.i(TAG,"Current Sync Items: " + getVersion() + " New Version: " + version);
             // Now we move onto the records if we need to
             if (getVersion() != version){
                 ZoteroVerItemsTask zv = new ZoteroVerItemsTask(this, getVersion());

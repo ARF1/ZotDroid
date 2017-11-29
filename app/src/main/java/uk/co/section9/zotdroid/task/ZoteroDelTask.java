@@ -33,18 +33,17 @@ public class ZoteroDelTask extends ZoteroTask {
     }
 
     protected void onPostExecute(String rstring) {
-
         Vector<String> item_keys = new Vector<String>();
         Vector<String> collection_keys = new Vector<String>();
 
         try {
             JSONObject jObject = new JSONObject(rstring);
-
             String version = "0000";
+
             try {
                 version = jObject.getString("Last-Modified-Version");
             } catch (JSONException e) {
-                Log.i(TAG,"No Last-Modified-Version in request.");
+                //Log.i(TAG,"No Last-Modified-Version in request.");
             }
 
             jObject = jObject.getJSONObject("results");
@@ -72,7 +71,7 @@ public class ZoteroDelTask extends ZoteroTask {
 
         } catch (JSONException e) {
             e.printStackTrace();
-            Log.e(TAG,"Error in parsing JSON Object.");
+            //Log.e(TAG,"Error in parsing JSON Object.");
             _callback.onSyncDelete(false,"Error in parsing JSON Object.", null, null, "0000");
             return;
         }

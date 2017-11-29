@@ -2,6 +2,7 @@ package uk.co.section9.zotdroid;
 
 
 import android.annotation.TargetApi;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -17,10 +18,19 @@ import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatDialog;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.Window;
+import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import java.util.List;
+
+import uk.co.section9.zotdroid.webdav.ZoteroDownload;
+import uk.co.section9.zotdroid.webdav.ZoteroWebDavCallback;
 
 /**
  * A {@link PreferenceActivity} that presents a set of application settings. On
@@ -33,10 +43,14 @@ import java.util.List;
  * href="http://developer.android.com/guide/topics/ui/settings.html">Settings
  * API Guide</a> for more information on developing a Settings UI.
  */
-public class SettingsActivity extends AppCompatPreferenceActivity {
+public class SettingsActivity extends AppCompatPreferenceActivity  implements ZoteroWebDavCallback{
 
     private static final String TAG = "zotdroid.Settings";
-    private static Context _context; // Used later for popup messages
+    private static Context  _context; // Used later for popup messages
+    private static Dialog   _webdav_dialog;
+    private static Button   _webdav_button;
+
+    private ZoteroDownload _zotero_download = new ZoteroDownload();
     /**
      * A preference value change listener that updates the preference's summary
      * to reflect its new value.
@@ -102,6 +116,56 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         super.onCreate(savedInstanceState);
         _context = SettingsActivity.this;
         setupActionBar();
+        // Add a button to the header list.
+        _webdav_button = new Button(this);
+        _webdav_button.setText("Test WebDav Settings");
+        setListFooter(_webdav_button);
+        final SettingsActivity _pp = this;
+
+        _webdav_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                _webdav_button.setClickable(false);
+                _webdav_dialog = launchLoadingDialog();
+                String status_message = "Testing Webdav Connection.";
+                TextView messageView = (TextView) _webdav_dialog.findViewById(R.id.textViewLoading);
+                messageView.setText(status_message);
+
+                _zotero_download.testWebDav(_pp,_pp);
+
+                //_zotdroid_user_ops.testWebDav();
+            }
+        });
+    }
+
+    private Dialog launchLoadingDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.fragment_loading);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setCancelable(true);
+
+        ProgressBar pb = (ProgressBar) dialog.findViewById(R.id.progressBarDownload);
+        pb.setVisibility(View.VISIBLE);
+
+        DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
+        int dialogWidth = (int)(displayMetrics.widthPixels * 0.85);
+        int dialogHeight = (int)(displayMetrics.heightPixels * 0.85);
+        dialog.getWindow().setLayout(dialogWidth, dialogHeight);
+
+        Button cancelButton = (Button) dialog.findViewById(R.id.buttonCancel);
+
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //_zotdroid_sync_ops.stop();
+
+                dialog.dismiss();
+            }
+        });
+
+        dialog.show();
+        return dialog;
     }
 
     /**
@@ -140,6 +204,27 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
         return PreferenceFragment.class.getName().equals(fragmentName)
                 || GeneralPreferenceFragment.class.getName().equals(fragmentName)
                 || WebDavPreferenceFragment.class.getName().equals(fragmentName);
+    }
+
+    @Override
+    public void onWebDavProgess(boolean result, String message) {
+
+    }
+
+    @Override
+    public void onWebDavComplete(boolean result, String message) {
+        String status_message = "Connection Failed: " + message;
+        if (result) {
+            status_message = "Connection succeded";
+        }
+        TextView messageView = (TextView) _webdav_dialog.findViewById(R.id.textViewLoading);
+        messageView.setText(status_message);
+        Button button = (Button) _webdav_dialog.findViewById(R.id.buttonCancel);
+        button.setText("Dismiss");
+
+        ProgressBar pb = (ProgressBar) _webdav_dialog.findViewById(R.id.progressBarDownload);
+        pb.setVisibility(View.INVISIBLE);
+        _webdav_button.setClickable(true);
     }
 
     /**

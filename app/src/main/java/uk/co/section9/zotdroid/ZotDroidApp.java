@@ -5,6 +5,8 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
 import uk.co.section9.zotdroid.data.ZotDroidDB;
+import uk.co.section9.zotdroid.ops.ZotDroidSyncOps;
+import uk.co.section9.zotdroid.ops.ZotDroidUserOps;
 
 /**
  * Created by oni on 15/11/2017.
@@ -12,8 +14,8 @@ import uk.co.section9.zotdroid.data.ZotDroidDB;
 
 public class ZotDroidApp extends Application {
 
-    protected ZotDroidDB    _zotdroid_db;
-    protected ZotDroidMem   _zotdroid_mem;
+    protected ZotDroidDB        _zotdroid_db;
+    protected ZotDroidMem       _zotdroid_mem;
 
     @Override
     public void onCreate() {
@@ -31,6 +33,7 @@ public class ZotDroidApp extends Application {
         } else {
             _zotdroid_db = new ZotDroidDB(this);
         }
+
     }
 
     public ZotDroidMem getMem() { return _zotdroid_mem; }

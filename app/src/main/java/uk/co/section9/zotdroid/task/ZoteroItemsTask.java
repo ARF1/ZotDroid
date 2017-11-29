@@ -18,6 +18,7 @@ import uk.co.section9.zotdroid.data.zotero.Attachment;
 import uk.co.section9.zotdroid.data.zotero.Author;
 import uk.co.section9.zotdroid.data.zotero.Note;
 import uk.co.section9.zotdroid.data.zotero.Record;
+import uk.co.section9.zotdroid.data.zotero.Tag;
 
 /**
  * Extend our items task so that we can do some processing on the data returned
@@ -71,7 +72,6 @@ public class ZoteroItemsTask extends ZoteroTask {
         }
     }
 
-
     protected Record processEntry(JSONObject jobj) {
         Record record = new Record();
         // TODO - We need to handle these exceptions better - possibly by just ignoring this record
@@ -108,7 +108,16 @@ public class ZoteroItemsTask extends ZoteroTask {
         try {
             JSONArray tags = jobj.getJSONArray("tags");
             for ( int i = 0; i < tags.length(); i++){
-                record.add_tag(tags.getJSONObject(i).getString("tag"));
+                record.add_tag(new Tag(tags.getJSONObject(i).getString("tag"), record.get_zotero_key()) );
+            }
+        } catch (JSONException e) {
+            // pass - no tags
+        }
+
+        try {
+            JSONArray notes = jobj.getJSONArray("notes");
+            for ( int i = 0; i < notes.length(); i++){
+                //record.add_note(new Note(notes.getJSONObject(i).getString("tag"));
             }
         } catch (JSONException e) {
             // pass - no tags
@@ -161,7 +170,7 @@ public class ZoteroItemsTask extends ZoteroTask {
 
     protected Note processNote(JSONObject jobj) {
         // TODO - complete this
-        return new Note();
+        return new Note("","","");
     }
 
 

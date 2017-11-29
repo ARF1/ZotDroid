@@ -62,18 +62,23 @@ public class ZoteroDownload {
 
             try {
                 String basic_auth = getB64Auth(username,password);
-                urlConnection = (HttpsURLConnection) url.openConnection();
-                urlConnection.setRequestProperty("Authorization", basic_auth);
-                urlConnection.connect();
 
-                try {
-                    String line = urlConnection.getContent().toString();
-                } catch (IOException e) {
-                    InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
-                    e.printStackTrace();
-                    result = e.getMessage();
-                } finally {
-                    urlConnection.disconnect();
+                if (url.getProtocol().contentEquals("https") ) {
+                    urlConnection = (HttpsURLConnection) url.openConnection();
+                    urlConnection.setRequestProperty("Authorization", basic_auth);
+                    urlConnection.connect();
+
+                    try {
+                        String line = urlConnection.getContent().toString();
+                    } catch (IOException e) {
+                        InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
+                        e.printStackTrace();
+                        result = e.getMessage();
+                    } finally {
+                        urlConnection.disconnect();
+                    }
+                } else {
+                    result = "Connection must be HTTPS";
                 }
 
             } catch (IOException e) {

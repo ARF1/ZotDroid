@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
 import android.widget.SearchView;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -34,6 +35,8 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import org.w3c.dom.Text;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,7 +47,9 @@ import uk.co.section9.zotdroid.auth.ZoteroBroker;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
 import uk.co.section9.zotdroid.data.zotero.Author;
 import uk.co.section9.zotdroid.data.zotero.Collection;
+import uk.co.section9.zotdroid.data.zotero.Note;
 import uk.co.section9.zotdroid.data.zotero.Record;
+import uk.co.section9.zotdroid.data.zotero.Tag;
 import uk.co.section9.zotdroid.ops.ZotDroidSyncOps;
 import uk.co.section9.zotdroid.ops.ZotDroidUserOps;
 import uk.co.section9.zotdroid.task.ZotDroidSyncCaller;
@@ -64,6 +69,7 @@ public class MainActivity extends AppCompatActivity
     private Dialog                  _loading_dialog;
     private Dialog                  _download_dialog;
     private Dialog                  _init_dialog;
+    private Dialog                  _tag_dialog;
     private ZotDroidUserOps         _zotdroid_user_ops;
     private ZotDroidSyncOps         _zotdroid_sync_ops;
     private ZotDroidListAdapter     _main_list_adapter;
@@ -161,28 +167,12 @@ public class MainActivity extends AppCompatActivity
         _main_list_view = (XListView) findViewById(R.id.listViewMain);
         _main_list_view.setPullLoadEnable(true);
         _handler = new Handler();
-        /*_main_list_view.setOnScrollListener(new AbsListView.OnScrollListener() {
-
-            public void onScrollStateChanged(AbsListView view, int scrollState) {}
-
-            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
-                if(firstVisibleItem+visibleItemCount == totalItemCount && totalItemCount!=0) {
-                    if (_zotdroid_user_ops.hasMoreResults()) {
-                        Toast.makeText(getApplicationContext(), "Loading more items", Toast.LENGTH_SHORT).show();
-                        _zotdroid_user_ops.getMoreResults(Constants.PAGINATION_SIZE);
-                        runOnUiThread(run_layout);
-                        _main_list_view.setSelection(_main_list_adapter.getGroupCount() - 1);
-                    }
-                }
-            }
-        });*/
-
         _main_list_view.setXListViewListener(this);
 
         // Pass this activity - ZoteroBroker will look for credentials
         ZoteroBroker.passCreds(this,this);
         Util.getDownloadDirectory(this); // Naughty, but we create the dir here too!
-        _init_dialog = launchInitDialog();
+        launchInitDialog();
 
         // Start initialisation in a separate thread for now.
         Runnable run = new Runnable() {
@@ -256,6 +246,35 @@ public class MainActivity extends AppCompatActivity
                 String tt = record.get_title();
                 _main_list_map.put(new Integer(_main_list_items.size()), record);
                 _main_list_items.add(tt);
+
+                // TODO - this is also in the redraw method - duplicating :/
+                // We add metadata first, followed by attachments (TODO - Add a divider?)
+                ArrayList<String> tl = new ArrayList<String>();
+                tl.add("Title: " + record.get_title());
+
+                for (Author author : record.get_authors()) {
+                    tl.add("Author: " + author.get_name());
+                }
+
+                tl.add("Date Added: " + record.get_date_added());
+                tl.add("Date Modified: " + record.get_date_modified());
+                String tags = "Tags:";
+
+                for (Tag t : record.get_tags()) {
+                    tags = tags + " " + t.get_name();
+                }
+
+                tl.add(tags);
+
+                for (Note n : record.get_notes()) {
+                    tl.add("Note: " +  n.get_note().subSequence(0,10) + "...");
+                }
+
+                for (Attachment attachment : record.get_attachments()) {
+                    tl.add("Attachment:" + attachment.get_file_name());
+                }
+
+                _main_list_sub_items.put(tt, tl);
             }
             idx +=1;
         }
@@ -276,28 +295,9 @@ public class MainActivity extends AppCompatActivity
         String font_size = "medium";
         font_size = settings.getString("settings_font_size",font_size);
 
-        _main_list_adapter = new ZotDroidListAdapter(this,this,_main_list_items, _main_list_sub_items,font_size);
+        _main_list_adapter = new ZotDroidListAdapter(this,this, _main_list_items, _main_list_sub_items,font_size);
         _main_list_view.setAdapter(_main_list_adapter);
-
-        for (Record record : mem._records ) {
-            String tt = record.get_title();
-            _main_list_map.put(new Integer(_main_list_items.size()), record);
-            _main_list_items.add(tt);
-
-            // We add metadata first, followed by attachments (TODO - Add a divider?)
-            ArrayList<String> tl = new ArrayList<String>();
-            tl.add("Title: " + record.get_title());
-            for (Author author : record.get_authors()) {
-                tl.add("Author: " + author.get_name());
-            }
-            tl.add("Date Added: " + record.get_date_added());
-            tl.add("Date Modified: " + record.get_date_modified());
-
-            for (Attachment attachment : record.get_attachments()) {
-                tl.add("Attachment:" + attachment.get_file_name());
-            }
-            _main_list_sub_items.put(tt, tl);
-        }
+        expandRecordList();
 
         // What happens when we click on a subitem
         _main_list_view.setOnChildClickListener(new ExpandableListView.OnChildClickListener() {
@@ -319,10 +319,15 @@ public class MainActivity extends AppCompatActivity
                 if (tv.contains("Attachment")) {
                     record = _main_list_map.get(new Integer((groupPosition)));
                     if (record != null) {
-                        _download_dialog = launchDownloadDialog();
+                        launchDownloadDialog();
                         _zotdroid_user_ops.startAttachmentDownload(record, childPosition - idx);
                     }
+                } else if (tv.contains("Tags")) {
+                    launchTagDialog(groupPosition);
+                } else if (tv.contains("Note")) {
+                    // TODO note launch!
                 }
+
                 return true;
             }
         });
@@ -348,7 +353,6 @@ public class MainActivity extends AppCompatActivity
         int dialogWidth = (int)(displayMetrics.widthPixels * 0.85);
         int dialogHeight = (int)(displayMetrics.heightPixels * 0.85);
         dialog.getWindow().setLayout(dialogWidth, dialogHeight);
-
         Button cancelButton = (Button) dialog.findViewById(R.id.buttonCancel);
 
         cancelButton.setOnClickListener(new View.OnClickListener() {
@@ -365,6 +369,7 @@ public class MainActivity extends AppCompatActivity
 
     private Dialog launchInitDialog() {
         final Dialog dialog = new Dialog(this);
+        _init_dialog = dialog;
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.fragment_init);
         dialog.setCanceledOnTouchOutside(false);
@@ -374,6 +379,57 @@ public class MainActivity extends AppCompatActivity
         int dialogWidth = (int)(displayMetrics.widthPixels * 0.85);
         int dialogHeight = (int)(displayMetrics.heightPixels * 0.85);
         dialog.getWindow().setLayout(dialogWidth, dialogHeight);
+        dialog.show();
+        return dialog;
+    }
+
+    protected Dialog launchTagDialog(int record_index){
+        final Dialog dialog = new Dialog(this);
+        _tag_dialog = dialog;
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.fragment_tags);
+        dialog.setCanceledOnTouchOutside(true);
+        DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
+        int dialogWidth = (int)(displayMetrics.widthPixels * 0.75);
+        int dialogHeight = (int)(displayMetrics.heightPixels * 0.75);
+        dialog.getWindow().setLayout(dialogWidth, dialogHeight);
+
+        final Record r = _main_list_map.get(record_index);
+
+        Button qb = (Button) dialog.findViewById(R.id.fragment_tags_quit);
+        qb.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                _tag_dialog.dismiss();
+            }
+        });
+
+        LinearLayout ll = (LinearLayout) dialog.findViewById(R.id.fragment_tags_list);
+
+        for (Tag t : r.get_tags()){
+            final Tag tag = t;
+            LinearLayout lt = new LinearLayout(this);
+            lt.setOrientation(LinearLayout.HORIZONTAL);
+            lt.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT));
+            TextView tf = new TextView(this);
+            tf.setText(tag.get_name());
+            tf.setMinimumWidth((int)(dialogWidth * 0.65));
+            lt.addView(tf);
+            // Button for removal of tags
+            Button bf = new Button(this);
+            bf.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+            bf.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    r.remove_tag(tag);
+                }
+            });
+            bf.setText("-");
+            lt.addView(bf);
+            lt.setVisibility(View.VISIBLE);
+            ll.addView(lt,0);
+        }
+
         dialog.show();
         return dialog;
     }
@@ -416,11 +472,11 @@ public class MainActivity extends AppCompatActivity
 
     private Dialog launchDownloadDialog() {
         final Dialog dialog = new Dialog(this);
+        _download_dialog = dialog;
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.fragment_downloading);
         dialog.setCanceledOnTouchOutside(false);
         dialog.setCancelable(true);
-
         DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
         int dialogWidth = (int)(displayMetrics.widthPixels * 0.85);
         int dialogHeight = (int)(displayMetrics.heightPixels * 0.85);
@@ -497,26 +553,6 @@ public class MainActivity extends AppCompatActivity
             finishActivity(ZOTERO_LOGIN_REQUEST);
         }
     }
-
-  /*  @Override
-    public void onBackPressed() {
-        DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
-        }
-    }*/
-
-    /*@Override
-    public void onResume(){
-        super.onResume();
-
-        // If we are now authed, lets sync
-        //if (ZoteroBroker.isAuthed()){
-        //    sync();
-        //}
-    }*/
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

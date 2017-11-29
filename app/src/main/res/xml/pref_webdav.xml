@@ -24,4 +24,5 @@
         android:key="settings_webdav_address"
         android:autoText="false"
         android:selectable="true" />
+
 </PreferenceScreen>

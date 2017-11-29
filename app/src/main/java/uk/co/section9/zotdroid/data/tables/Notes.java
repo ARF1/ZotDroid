@@ -24,7 +24,7 @@ public class Notes extends BaseData {
     }
 
     public void createTable(SQLiteDatabase db) {
-        String CREATE_TABLE_RECORDS = "CREATE TABLE \"" + TABLE_NAME + "\" (\"record_key\" VARCHAR, \"note\" TEXT, \"zotero_key\" VARCHAR)";
+        String CREATE_TABLE_RECORDS = "CREATE TABLE \"" + TABLE_NAME + "\" (\"record_key\" VARCHAR, \"note\" TEXT, \"version\" VARCHAR, \"zotero_key\" VARCHAR)";
         db.execSQL(CREATE_TABLE_RECORDS);
     }
 
@@ -37,6 +37,7 @@ public class Notes extends BaseData {
         values.put("record_key", note.get_record_key());
         values.put("note", note.get_note());
         values.put("zotero_key", note.get_zotero_key());
+        values.put("version", note.get_version());
         return values;
     }
 
@@ -60,9 +61,34 @@ public class Notes extends BaseData {
     public Note getNoteFromValues(ContentValues values) {
         Note note = new Note((String) values.get("zotero_key"),
                 (String) values.get("record_key"),
-                (String) values.get("note")
+                (String) values.get("note"),
+                (String) values.get("version")
                 );
         return note;
+    }
+
+    public Boolean noteExists(Note n, SQLiteDatabase db) {
+        return exists(get_table_name(),n.get_zotero_key(),db);
+    }
+
+    public Boolean noteExists(String key, SQLiteDatabase db) {
+        return exists(get_table_name(), key, db);
+    }
+
+    public Note getNoteByKey(String key, SQLiteDatabase db){
+        if (noteExists(key, db)) {
+            return getNoteFromValues(getSingle(db, key));
+        }
+        return null;
+    }
+
+
+    public void updateNote(Note note, SQLiteDatabase db) {
+        db.execSQL("UPDATE " + get_table_name() +
+                " SET record_key =\"" +  note.get_record_key() + "\", " +
+                "note =\"" + note.get_note() + "\", " +
+                "version =\"" + note.get_version() + "\", " +
+                "WHERE zotero_key=\"" + note.get_zotero_key() + "\";");
     }
 
     /**

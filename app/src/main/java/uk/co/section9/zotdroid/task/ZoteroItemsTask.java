@@ -170,7 +170,11 @@ public class ZoteroItemsTask extends ZoteroTask {
 
     protected Note processNote(JSONObject jobj) {
         // TODO - complete this
-        return new Note("","","");
+        try {
+            return new Note(jobj.getString("key"), jobj.getString("parentItem"), jobj.getString("note"), jobj.getString("version"));
+        } catch (JSONException e){
+        }
+        return new Note("","","","0000"); // TODO - some better error handling
     }
 
 
@@ -254,15 +258,15 @@ public class ZoteroItemsTask extends ZoteroTask {
 
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    callback.onItemCompletion(false, "", 0, total, null, null,"0000");
+                    callback.onItemCompletion(false, "", 0, total, null, null, null, "0000");
                     return;
                 }
             }
 
             if (_reset_mode) {
-                callback.onItemCompletion(true, "", startItem + jArray.length(), total, records, attachments, version);
+                callback.onItemCompletion(true, "", startItem + jArray.length(), total, records, attachments, notes, version);
             } else {
-                callback.onItemCompletion(true, "", records, attachments, version);
+                callback.onItemCompletion(true, "", records, attachments, notes, version);
             }
 
         } catch (JSONException e) {

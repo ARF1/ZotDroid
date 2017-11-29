@@ -228,6 +228,8 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public boolean recordExists(Record r) { return _recordsTable.recordExists(r,_db);}
     public boolean collectionExists(Collection c) { return _collectionsTable.collectionExists(c,_db); }
     public boolean attachmentExists(Attachment a) { return _attachmentsTable.attachmentExists(a,_db); }
+    public boolean noteExists(Note n) { return _notesTable.noteExists(n,_db); }
+
 
     // Update methods
     public void updateCollection(Collection collection) {
@@ -237,9 +239,9 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         _recordsTable.updateRecord(record,_db);
     }
 
-    public void updateAttachment(Attachment attachment) {
-        _attachmentsTable.updateAttachment(attachment,_db);
-    }
+    public void updateAttachment(Attachment attachment) { _attachmentsTable.updateAttachment(attachment,_db); }
+
+    public void updateNote(Note note){ _notesTable.updateNote(note,_db);}
 
     public Collection getCollection(String key) {
         return _collectionsTable.getCollection(key,_db);
@@ -253,6 +255,10 @@ public class ZotDroidDB extends SQLiteOpenHelper {
 
     public Attachment getAttachment(String key) {
         return _attachmentsTable.getAttachmentByKey(key,_db);
+    }
+
+    public Note getNote(String key) {
+        return _notesTable.getNoteByKey(key,_db);
     }
 
     public  Vector<Attachment> getAttachmentsForRecord(Record record) {
@@ -336,6 +342,11 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         return tc;
     }
 
+    public Vector<Note> getNotesForRecord (Record r){
+        Vector<Note> tci = _notesTable.getNotesForRecord(r,_db);
+        return tci;
+    }
+
     public Vector<Record> searchRecords (Collection collection, String searchterm, int end){
         Vector<Record> records = new Vector<Record>();
         _cache.last_num_results = 0;
@@ -413,6 +424,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public int getNumAttachments() { return getNumRows(_attachmentsTable.get_table_name()); }
     public int getNumCollections () { return getNumRows(_collectionsTable.get_table_name()); }
     public int getNumCollectionsItems () { return getNumRows(_collectionsItemsTable.get_table_name()); }
+    public int getNumNotes () { return getNumRows(_notesTable.get_table_name()); }
 
     // Write methods
 
@@ -420,6 +432,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public void writeAttachment(Attachment attachment){ _attachmentsTable.writeAttachment(attachment,_db); }
     public void writeSummary(uk.co.section9.zotdroid.data.zotero.Summary summary){ _summaryTable.writeSummary(summary,_db); }
     public void writeCollectionItem(CollectionItem ic){ _collectionsItemsTable.writeCollection(ic,_db); }
+    public void writeNote(Note note){ _notesTable.writeNote(note,_db); }
 
     // Composite write methods
 

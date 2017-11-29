@@ -14,6 +14,7 @@ import uk.co.section9.zotdroid.data.ZotDroidDB;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
 import uk.co.section9.zotdroid.data.zotero.Collection;
 import uk.co.section9.zotdroid.data.zotero.CollectionItem;
+import uk.co.section9.zotdroid.data.zotero.Note;
 import uk.co.section9.zotdroid.data.zotero.Record;
 import uk.co.section9.zotdroid.task.ZoteroTask;
 
@@ -73,7 +74,7 @@ public class ZotDroidOps {
             }
         }
 
-        // Move on to any new attachments for our new records
+        // Move on to any new attachments & notes for our new records
         for (Record record : records) {
             Vector<Attachment> za = _zotdroid_db.getAttachmentsForRecord(record);
             for (Attachment attachment : za){
@@ -81,6 +82,15 @@ public class ZotDroidOps {
                 if (record != null) {
                     record.addAttachment(attachment);
                     _zotdroid_mem._attachments.add(attachment);
+                }
+            }
+
+            Vector<Note> zb = _zotdroid_db.getNotesForRecord(record);
+            for (Note note : zb){
+                record = _zotdroid_mem._key_to_record.get(note.get_record_key());
+                if (record != null) {
+                    record.add_note(note);
+                    _zotdroid_mem._notes.add(note);
                 }
             }
         }

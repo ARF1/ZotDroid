@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import uk.co.section9.zotdroid.data.zotero.Attachment;
 import uk.co.section9.zotdroid.data.zotero.Collection;
+import uk.co.section9.zotdroid.data.zotero.Note;
 import uk.co.section9.zotdroid.data.zotero.Record;
 
 /**
@@ -16,8 +17,8 @@ import uk.co.section9.zotdroid.data.zotero.Record;
 public interface ZoteroTaskCallback {
     // Called when items tasks finish (either one batch or all batches)
     void onItemsCompletion(boolean success, String message, String version);
-    void onItemCompletion(boolean success, String message, int new_index, int total, Vector<Record> records, Vector<Attachment> attachments, String version);
-    void onItemCompletion(boolean success, String message, Vector<Record> records, Vector<Attachment> attachments, String version);
+    void onItemCompletion(boolean success, String message, int new_index, int total, Vector<Record> records, Vector<Attachment> attachments, Vector<Note> notes, String version);
+    void onItemCompletion(boolean success, String message, Vector<Record> records, Vector<Attachment> attachments, Vector<Note> notes, String version);
 
     // Called when collections tasks finish (either one batch, or all batches)
     void onCollectionsCompletion(boolean success, String message, String version);

@@ -32,15 +32,25 @@ public class Note {
         this._note = _note;
     }
 
+    public String get_version() {
+        return _version;
+    }
+
+    public void set_version(String _version) {
+        this._version = _version;
+    }
+
     protected String    _record_key;
     protected String    _zotero_key;
     protected String    _note;
+    protected String    _version;
 
     public String toString() { return _note; }
 
-    public Note(String zotero_key, String record_key, String note) {
+    public Note(String zotero_key, String record_key, String note, String version) {
         _zotero_key = zotero_key;
         _record_key = record_key;
+        _version = version;
         _note = note;
     }
 }

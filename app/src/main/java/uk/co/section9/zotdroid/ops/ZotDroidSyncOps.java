@@ -2,6 +2,7 @@ package uk.co.section9.zotdroid.ops;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import java.util.Vector;
@@ -12,6 +13,7 @@ import uk.co.section9.zotdroid.data.ZotDroidDB;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
 import uk.co.section9.zotdroid.data.zotero.Collection;
 import uk.co.section9.zotdroid.data.zotero.CollectionItem;
+import uk.co.section9.zotdroid.data.zotero.Note;
 import uk.co.section9.zotdroid.data.zotero.Record;
 import uk.co.section9.zotdroid.data.zotero.Summary;
 import uk.co.section9.zotdroid.task.ZotDroidSyncCaller;
@@ -31,7 +33,7 @@ import uk.co.section9.zotdroid.task.ZoteroVerItemsTask;
 
 public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  {
 
-    private ZotDroidSyncCaller              _midnightcaller;
+    private ZotDroidSyncCaller      _midnightcaller;
 
     public static final String TAG = "ZotDroidSyncOps";
 
@@ -118,6 +120,25 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
     }
 
     /**
+     * Given an attachment, do we add it anew or alter an existing?
+     * @param note
+     */
+    private void checkUpdateNote(Note note) {
+        if (!_zotdroid_db.noteExists(note)) {
+            _zotdroid_db.writeNote(note);
+        } else {
+            // Check the version numbers if this exists and update as necessary
+            Note existing = _zotdroid_db.getNote(note.get_zotero_key());
+            if (existing != null) {
+                if (Integer.valueOf(existing.get_version()) < Integer.valueOf(note.get_version())) {
+                    // Perform an update :)
+                    _zotdroid_db.updateNote(note);
+                }
+            }
+        }
+    }
+
+    /**
      * Given a collection, do we add it anew or alter existing?
      * @param collection
      */
@@ -150,11 +171,12 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
 
     @Override
     public void onItemCompletion(boolean success, String message, Vector<Record> records,
-                                 Vector<Attachment> attachments, String version) {
+                                 Vector<Attachment> attachments, Vector<Note> notes, String version) {
         _midnightcaller.onSyncProgress( (float)(_num_current_tasks  - _current_tasks.size()) / (float)_num_current_tasks);
         if (success) {
             for (Record record : records){ checkUpdateRecord(record); }
             for (Attachment attachment : attachments){ checkUpdateAttachment(attachment); }
+            for (Note note : notes) {checkUpdateNote(note); }
             if (!nextTask()) { onItemsCompletion(true, message, version); }
         } else {
             stop();
@@ -171,11 +193,13 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
     @Override
     public void onItemCompletion(boolean success, String message, int new_index,
                                  int total, Vector<Record> records,
-                                 Vector<Attachment> attachments, String version) {
+                                 Vector<Attachment> attachments,
+                                 Vector<Note> notes, String version) {
         String status_message = "";
         if (success) {
             for (Record record : records){ checkUpdateRecord(record); }
             for (Attachment attachment : attachments) { checkUpdateAttachment(attachment);}
+            for (Note note : notes) { checkUpdateNote(note);}
 
             _midnightcaller.onSyncProgress((float)new_index / (float)total);
             // We fire off another task from here if success and we have more to go

@@ -6,6 +6,7 @@ import android.preference.PreferenceManager;
 import java.io.File;
 import java.util.Vector;
 import uk.co.section9.zotdroid.Constants;
+import uk.co.section9.zotdroid.R;
 import uk.co.section9.zotdroid.Util;
 import uk.co.section9.zotdroid.ZotDroidMem;
 import uk.co.section9.zotdroid.data.ZotDroidDB;
@@ -219,6 +220,16 @@ public class ZotDroidUserOps extends ZotDroidOps implements ZoteroWebDavCallback
 
     public void search(String term) {
         filter(_current_collection, term, Constants.PAGINATION_SIZE);
+    }
+
+    /**
+     * Update straight to the DB. Also set the record to be unsynced
+     * this essentially writes a change that needs to be reflected
+     * @param r
+     */
+    public void commitRecord(Record r) {
+        r.set_synced(false);
+        _zotdroid_db.updateRecord(r);
     }
 
 }

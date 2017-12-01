@@ -1,6 +1,10 @@
 package uk.co.section9.zotdroid.data.zotero;
 
 //import java.util.Date;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.Vector;
 
 /**
@@ -122,6 +126,14 @@ public class Record {
         }
     }
 
+    public boolean is_synced() {
+        return _synced;
+    }
+
+    public void set_synced(boolean _synced) {
+        this._synced = _synced;
+    }
+
     public String get_version() {
         return _version;
     }
@@ -153,6 +165,53 @@ public class Record {
         return false;
     }
 
+    public void copyFrom(Record r){
+        _content_type = r._content_type;
+        _title = r._title;
+        _item_type = r._item_type;
+        _date_added = r._date_added;
+        _date_modified = r._date_modified;
+        _version = r._version;
+        _zotero_key = r._zotero_key;
+        _parent = r._parent;
+        _attachments.clear();
+        _attachments.addAll(r._attachments);
+        _collections.clear();
+        _collections.addAll(r._collections);
+        _temp_collections.clear();
+        _temp_collections.addAll(r._temp_collections);
+        _tags.clear();
+        _tags.addAll(r._tags);
+        _authors.clear();
+        _authors.addAll(r._authors);
+        _synced = r._synced;
+    }
+
+    // TODO - this is used only for updates at the moment - so we ONLY return these
+    // things we are allowing the user to change on the server from this program
+    public JSONObject to_json() {
+        JSONObject jobj = new JSONObject();
+
+        try {
+            jobj.put("key",_zotero_key);
+            jobj.put("version", _version);
+            JSONArray jtags = new JSONArray();
+
+            for (Tag t : _tags){
+                JSONObject jtag = new JSONObject();
+                jtag.put("tag", t.get_name());
+                jtags.put(jtag);
+            }
+
+            jobj.put("tags",jtags);
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return jobj;
+    }
+
     // For now, we cover all the bases we need for all possible items
     // Eventually we might have separate record tables
 
@@ -174,6 +233,7 @@ public class Record {
     protected Vector<Tag>       _tags;
     protected Vector<Note>      _notes;
     protected Vector<Author>    _authors;
+    protected boolean           _synced;
 
     public String toString() {
         return _title + " - " + _authors.firstElement();
@@ -183,6 +243,8 @@ public class Record {
         _authors = new Vector<Author>();
         _date_added = "no date";
         _date_modified = "no date";
+        _synced = false;
+        _version = "0000";
         _attachments = new Vector<Attachment>();
         _collections = new Vector<Collection>();
         _temp_collections = new Vector<String>(); // TODO - temporarily holding collection keys might not be the best way

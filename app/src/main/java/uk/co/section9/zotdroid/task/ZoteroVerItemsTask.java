@@ -8,13 +8,14 @@ import org.json.JSONObject;
 import java.util.Iterator;
 import java.util.Vector;
 
+import uk.co.section9.zotdroid.Constants;
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
 
 /**
  * Created by oni on 27/07/2017.
  */
 
-public class ZoteroVerItemsTask extends ZoteroTask {
+public class ZoteroVerItemsTask extends ZoteroGet {
 
     private static final String TAG = "ZoteroVerItemsTask";
 
@@ -28,13 +29,11 @@ public class ZoteroVerItemsTask extends ZoteroTask {
 
     @Override
     public void startZoteroTask() {
-        execute(BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items?since=" + _since_version + "&format=versions");
+        execute(Constants.BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items?since=" + _since_version + "&format=versions");
     }
 
     protected void onPostExecute(String rstring) {
-
         Vector<String> item_keys = new Vector<String>();
-
         String version = "0000";
 
         try {
@@ -56,7 +55,6 @@ public class ZoteroVerItemsTask extends ZoteroTask {
             _callback.onItemVersion(false,"Error in parsing JSON Object.", null, version);
             return;
         }
-
     }
 }
 

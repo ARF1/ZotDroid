@@ -4,6 +4,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
+import java.util.StringTokenizer;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.data.zotero.Record;
@@ -25,7 +26,7 @@ public class Records extends BaseData {
     public void createTable(SQLiteDatabase db) {
         String CREATE_TABLE_RECORDS = "CREATE TABLE \"" +TABLE_NAME + "\" (\"date_added\" DATETIME DEFAULT CURRENT_TIMESTAMP, " +
                 "\"date_modified\" DATETIME DEFAULT CURRENT_TIMESTAMP, " + "\"content_type\" VARCHAR, \"item_type\" VARCHAR, \"title\" TEXT, " +
-                "\"zotero_key\" VARCHAR PRIMARY KEY, \"parent\" VARCHAR, \"version\" VARCHAR )";
+                "\"zotero_key\" VARCHAR PRIMARY KEY, \"parent\" VARCHAR, \"version\" VARCHAR, \"synced\" INTEGER)";
         db.execSQL(CREATE_TABLE_RECORDS);
     }
 
@@ -45,7 +46,7 @@ public class Records extends BaseData {
         values.put("title", record.get_title());
         values.put("parent",record.get_parent());
         values.put("version", record.get_version());
-
+        values.put("synced", (record.is_synced()) ? 1 : 0);
         return values;
     }
 
@@ -61,7 +62,7 @@ public class Records extends BaseData {
         record.set_zotero_key((String)values.get("zotero_key"));
         record.set_parent((String)values.get("parent"));
         record.set_version((String)values.get("version"));
-
+        record.set_synced(  Integer.valueOf((String)(values.get("synced"))) == 1 ? true : false);
         return record;
     }
 
@@ -79,7 +80,8 @@ public class Records extends BaseData {
                 "item_type=\"" + record.get_item_type() + "\", " +
                 "title=\"" + record.get_title() + "\", " +
                 "parent=\"" + record.get_parent() + "\", " +
-                "version=\"" + record.get_version() + "\" " +
+                "version=\"" + record.get_version() + "\", " +
+                "synced=\"" + ( record.is_synced() ? 1 : 0 ) + "\" " +
                 "WHERE zotero_key=\"" + record.get_zotero_key() + "\";");
     }
 

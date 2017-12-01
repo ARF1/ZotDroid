@@ -8,13 +8,14 @@ import org.json.JSONObject;
 import java.util.Iterator;
 import java.util.Vector;
 
+import uk.co.section9.zotdroid.Constants;
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
 
 /**
  * Created by oni on 27/07/2017.
  */
 
-public class ZoteroVerColTask extends ZoteroTask {
+public class ZoteroVerColTask extends ZoteroGet {
     private static final String TAG = "ZoteroVerColTask";
 
     ZoteroTaskCallback _callback;
@@ -28,7 +29,7 @@ public class ZoteroVerColTask extends ZoteroTask {
 
     @Override
     public void startZoteroTask() {
-        execute(BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/collections?since=" + _since_version + "&format=versions");
+        execute(Constants.BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/collections?since=" + _since_version + "&format=versions");
     }
 
     protected void onPostExecute(String rstring) {

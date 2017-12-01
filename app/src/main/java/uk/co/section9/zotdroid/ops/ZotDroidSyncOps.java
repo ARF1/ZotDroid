@@ -2,7 +2,6 @@ package uk.co.section9.zotdroid.ops;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import java.util.Vector;
@@ -20,6 +19,7 @@ import uk.co.section9.zotdroid.task.ZotDroidSyncCaller;
 import uk.co.section9.zotdroid.task.ZoteroCollectionsTask;
 import uk.co.section9.zotdroid.task.ZoteroDelTask;
 import uk.co.section9.zotdroid.task.ZoteroItemsTask;
+import uk.co.section9.zotdroid.task.ZoteroPushItemsTask;
 import uk.co.section9.zotdroid.task.ZoteroSyncColTask;
 import uk.co.section9.zotdroid.task.ZoteroSyncItemsTask;
 import uk.co.section9.zotdroid.task.ZoteroTask;
@@ -71,10 +71,22 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
         _current_tasks.add(zs);
         ZoteroSyncItemsTask zt = new ZoteroSyncItemsTask(this,s.get_last_version());
         _current_tasks.add(zt);
+
+        Vector<Record> changed_records = new Vector<>();
+        // TODO - Can only do a max of 50 here
+        for (Record r : _zotdroid_mem._records) {
+            if (!r.is_synced()) {
+                changed_records.add(r);
+            }
+        }
+        if (changed_records.size() > 0) {
+            ZoteroPushItemsTask zp = new ZoteroPushItemsTask(this, changed_records, s.get_last_version());
+            _current_tasks.add(zp);
+        }
+
         nextTask();
         return true;
     }
-
 
     /**
      * Given a record, do we add it anew or alter an existing?
@@ -90,11 +102,17 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
                 if (Integer.valueOf(existing.get_version()) < Integer.valueOf(record.get_version())) {
                     // Perform an update :)
                     _zotdroid_db.updateRecord(record);
+                    record.set_synced(true);
                     // At this point the record will likely have different collections too
                     // so we simply rebuild them from our new fresh record
                     _zotdroid_db.removeRecordFromCollections(record);
                     collectionItemsCreate(record);
-
+                }
+            }
+            // Also update in memory now that we have that too
+            for (Record r : _zotdroid_mem._records){
+                if (r.get_zotero_key().equals(record.get_zotero_key())){
+                    r.copyFrom(record);
                 }
             }
         }
@@ -219,8 +237,6 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
         }
     }
 
-
-
     /**
      * Called when the sync task completes and we have a stack of results to process.
      * Clears the list and adds what we get from the server
@@ -322,7 +338,6 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
             _midnightcaller.onSyncFinish(success, message);
         }
     }
-
 
     /**
      * We now have a list of things that have changed
@@ -499,6 +514,22 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
 
         populateFromDB(Constants.PAGINATION_SIZE);
         _midnightcaller.onSyncFinish(success,message);
+    }
+
+    /**
+     * Called when we have finished pushing changes to Zotero
+     * TODO - we could update or check the DB here as well - possible send back these records
+     * that succeeded and failed?
+     * @param success
+     * @param message
+     * @param version
+     */
+    @Override
+    public void onPushItemsCompletion(boolean success, String message, String version) {
+        if (success) {
+            if (!nextTask()) { onSyncCompletion(true,"Sync completed", version); }
+        }
+        onSyncCompletion(false,message, version);
     }
 
 }

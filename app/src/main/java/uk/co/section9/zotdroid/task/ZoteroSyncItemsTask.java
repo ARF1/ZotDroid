@@ -5,6 +5,7 @@ import android.util.Log;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import uk.co.section9.zotdroid.Constants;
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
 
 /**
@@ -12,7 +13,7 @@ import uk.co.section9.zotdroid.auth.ZoteroBroker;
  * This class looks at the versions and tries to work out what has changed in the meantime.
  */
 
-public class ZoteroSyncItemsTask extends ZoteroTask {
+public class ZoteroSyncItemsTask extends ZoteroGet {
 
     private static final String TAG = "ZoteroSyncColTask";
 
@@ -28,7 +29,7 @@ public class ZoteroSyncItemsTask extends ZoteroTask {
 
     @Override
     public void startZoteroTask() {
-        execute(BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items");
+        execute(Constants.BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items");
     }
 
     @Override

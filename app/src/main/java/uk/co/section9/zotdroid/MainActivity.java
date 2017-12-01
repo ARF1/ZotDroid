@@ -410,6 +410,7 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onClick(View view) {
                 r.remove_tag(tag);
+                _zotdroid_user_ops.commitRecord(r);
                 ll.removeView(lt);
                 // TODO - need to somehow refresh the main_list_view of tags as well
             }
@@ -440,11 +441,12 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onClick(View v) {
                 for (Tag tt : r.get_tags()){
-                    if (tt.get_name() == tv.getText().toString()){ return; }
+                    if (tt.get_name().equals(tv.getText().toString())){ return; }
                 }
 
                 Tag newtag = new Tag(tv.getText().toString(),r.get_zotero_key());
                 r.add_tag(newtag);
+                _zotdroid_user_ops.commitRecord(r); // Change to be synced
                 _addTag(newtag,r,ll, dialogWidth);
             }
         });

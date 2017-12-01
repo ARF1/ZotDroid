@@ -12,6 +12,7 @@ import org.json.JSONObject;
 
 import java.util.Vector;
 
+import uk.co.section9.zotdroid.Constants;
 import uk.co.section9.zotdroid.Util;
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
@@ -24,7 +25,7 @@ import uk.co.section9.zotdroid.data.zotero.Tag;
  * Extend our items task so that we can do some processing on the data returned
  * and then call the callback.
  */
-public class ZoteroItemsTask extends ZoteroTask {
+public class ZoteroItemsTask extends ZoteroGet {
 
     private static final String TAG = "ZoteroItemsTask";
 
@@ -39,13 +40,13 @@ public class ZoteroItemsTask extends ZoteroTask {
         this.startItem = start;
         this.itemLimit = limit;
         _reset_mode = true;
-        _url = BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items?start=" + Integer.toString(this.startItem);
+        _url = Constants.BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items?start=" + Integer.toString(this.startItem);
     }
 
     public ZoteroItemsTask(ZoteroTaskCallback callback, Vector<String> keys) {
         this.callback = callback;
         _reset_mode = false;
-        _url = BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items?itemKey=";
+        _url = Constants.BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items?itemKey=";
 
         for (String key: keys){
             _url += key + ",";
@@ -165,6 +166,7 @@ public class ZoteroItemsTask extends ZoteroTask {
         } catch (JSONException e) {
         }
 
+        record.set_synced(true);
         return record;
     }
 

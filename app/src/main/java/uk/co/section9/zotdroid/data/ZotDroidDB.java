@@ -235,8 +235,12 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public void updateCollection(Collection collection) {
         _collectionsTable.updateCollection(collection,_db);
     }
+
+    // Records also need to update authors and tags and all the rest
     public void updateRecord(Record record) {
         _recordsTable.updateRecord(record,_db);
+
+
     }
 
     public void updateAttachment(Attachment attachment) { _attachmentsTable.updateAttachment(attachment,_db); }

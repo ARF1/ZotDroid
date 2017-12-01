@@ -8,6 +8,7 @@ import org.json.JSONObject;
 
 import java.util.Vector;
 
+import uk.co.section9.zotdroid.Constants;
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
 import uk.co.section9.zotdroid.data.zotero.Collection;
 
@@ -15,7 +16,7 @@ import uk.co.section9.zotdroid.data.zotero.Collection;
  * Created by oni on 21/07/2017.
  */
 
-public class ZoteroCollectionsTask extends ZoteroTask {
+public class ZoteroCollectionsTask extends ZoteroGet {
 
     private static final String TAG = "ZoteroCollectionsTask";
 
@@ -31,13 +32,13 @@ public class ZoteroCollectionsTask extends ZoteroTask {
         this.startItem = start;
         this.itemLimit = limit;
         _reset_mode = true;
-        _url = BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/collections?start=" + Integer.toString(this.startItem);
+        _url = Constants.BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/collections?start=" + Integer.toString(this.startItem);
     }
 
     public ZoteroCollectionsTask(ZoteroTaskCallback callback, Vector<String> keys) {
         this.callback = callback;
         _reset_mode = false;
-        _url = BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/collections?collectionKey=";
+        _url = Constants.BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/collections?collectionKey=";
 
         for (String key: keys){
             _url += key + ",";

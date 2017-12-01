@@ -37,4 +37,7 @@ public interface ZoteroTaskCallback {
     // Called when all of the above sync tasks are done
     void onSyncCompletion(boolean success, String message, String version);
 
+    // Called when we have pushed back to the server
+    void onPushItemsCompletion(boolean success, String message, String version);
+
 }

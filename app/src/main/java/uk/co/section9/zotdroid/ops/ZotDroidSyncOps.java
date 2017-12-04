@@ -110,11 +110,12 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
                 }
             }
             // Also update in memory now that we have that too
-            for (Record r : _zotdroid_mem._records){
+            // Not sure we need to do this but perhaps
+            /*for (Record r : _zotdroid_mem._records){
                 if (r.get_zotero_key().equals(record.get_zotero_key())){
                     r.copyFrom(record);
                 }
-            }
+            }*/
         }
     }
 

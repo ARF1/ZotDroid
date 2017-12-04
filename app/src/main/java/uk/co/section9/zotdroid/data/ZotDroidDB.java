@@ -47,8 +47,6 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     private Tags                _tagsTable              = new Tags();
     private Notes               _notesTable             = new Notes();
 
-
-
     // A small class to hold caching info
     private class SearchCache {
         public String last_search;
@@ -237,10 +235,11 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     }
 
     // Records also need to update authors and tags and all the rest
+    // Easiest way to do this is to delete everything related and re-write (with the exception
+    // of attachments which are themselves separate
     public void updateRecord(Record record) {
-        _recordsTable.updateRecord(record,_db);
-
-
+        deleteRecord(record);
+        writeRecord(record);
     }
 
     public void updateAttachment(Attachment attachment) { _attachmentsTable.updateAttachment(attachment,_db); }
@@ -421,9 +420,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         return tt;
     }
 
-
     // Get number methods
-
     public int getNumRecords() { return getNumRows(_recordsTable.get_table_name()); }
     public int getNumAttachments() { return getNumRows(_attachmentsTable.get_table_name()); }
     public int getNumCollections () { return getNumRows(_collectionsTable.get_table_name()); }
@@ -431,7 +428,6 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public int getNumNotes () { return getNumRows(_notesTable.get_table_name()); }
 
     // Write methods
-
     public void writeCollection(Collection collection){ _collectionsTable.writeCollection(collection,_db); }
     public void writeAttachment(Attachment attachment){ _attachmentsTable.writeAttachment(attachment,_db); }
     public void writeSummary(uk.co.section9.zotdroid.data.zotero.Summary summary){ _summaryTable.writeSummary(summary,_db); }
@@ -439,7 +435,6 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public void writeNote(Note note){ _notesTable.writeNote(note,_db); }
 
     // Composite write methods
-
     public void writeRecord(Record record){
         _recordsTable.writeRecord(record,_db);
         for (Author a : record.get_authors()){
@@ -448,8 +443,10 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         for(Tag t : record.get_tags()){
             _tagsTable.writeTag(t,_db);
         }
+        for(Note n : record.get_notes()){
+            _notesTable.writeNote(n,_db);
+        }
     }
-
 
     // Delete methods
     public void deleteAttachment(Attachment a) {_attachmentsTable.deleteAttachment(a,_db);}
@@ -459,6 +456,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         _collectionsItemsTable.deleteByRecord(r,_db);
         _authorsTable.deleteByRecord(r,_db);
         _tagsTable.deleteByRecord(r,_db);
+        _notesTable.deleteByRecord(r,_db);
     }
     public void deleteCollection(Collection c) {
         _collectionsTable.deleteCollection(c,_db);
@@ -470,7 +468,5 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     }
 
     // Search methods
-
-
 
 }

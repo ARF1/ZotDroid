@@ -166,7 +166,7 @@ public class MainActivity extends AppCompatActivity
 
         // Setup the main list of items
         _main_list_view = (XListView) findViewById(R.id.listViewMain);
-        _main_list_view.setPullLoadEnable(true);
+        _main_list_view.setPullLoadEnable(false);
         _handler = new Handler();
         _main_list_view.setXListViewListener(this);
 
@@ -216,15 +216,17 @@ public class MainActivity extends AppCompatActivity
      */
     @Override
     public void onLoadMore() {
-        _handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                _zotdroid_user_ops.getMoreResults(Constants.PAGINATION_SIZE);
-                expandRecordList();
-                _main_list_adapter.notifyDataSetChanged();
-                listLoaded();
-            }
-        }, 2000);
+        if(_zotdroid_user_ops.hasMoreResults()) {
+            _handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    _zotdroid_user_ops.getMoreResults(Constants.PAGINATION_SIZE);
+                    expandRecordList();
+                    _main_list_adapter.notifyDataSetChanged();
+                    listLoaded();
+                }
+            }, 2000);
+        }
     }
 
     private void initialise(){
@@ -279,6 +281,12 @@ public class MainActivity extends AppCompatActivity
             }
             idx +=1;
         }
+
+        _main_list_view.setPullLoadEnable(false);
+        if (_zotdroid_user_ops.hasMoreResults()) {
+            _main_list_view.setPullLoadEnable(true);
+        }
+
     }
 
     /**

@@ -34,9 +34,6 @@ import android.widget.ExpandableListView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-
-import org.w3c.dom.Text;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;

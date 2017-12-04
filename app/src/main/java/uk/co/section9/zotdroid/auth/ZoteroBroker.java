@@ -2,8 +2,6 @@ package uk.co.section9.zotdroid.auth;
 
 /**
  * Created by oni on 24/03/2017.
- *
- *
  */
 
 import oauth.signpost.*;

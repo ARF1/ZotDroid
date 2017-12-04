@@ -39,5 +39,4 @@ public interface ZoteroTaskCallback {
 
     // Called when we have pushed back to the server
     void onPushItemsCompletion(boolean success, String message, String version);
-
 }

@@ -80,7 +80,6 @@ public class ZoteroDownload {
                 } else {
                     result = "Connection must be HTTPS";
                 }
-
             } catch (IOException e) {
                 result = e.getMessage();
             }
@@ -241,7 +240,6 @@ public class ZoteroDownload {
      * We also don't end up with zipped file for some reason.
      */
     private class ZoteroRequest extends AsyncTask<String,Integer,String> {
-
         ZoteroWebDavCallback callback;
         public ZoteroRequest(ZoteroWebDavCallback callback){
             this.callback = callback;

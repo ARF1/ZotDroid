@@ -1,17 +1,14 @@
 package uk.co.section9.zotdroid.task;
 
 import android.util.Log;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.Constants;
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
 import uk.co.section9.zotdroid.data.zotero.Record;
-import uk.co.section9.zotdroid.ops.ZotDroidOps;
 
 /**
  * Created by oni on 01/12/2017.
@@ -56,7 +53,7 @@ public class ZoteroPushItemsTask extends ZoteroPost  {
             // We need to check the changed results to make sure we re-sync back
             JSONObject successes = results.getJSONObject("success");
             JSONObject failures = results.getJSONObject("failed");
-            JSONObject unchanged = results.getJSONObject("unchanged");
+            //JSONObject unchanged = results.getJSONObject("unchanged");
 
             if (successes.length() > 0) {
                 for (int i = 0; i < successes.names().length(); i++) {
@@ -96,12 +93,10 @@ public class ZoteroPushItemsTask extends ZoteroPost  {
         _callback.onPushItemsCompletion(true, rstring, version);
     }
 
-
     public ZoteroPushItemsTask(ZoteroTaskCallback callback, Vector<Record> changed_records, String last_version_items) {
         _callback = callback;
         _changed_records = changed_records;
         _last_version_items = last_version_items;
     }
-
 
 }

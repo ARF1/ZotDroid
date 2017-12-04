@@ -3,8 +3,6 @@ package uk.co.section9.zotdroid.data.tables;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-
-import java.util.StringTokenizer;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.data.zotero.Record;

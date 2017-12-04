@@ -109,13 +109,6 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
                     collectionItemsCreate(record);
                 }
             }
-            // Also update in memory now that we have that too
-            // Not sure we need to do this but perhaps
-            /*for (Record r : _zotdroid_mem._records){
-                if (r.get_zotero_key().equals(record.get_zotero_key())){
-                    r.copyFrom(record);
-                }
-            }*/
         }
     }
 
@@ -346,12 +339,11 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
      * @param message
      */
     public void onItemVersion( boolean success, String message, Vector<String> items, String version){
-
-        Log.i(TAG, "Number of items that need updating: " + items.size());
+        //Log.i(TAG, "Number of items that need updating: " + items.size());
         if (items.size() > 0) {
             Vector<String> keys = new Vector<String>();
             for (int i = 0; i < items.size(); ++i) {
-                Log.i(TAG,"Update Key: " + items.get(i));
+                //Log.i(TAG,"Update Key: " + items.get(i));
                 keys.add(items.get(i));
                 if (keys.size() >= 20) {
                     ZoteroItemsTask zc = new ZoteroItemsTask(this, keys);
@@ -378,8 +370,7 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
      * @param message
      */
     public void onCollectionVersion(boolean success, String message, Vector<String> items, String version){
-
-        Log.i(TAG, "Number of collections that need updating: " + items.size());
+        //Log.i(TAG, "Number of collections that need updating: " + items.size());
         // We now need to stagger the download and processing of these
         if (items.size() > 0 ) {
             Vector<String> keys = new Vector<String>();
@@ -415,7 +406,6 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
     public void onSyncDelete(boolean success, String message, Vector<String> items, Vector<String> collections, String version) {
         //Log.i(TAG,"Collections to delete: " + collections.size());
         //Log.i(TAG,"Items to delete: " + items.size());
-
         for (String key : items){
             Record r = _zotdroid_db.getRecord(key);
             if (r != null){ _zotdroid_db.deleteRecord(r); }
@@ -439,7 +429,6 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
      */
     @Override
     public void onSyncCollectionsVersion( boolean success, String message, String version) {
-
         if (success) {
             //Log.i(TAG,"Current Sync Collections: " + getVersion() + " New Version: " + version);
             // Start with collections sync and then items afterwards

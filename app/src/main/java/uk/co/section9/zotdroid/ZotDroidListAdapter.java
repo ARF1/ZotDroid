@@ -5,17 +5,11 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
 import android.widget.BaseExpandableListAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
-
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Vector;
-
-import static android.widget.AbsListView.OnScrollListener.SCROLL_STATE_IDLE;
 
 /**
  * Created by oni on 14/07/2017.

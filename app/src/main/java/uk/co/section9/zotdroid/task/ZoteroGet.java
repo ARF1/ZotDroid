@@ -21,7 +21,6 @@ public abstract class ZoteroGet extends ZoteroTask {
     protected String doInBackground(String... address) {
         // [0] is address
         // after that, each pair is a set of headers we want to send
-
         String result = "";
         URL url = null;
         try {

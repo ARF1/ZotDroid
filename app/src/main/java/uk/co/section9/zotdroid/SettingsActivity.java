@@ -207,9 +207,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity  implements Zo
     }
 
     @Override
-    public void onWebDavProgess(boolean result, String message) {
-
-    }
+    public void onWebDavProgess(boolean result, String message) {}
 
     @Override
     public void onWebDavComplete(boolean result, String message) {

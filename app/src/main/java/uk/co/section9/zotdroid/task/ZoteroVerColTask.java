@@ -1,10 +1,8 @@
 package uk.co.section9.zotdroid.task;
 
 import android.util.Log;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.Iterator;
 import java.util.Vector;
 

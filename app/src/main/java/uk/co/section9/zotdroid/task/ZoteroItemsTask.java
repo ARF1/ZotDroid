@@ -9,11 +9,9 @@ import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.Constants;
-import uk.co.section9.zotdroid.Util;
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
 import uk.co.section9.zotdroid.data.zotero.Author;

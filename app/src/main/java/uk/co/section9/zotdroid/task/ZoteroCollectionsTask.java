@@ -5,7 +5,6 @@ import android.util.Log;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.Constants;
@@ -54,7 +53,6 @@ public class ZoteroCollectionsTask extends ZoteroGet {
      * If _reset_mode is not true then we are returning objects that need to be updated, not fresh objects
      */
     public void startZoteroTask() {
-
         if (_reset_mode) {
             execute(_url,
                     "start", Integer.toString(this.startItem),

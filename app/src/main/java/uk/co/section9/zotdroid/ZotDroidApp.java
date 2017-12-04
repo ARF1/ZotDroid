@@ -5,8 +5,6 @@ import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
 import uk.co.section9.zotdroid.data.ZotDroidDB;
-import uk.co.section9.zotdroid.ops.ZotDroidSyncOps;
-import uk.co.section9.zotdroid.ops.ZotDroidUserOps;
 
 /**
  * Created by oni on 15/11/2017.
@@ -20,7 +18,6 @@ public class ZotDroidApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-
         // Create the memory pool
         _zotdroid_mem = new ZotDroidMem();
 

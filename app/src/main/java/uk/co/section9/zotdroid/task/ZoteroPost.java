@@ -1,18 +1,14 @@
 package uk.co.section9.zotdroid.task;
 
-import android.os.AsyncTask;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.MalformedURLException;
 import java.net.URL;
-
 import javax.net.ssl.HttpsURLConnection;
 
 import uk.co.section9.zotdroid.auth.ZoteroBroker;

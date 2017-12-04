@@ -134,9 +134,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
      * Destroy all the saved data and recreate if needed.
      */
     public void reset() {
-        if (_db != null){
-            _db.close();
-        }
+        if (_db != null){ _db.close();}
 
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DROP TABLE IF EXISTS \"" + _summaryTable.get_table_name() + "\"");
@@ -174,7 +172,6 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     protected void clearTable(String tablename){
         _db.execSQL("DELETE from " + tablename);
     }
-
 
     // Get the number of rows in a table
     public int getNumRows(String tablename){
@@ -256,9 +253,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         return _collectionsTable.getCollectionFromValues(readRow(_collectionsTable.get_table_name(),rownum));
     }
 
-    public Attachment getAttachment(String key) {
-        return _attachmentsTable.getAttachmentByKey(key,_db);
-    }
+    public Attachment getAttachment(String key) { return _attachmentsTable.getAttachmentByKey(key,_db);}
 
     public Note getNote(String key) {
         return _notesTable.getNoteByKey(key,_db);
@@ -285,9 +280,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     public Record getRecord(String key) {
         if (_recordsTable.recordExists(key,_db)) {
             Record r = _recordsTable.getRecordFromValues(_recordsTable.getSingle(_db, key));
-            for (Author a : _authorsTable.getAuthorsForRecord(r, _db)) {
-                r.add_author(a);
-            }
+            for (Author a : _authorsTable.getAuthorsForRecord(r, _db)) { r.add_author(a); }
             return r;
         }
         return null;
@@ -296,17 +289,9 @@ public class ZotDroidDB extends SQLiteOpenHelper {
     // TODO - add protections around this one
     public Record getRecord(int rownumber) {
         Record r = _recordsTable.getRecordFromValues(readRow(_recordsTable.get_table_name(),rownumber));
-        for(Author a : _authorsTable.getAuthorsForRecord(r,_db)){
-            r.add_author(a);
-        }
-
-        for(Tag t : _tagsTable.getTagsForRecord(r,_db)){
-            r.add_tag(t);
-        }
-
-        for(Note n : _notesTable.getNotesForRecord(r,_db)){
-            r.add_note(n);
-        }
+        for(Author a : _authorsTable.getAuthorsForRecord(r,_db)){ r.add_author(a); }
+        for(Tag t : _tagsTable.getTagsForRecord(r,_db)){ r.add_tag(t);}
+        for(Note n : _notesTable.getNotesForRecord(r,_db)){ r.add_note(n);}
         return r;
     }
 

@@ -6,7 +6,6 @@ import android.preference.PreferenceManager;
 import java.io.File;
 import java.util.Vector;
 import uk.co.section9.zotdroid.Constants;
-import uk.co.section9.zotdroid.R;
 import uk.co.section9.zotdroid.Util;
 import uk.co.section9.zotdroid.ZotDroidMem;
 import uk.co.section9.zotdroid.data.ZotDroidDB;

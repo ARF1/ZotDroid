@@ -26,7 +26,7 @@
                 android:textSize="24sp" />
 
             <ProgressBar
-                android:id="@+id/progressBarDownload"
+                android:id="@+id/progressBarLoading"
                 style="?android:attr/progressBarStyleLarge"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -35,11 +35,11 @@
                 android:layout_marginTop="50dp" />
 
             <Button
-                android:id="@+id/buttonCancel"
+                android:id="@+id/buttonCancelLoading"
                 android:layout_width="306dp"
                 android:layout_height="wrap_content"
-                android:layout_alignStart="@+id/progressBarDownload"
-                android:layout_below="@+id/progressBarDownload"
+                android:layout_alignStart="@+id/progressBarInit"
+                android:layout_below="@+id/progressBarInit"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="30dp"
                 android:text="Cancel" />

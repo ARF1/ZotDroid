@@ -79,8 +79,15 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
                 changed_records.add(r);
             }
         }
-        if (changed_records.size() > 0) {
-            ZoteroPushItemsTask zp = new ZoteroPushItemsTask(this, changed_records, s.get_last_version());
+        // TODO - Can only do a max of 50 here
+        Vector<Note> changed_notes = new Vector<>();
+        for (Note n : _zotdroid_mem._notes) {
+            if (!n.is_synced()) {
+                changed_notes.add(n);
+            }
+        }
+        if (changed_records.size() > 0 || changed_notes.size() > 0) {
+            ZoteroPushItemsTask zp = new ZoteroPushItemsTask(this, changed_records, changed_notes, s.get_last_version());
             _current_tasks.add(zp);
         }
 
@@ -145,6 +152,7 @@ public class ZotDroidSyncOps extends ZotDroidOps implements ZoteroTaskCallback  
                 if (Integer.valueOf(existing.get_version()) < Integer.valueOf(note.get_version())) {
                     // Perform an update :)
                     _zotdroid_db.updateNote(note);
+                    note.set_synced(true);
                 }
             }
         }

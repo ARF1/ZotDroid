@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.text.Html;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.SearchView;
@@ -139,9 +140,13 @@ public class MainActivity extends AppCompatActivity
             @Override
             public boolean onQueryTextChange(String newText) {
                 // I put a check in here to reset if everything is blank
-                if (newText.isEmpty()){
-                    _zotdroid_user_ops.reset();
-                    runOnUiThread(run_layout);
+                // Also initialise needs to have completed - sometimes this fires off when
+                // it shouldn't
+                if (_zotdroid_user_ops != null) {
+                    if (newText.isEmpty()) {
+                        _zotdroid_user_ops.reset();
+                        runOnUiThread(run_layout);
+                    }
                 }
                 return false;
             }
@@ -205,7 +210,7 @@ public class MainActivity extends AppCompatActivity
     private void listLoaded() {
         _main_list_view.stopRefresh();
         _main_list_view.stopLoadMore();
-        _main_list_view.setRefreshTime("testtime");
+        _main_list_view.setRefreshTime("-");
     }
 
     /**
@@ -360,14 +365,14 @@ public class MainActivity extends AppCompatActivity
         dialog.setCanceledOnTouchOutside(false);
         dialog.setCancelable(true);
 
-        ProgressBar pb = (ProgressBar) dialog.findViewById(R.id.progressBarDownload);
+        ProgressBar pb = (ProgressBar) dialog.findViewById(R.id.progressBarLoading);
         pb.setVisibility(View.VISIBLE);
 
         DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
         int dialogWidth = (int)(displayMetrics.widthPixels * 0.85);
         int dialogHeight = (int)(displayMetrics.heightPixels * 0.85);
         dialog.getWindow().setLayout(dialogWidth, dialogHeight);
-        Button cancelButton = (Button) dialog.findViewById(R.id.buttonCancel);
+        Button cancelButton = (Button) dialog.findViewById(R.id.buttonCancelLoading);
 
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -387,7 +392,7 @@ public class MainActivity extends AppCompatActivity
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.fragment_init);
         dialog.setCanceledOnTouchOutside(false);
-        ProgressBar pb = (ProgressBar) dialog.findViewById(R.id.progressBarDownload);
+        ProgressBar pb = (ProgressBar) dialog.findViewById(R.id.progressBarInit);
         pb.setVisibility(View.VISIBLE);
         DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
         int dialogWidth = (int)(displayMetrics.widthPixels * 0.85);
@@ -479,16 +484,22 @@ public class MainActivity extends AppCompatActivity
         int dialogHeight = (int)(displayMetrics.heightPixels * 0.75);
         dialog.getWindow().setLayout(dialogWidth, dialogHeight);
         final Record r = _main_list_map.get(record_index);
-        Note n = r.get_notes().get(note_index);
+        final Note n = r.get_notes().get(note_index);
         Button qb = (Button) dialog.findViewById(R.id.fragment_notes_quit);
+        final TextView ll = (TextView) dialog.findViewById(R.id.fragment_notes_note);
         qb.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                // Write back the notes
+                n.set_note(ll.getText().toString());
+                _zotdroid_user_ops.commitNote(n);
+                // Later we will need to update this too.
+                //_zotdroid_user_ops.commitRecord(r); // Change to be synced
                 _note_dialog.dismiss();
             }
         });
-        TextView ll = (TextView) dialog.findViewById(R.id.fragment_notes_note);
-        ll.setText(n.get_note());
+
+        ll.setText(Html.fromHtml(n.get_note()));
         dialog.show();
         return dialog;
     }
@@ -751,47 +762,51 @@ public class MainActivity extends AppCompatActivity
         Log.i(TAG, status_message);
     }
 
-    public void onDownloadFinish(boolean success, String message, String filetype) {
+    public void onDownloadFinish(final boolean success, final String message, final String filetype) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ProgressBar pb = (ProgressBar) _download_dialog.findViewById(R.id.progressBarDownload);
+                pb.setVisibility(View.INVISIBLE);
 
-        if (!success) {
-            String status_message = "Error: " + message;
-            TextView messageView = (TextView) _download_dialog.findViewById(R.id.textViewDownloading);
-            messageView.setText(status_message);
-            Log.i(TAG, status_message);
-        } else {
+                if (!success) {
+                    String status_message = "Error: " + message;
+                    TextView messageView = (TextView) _download_dialog.findViewById(R.id.textViewDownloading);
+                    messageView.setText(status_message);
+                    Log.i(TAG, status_message);
+                } else {
 
-            Intent intent = new Intent();
-            File ff7 =  new File(message);
+                    Intent intent = new Intent();
+                    File ff7 = new File(message);
 
-            if (ff7.exists()){
-                intent.setAction(android.content.Intent.ACTION_VIEW);
-                Log.i(TAG, "Attempting to open " + message);
-                try {
-                    intent.setDataAndType(Uri.fromFile(ff7), filetype);
-                    intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    _download_dialog.dismiss();
-                    startActivity(intent);
-                    _download_dialog.dismiss();
-                } catch (Exception e){
-                    Log.d(TAG,"Error opening file");
-                    e.printStackTrace();
-                }
-                // Change the icon from grey to green
-                Runnable run = new Runnable() {
-                    public void run() {
+                    if (ff7.exists()) {
+                        intent.setAction(android.content.Intent.ACTION_VIEW);
+                        Log.i(TAG, "Attempting to open " + message);
+                        try {
+                            intent.setDataAndType(Uri.fromFile(ff7), filetype);
+                            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            _download_dialog.dismiss();
+                            startActivity(intent);
+                            _download_dialog.dismiss();
+                        } catch (Exception e) {
+                            Log.d(TAG, "Error opening file");
+                            e.printStackTrace();
+                        }
+
+                        _main_list_view.invalidate();
                         _main_list_view.invalidateViews();
                         _main_list_view.refreshDrawableState();
+
+                    } else {
+                        String status_message = "Error: " + message + " does not appear to exist.";
+                        TextView messageView = (TextView) _download_dialog.findViewById(R.id.textViewDownloading);
+                        messageView.setText(status_message);
+                        Log.i(TAG, status_message);
                     }
-                };
-                runOnUiThread(run);
-            } else {
-                String status_message = "Error: " + message  + " does not appear to exist.";
-                TextView messageView = (TextView) _download_dialog.findViewById(R.id.textViewDownloading);
-                messageView.setText(status_message);
-                Log.i(TAG, status_message);
+                }
             }
-        }
+        });
     }
 
     /**
@@ -807,10 +822,9 @@ public class MainActivity extends AppCompatActivity
         }
         TextView messageView = (TextView) _loading_dialog.findViewById(R.id.textViewLoading);
         messageView.setText(status_message);
-        Button button = (Button) _loading_dialog.findViewById(R.id.buttonCancel);
+        Button button = (Button) _loading_dialog.findViewById(R.id.buttonCancelLoading);
         button.setText("Dismiss");
-
-        ProgressBar pb = (ProgressBar) _loading_dialog.findViewById(R.id.progressBarDownload);
+        ProgressBar pb = (ProgressBar) _loading_dialog.findViewById(R.id.progressBarLoading);
         pb.setVisibility(View.INVISIBLE);
     }
 

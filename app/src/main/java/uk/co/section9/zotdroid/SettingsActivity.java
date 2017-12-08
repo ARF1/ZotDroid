@@ -6,7 +6,6 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
@@ -17,9 +16,7 @@ import android.support.v7.app.ActionBar;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatDialog;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
@@ -145,7 +142,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity  implements Zo
         dialog.setCanceledOnTouchOutside(false);
         dialog.setCancelable(true);
 
-        ProgressBar pb = (ProgressBar) dialog.findViewById(R.id.progressBarDownload);
+        ProgressBar pb = (ProgressBar) dialog.findViewById(R.id.progressBarLoading);
         pb.setVisibility(View.VISIBLE);
 
         DisplayMetrics displayMetrics = this.getResources().getDisplayMetrics();
@@ -153,13 +150,12 @@ public class SettingsActivity extends AppCompatPreferenceActivity  implements Zo
         int dialogHeight = (int)(displayMetrics.heightPixels * 0.85);
         dialog.getWindow().setLayout(dialogWidth, dialogHeight);
 
-        Button cancelButton = (Button) dialog.findViewById(R.id.buttonCancel);
+        Button cancelButton = (Button) dialog.findViewById(R.id.buttonCancelLoading);
 
         cancelButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //_zotdroid_sync_ops.stop();
-
                 dialog.dismiss();
             }
         });
@@ -217,10 +213,10 @@ public class SettingsActivity extends AppCompatPreferenceActivity  implements Zo
         }
         TextView messageView = (TextView) _webdav_dialog.findViewById(R.id.textViewLoading);
         messageView.setText(status_message);
-        Button button = (Button) _webdav_dialog.findViewById(R.id.buttonCancel);
+        Button button = (Button) _webdav_dialog.findViewById(R.id.buttonCancelLoading);
         button.setText("Dismiss");
 
-        ProgressBar pb = (ProgressBar) _webdav_dialog.findViewById(R.id.progressBarDownload);
+        ProgressBar pb = (ProgressBar) _webdav_dialog.findViewById(R.id.progressBarLoading);
         pb.setVisibility(View.INVISIBLE);
         _webdav_button.setClickable(true);
     }

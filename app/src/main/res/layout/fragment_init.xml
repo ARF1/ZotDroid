@@ -26,7 +26,7 @@
                 android:textSize="24sp" />
 
             <ProgressBar
-                android:id="@+id/progressBarDownload"
+                android:id="@+id/progressBarInit"
                 style="?android:attr/progressBarStyleLarge"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

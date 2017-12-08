@@ -13,7 +13,7 @@ Feedback is more than welcome, either here or via email *me@benjamin.computer*
 Current Version
 ---------------
 
-0.7
+0.81
 
 Building and Testing
 --------------------
@@ -36,6 +36,8 @@ Things that are done
 * Support for Zotero cloud storage
 * Storing the database on an SDCard
 * Option as to where to save attachments
+* Tag support
+* Modifying notes
 * Icons to show if an attachment is downloaded already (partial)
 * Multiple Author records
 
@@ -43,8 +45,6 @@ Things that are done
 Things still to do
 ------------------
 * More testing!
-* Tag support
-* Label support
 * Adding notes
 * Removing records
 * Removing collections

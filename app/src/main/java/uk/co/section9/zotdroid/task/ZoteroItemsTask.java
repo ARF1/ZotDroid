@@ -114,15 +114,6 @@ public class ZoteroItemsTask extends ZoteroGet {
         }
 
         try {
-            JSONArray notes = jobj.getJSONArray("notes");
-            for ( int i = 0; i < notes.length(); i++){
-                //record.add_note(new Note(notes.getJSONObject(i).getString("tag"));
-            }
-        } catch (JSONException e) {
-            // pass - no tags
-        }
-
-        try {
             JSONArray authors = jobj.getJSONArray("creators");
             for (int i =0; i < authors.length(); i++) {
                 JSONObject creator = authors.getJSONObject(i);

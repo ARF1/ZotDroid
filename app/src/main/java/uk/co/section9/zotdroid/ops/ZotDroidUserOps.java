@@ -11,6 +11,7 @@ import uk.co.section9.zotdroid.ZotDroidMem;
 import uk.co.section9.zotdroid.data.ZotDroidDB;
 import uk.co.section9.zotdroid.data.zotero.Attachment;
 import uk.co.section9.zotdroid.data.zotero.Collection;
+import uk.co.section9.zotdroid.data.zotero.Note;
 import uk.co.section9.zotdroid.data.zotero.Record;
 import uk.co.section9.zotdroid.task.ZotDroidWebDavCaller;
 import uk.co.section9.zotdroid.webdav.ZoteroDownload;
@@ -229,6 +230,16 @@ public class ZotDroidUserOps extends ZotDroidOps implements ZoteroWebDavCallback
     public void commitRecord(Record r) {
         r.set_synced(false);
         _zotdroid_db.updateRecord(r);
+    }
+
+    /**
+     * Update straight to the DB. Also set the record to be unsynced
+     * this essentially writes a change that needs to be reflected
+     * @param n
+     */
+    public void commitNote(Note n) {
+        n.set_synced(false);
+        _zotdroid_db.updateNote(n);
     }
 
 }

@@ -87,7 +87,7 @@ public class Notes extends BaseData {
         db.execSQL("UPDATE " + get_table_name() +
                 " SET record_key =\"" +  note.get_record_key() + "\", " +
                 "note =\"" + note.get_note() + "\", " +
-                "version =\"" + note.get_version() + "\", " +
+                "version =\"" + note.get_version() + "\" " +
                 "WHERE zotero_key=\"" + note.get_zotero_key() + "\";");
     }
 

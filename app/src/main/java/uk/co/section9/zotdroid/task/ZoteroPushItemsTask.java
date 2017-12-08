@@ -8,6 +8,7 @@ import java.util.Vector;
 
 import uk.co.section9.zotdroid.Constants;
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
+import uk.co.section9.zotdroid.data.zotero.Note;
 import uk.co.section9.zotdroid.data.zotero.Record;
 
 /**
@@ -21,17 +22,17 @@ public class ZoteroPushItemsTask extends ZoteroPost  {
 
     ZoteroTaskCallback _callback;
     // TODO - are these actually separate?
-    String _last_version_items;
-    Vector<Record> _changed_records;
+    String          _last_version_items;
+    Vector<Record>  _changed_records;
+    Vector<Note>    _changed_notes;
     String _url = "";
 
     public void startZoteroTask(){
         _url = Constants.BASE_URL + "/users/" + ZoteroBroker.USER_ID + "/items";
         JSONArray jtop = new JSONArray();
 
-        for (Record r : _changed_records) {
-            jtop.put(r.to_json());
-        }
+        for (Record r : _changed_records) { jtop.put(r.to_json()); }
+        for (Note n : _changed_notes) { jtop.put(n.to_json()); }
 
         execute(_url, jtop.toString());
     }
@@ -93,9 +94,10 @@ public class ZoteroPushItemsTask extends ZoteroPost  {
         _callback.onPushItemsCompletion(true, rstring, version);
     }
 
-    public ZoteroPushItemsTask(ZoteroTaskCallback callback, Vector<Record> changed_records, String last_version_items) {
+    public ZoteroPushItemsTask(ZoteroTaskCallback callback, Vector<Record> changed_records, Vector<Note> changed_notes, String last_version_items) {
         _callback = callback;
         _changed_records = changed_records;
+        _changed_notes = changed_notes;
         _last_version_items = last_version_items;
     }
 

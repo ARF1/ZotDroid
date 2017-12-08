@@ -1,5 +1,9 @@
 package uk.co.section9.zotdroid.data.zotero;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.Date;
 
 /**
@@ -40,10 +44,15 @@ public class Note {
         this._version = _version;
     }
 
+    public boolean is_synced() { return _synced; }
+
+    public void set_synced(boolean _synced) { this._synced = _synced;}
+
     protected String    _record_key;
     protected String    _zotero_key;
     protected String    _note;
     protected String    _version;
+    protected boolean   _synced;
 
     public String toString() { return _note; }
 
@@ -52,5 +61,21 @@ public class Note {
         _record_key = record_key;
         _version = version;
         _note = note;
+        _synced = true;
     }
+
+    public JSONObject to_json() {
+        JSONObject jobj = new JSONObject();
+        try {
+            jobj.put("key",_zotero_key);
+            jobj.put("version", _version);
+            jobj.put("itemType", "note");
+            jobj.put("parentItem", _record_key);
+            jobj.put("note",_note);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return jobj;
+    }
+
 }

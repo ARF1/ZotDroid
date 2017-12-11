@@ -12,6 +12,14 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
 
     }
+    signingConfigs {
+        release {
+            storeFile file("../dummy-release-key.jks")
+            storePassword "password"
+            keyAlias "my-alias"
+            keyPassword "password"
+        }
+    }
     buildTypes {
         release {
             minifyEnabled true
@@ -19,6 +27,7 @@ android {
             debuggable false
             jniDebuggable false
             renderscriptDebuggable false
+            signingConfig signingConfigs.release
         }
     }
     productFlavors {

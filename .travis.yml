@@ -1,10 +1,10 @@
 language: android
 
-android:
-  components:
-    # required for running the emulator needed for the instrumented tests
-    - android-19
-    - sys-img-armeabi-v7a-android-19
+# android:
+#   components:
+#     # required for running the emulator needed for the instrumented tests
+#     - android-19
+#     - sys-img-armeabi-v7a-android-19
 
 install:
   # accept google sdk licenses: required for running `gradle`
@@ -15,9 +15,31 @@ before_script:
   - cd app/libs/signpost
   - mvn package
   - cd ../../..
-  # launch the android emulator and wait for it to finish booting
-  - echo no | android create avd --force -n test -t android-19 --abi armeabi-v7a
-  - emulator -avd test -no-audio -no-window &
-  - android-wait-for-emulator
-  - adb shell input keyevent 82 &
-  
+  # # launch the android emulator and wait for it to finish booting
+  # - echo no | android create avd --force -n test -t android-19 --abi armeabi-v7a
+  # - emulator -avd test -no-audio -no-window &
+  # - android-wait-for-emulator
+  # - adb shell input keyevent 82 &
+  # generate keys for self-signing
+  - keytool -genkey -noprompt -alias my-alias -dname "CN=ARF, OU=Unkown, O=Unknown, L=Unknown, S=Unknown, C=Unknown" -keystore dummy-release-key.jks -storepass password -keypass password
+
+script:
+  - gradle assembleDebug
+
+before_deploy:
+  - cd app/build/outputs/apk/
+  - mv app-debug.apk ZotDroid-experimental.apk
+  - git tag --force -a experimental-test-build -m 'This is an automated build of the most current code state for testing purposes. It is inteded for use only by the developer. Please use the latest numbered release on your device instead.'
+  # this would also need: git push --force --tags
+  # probably not a good idea...
+
+deploy:
+  provider: releases
+  prerelease: true
+  overwrite: true
+  api_key:
+    secure: W5E+9NSjWxoVRXXkp/vQU904zwa/djJlxJO5YFgqrGGLNMy5TzXdw0VnqAB5XdFOWT86CK74VG0UpdcTWeMWnDYv+3Nf9iKxHtVQuOhfzV2FIm3gsLgJU0zmT8+wzf8aqZ+EpTHMGI/1BDvA2iLr0LNYIPoTvSiwfCPquILa5sj/3MSijdIsjxVMfKVfj+z0QdRvoowSMLCRZFC9Huh8wsFLh6oFgkeDj7Kdwh0YGpuUD16xYYctvHjabZsLPBVR5zOmf/aUn/79IZCgPWG18dKJOV0XALeiX+gZZlvpRVvynl+OgYHdovjbjBqmiTP638J6qmFvfkKpXUfu7+qPuJtzeoq9rTHzh5HLSK8LC1Ny+9kdTmBJroHAD8XbKS862OmF0/vQYRbH2hVaOWzJ2Myay09N2ENmlLSG6Ued2Qc9y52tSel8G8jYi/Izqsl1ofqjeafOqRYm1+Bspa1aCwkmK7XAQPYSNloy1LeNXxLzwzueyJU5GAV1XARl+pnBXefLpJehuL7UHVars/JKRVYI6ZpTsvaWbN2CYAWmYErKyGVAJ6Rlhtmo/ja72S/rpqCx86BKn3qSX3oHet2tsiJlCtpmuFTbaCBauNlJhf3pqJXP+gx3X7CHm9FcIUDLzsOyC74vt9tRlJ1lJNiNG9JVu3eRI6DpMpfmGfZ3bFg=
+  file: ZotDroid-experimental.apk
+  skip_cleanup: true
+  on:
+    all_branches: true

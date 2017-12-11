@@ -25,15 +25,23 @@ android {
     }
 }
 
+repositories {
+    flatDir {
+        dirs 'libs/signpost/signpost-jetty6/target', 
+             'libs/signpost/signpost-commonshttp3/target/', 
+             'libs/signpost/signpost-core/target'
+    }
+}
+
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     testCompile 'junit:junit:4.12'
-    compile files('libs/signpost-commonshttp3-1.2.1.1.jar')
-    compile files('libs/signpost-core-1.2.1.2.jar')
-    compile files('libs/signpost-jetty6-1.2.1.2.jar')
+    compile group: 'oauth.signpost', name: 'signpost-commonshttp3', version: '1.2.1.1+'
+    compile group: 'oauth.signpost', name: 'signpost-core', version: '1.2.1.2+'
+    compile group: 'oauth.signpost', name: 'signpost-jetty6', version: '1.2.1.2+'
     compile 'com.android.support:appcompat-v7:26.+'
     compile 'com.android.support:design:26.+'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'

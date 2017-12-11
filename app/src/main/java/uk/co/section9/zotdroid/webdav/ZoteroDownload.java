@@ -130,7 +130,8 @@ public class ZoteroDownload {
             String filename = address[3];
             String file_path = address[4];
             String final_filename = address[5];
-
+            String storage_mod_time = address[6];
+            
             try {
                 url = new URL(address[0] + "/" + filename);
             } catch (MalformedURLException e) {
@@ -182,7 +183,17 @@ public class ZoteroDownload {
                     zin.close();
                     buf.close();
 
-                    // return the full path so we can open it
+                    // set the last modified time from the database to known if a file was modified locally
+                    // note: mtime in Zotero is in seconds not ms as usual
+                    Log.i(TAG, "file.exists(): " + String.valueOf(file.exists()));
+                    Log.i(TAG, "file.canWrite(): " + String.valueOf(file.canWrite()));
+                    Log.i(TAG, "get_storage_mod_time() * 1000: " + storage_mod_time);
+                    Log.i(TAG, "file.lastModified(): " + String.valueOf(file.lastModified()));
+                    boolean ret = file.setLastModified(Long.parseLong(storage_mod_time));
+                    Log.i(TAG, "ret: " + String.valueOf(ret));
+                    Log.i(TAG, "file.lastModified(): " + String.valueOf(file.lastModified()));
+
+                        // return the full path so we can open it
                     result = file.getAbsolutePath();
                     callback.onWebDavComplete(true, result);
 
@@ -394,10 +405,10 @@ public class ZoteroDownload {
      * @param server_address
      * @param callback
      */
-    public void downloadAttachment(String filename, String file_path, String final_filename, String username, String password, String server_address, ZoteroWebDavCallback callback){
+    public void downloadAttachment(String filename, String file_path, String final_filename, String username, String password, String server_address, String storage_mod_time, ZoteroWebDavCallback callback){
         // Get the credentials we need for this
         _request = new WebDavRequest(callback);
-        _request.execute(server_address, username, password, filename, file_path, final_filename);
+        _request.execute(server_address, username, password, filename, file_path, final_filename, storage_mod_time);
     }
 
     /**

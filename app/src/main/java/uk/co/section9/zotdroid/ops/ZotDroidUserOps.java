@@ -17,6 +17,8 @@ import uk.co.section9.zotdroid.task.ZotDroidWebDavCaller;
 import uk.co.section9.zotdroid.webdav.ZoteroDownload;
 import uk.co.section9.zotdroid.webdav.ZoteroWebDavCallback;
 
+import android.util.Log;
+
 /**
  * Created by oni on 14/07/2017.
  *
@@ -125,7 +127,7 @@ public class ZotDroidUserOps extends ZotDroidOps implements ZoteroWebDavCallback
                     String password = settings.getString("settings_webdav_password", "password");
                     String server_address = settings.getString("settings_webdav_address", "address");
                     _zotero_download.downloadAttachment(za.get_zotero_key() + ".zip", Util.getDownloadDirectory(_activity),
-                            za.get_storage_path(), username, password, server_address, new OpsDav(za));
+                            za.get_storage_path(), username, password, server_address, String.valueOf(za.get_storage_mod_time() * 1000), new OpsDav(za));
                 } else {
                     _zotero_download.downloadAttachmentZotero(Util.getDownloadDirectory(_activity),
                             za.get_storage_path(), za.get_zotero_key(), new OpsDav(za));

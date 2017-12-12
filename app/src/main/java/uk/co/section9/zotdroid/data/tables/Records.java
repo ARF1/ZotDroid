@@ -3,6 +3,7 @@ package uk.co.section9.zotdroid.data.tables;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.DatabaseUtils;
 import java.util.Vector;
 
 import uk.co.section9.zotdroid.data.zotero.Record;
@@ -122,9 +123,7 @@ public class Records extends BaseData {
         Cursor cursor = db.rawQuery("select * from \"" + get_table_name() + "\" limit " + end + ";", null);
         while (cursor.moveToNext()){
             values.clear();
-            for (int i = 0; i < cursor.getColumnCount(); i++){
-                values.put(cursor.getColumnName(i),cursor.getString(i));
-            }
+            DatabaseUtils.cursorRowToContentValues(cursor, values);
             records.add(getRecordFromValues(values));
         }
 

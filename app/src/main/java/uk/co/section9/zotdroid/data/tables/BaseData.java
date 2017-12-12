@@ -3,6 +3,7 @@ package uk.co.section9.zotdroid.data.tables;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.DatabaseUtils;
 
 /**
  * Created by oni on 11/07/2017.
@@ -17,10 +18,7 @@ public class BaseData {
         Cursor cursor = db.rawQuery(q, null);
         cursor.moveToFirst();
         ContentValues values = new ContentValues();
-
-        for (int i = 0; i < cursor.getColumnCount(); i++){
-            values.put(cursor.getColumnName(i),cursor.getString(i));
-        }
+        DatabaseUtils.cursorRowToContentValues(cursor, values);
         return values;
     }
 

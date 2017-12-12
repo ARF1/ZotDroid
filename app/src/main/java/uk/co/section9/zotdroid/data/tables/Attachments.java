@@ -3,6 +3,7 @@ package uk.co.section9.zotdroid.data.tables;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.DatabaseUtils;
 
 import java.util.Vector;
 
@@ -88,7 +89,7 @@ public class Attachments extends BaseData {
     }
 
     /**
-     * Grrab all the attachments for a particular record - useful in pagination.
+     * Grab all the attachments for a particular record - useful in pagination.
      * @param db
      * @param parent_key
      * @return
@@ -100,9 +101,7 @@ public class Attachments extends BaseData {
 
         while (cursor.moveToNext()) {
             values.clear();
-            for (int i = 0; i < cursor.getColumnCount(); i++) {
-                values.put(cursor.getColumnName(i), cursor.getString(i));
-            }
+            DatabaseUtils.cursorRowToContentValues(cursor, values);
             zv.add(getAttachmentFromValues(values));
         }
         cursor.close();

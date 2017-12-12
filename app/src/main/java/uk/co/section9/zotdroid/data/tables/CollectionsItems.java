@@ -7,6 +7,7 @@ package uk.co.section9.zotdroid.data.tables;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.DatabaseUtils;
 
 import java.util.Vector;
 
@@ -73,9 +74,7 @@ public class CollectionsItems extends BaseData {
         Cursor cursor = db.rawQuery("select * from \"" + get_table_name() + "\" where collection=\"" + key + "\";", null);
         while (cursor.moveToNext()){
             values.clear();
-            for (int i = 0; i < cursor.getColumnCount(); i++){
-                values.put(cursor.getColumnName(i),cursor.getString(i));
-            }
+            DatabaseUtils.cursorRowToContentValues(cursor, values);
             citems.add(getCollectionItemFromValues(values));
         }
 
@@ -90,9 +89,7 @@ public class CollectionsItems extends BaseData {
         Cursor cursor = db.rawQuery("select * from \"" + get_table_name() + "\" where item=\"" + r.get_zotero_key() + "\";", null);
         while (cursor.moveToNext()){
             values.clear();
-            for (int i = 0; i < cursor.getColumnCount(); i++){
-                values.put(cursor.getColumnName(i),cursor.getString(i));
-            }
+            DatabaseUtils.cursorRowToContentValues(cursor, values);
             citems.add(getCollectionItemFromValues(values));
         }
 

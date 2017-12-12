@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.DatabaseUtils;
 
 import java.util.Date;
 import java.util.Vector;
@@ -210,11 +211,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         Cursor cursor = _db.rawQuery("select * from \"" + tablename + "\";", null);
         cursor.moveToPosition(rownumber);
-
-        for (int i = 0; i < cursor.getColumnCount(); i++){
-            values.put(cursor.getColumnName(i),cursor.getString(i));
-        }
-
+        DatabaseUtils.cursorRowToContentValues(cursor, values);
         cursor.close();
         return values;
     }
@@ -345,9 +342,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
             Cursor cursor = _db.rawQuery("select * from \"" + _recordsTable.get_table_name() + "\";", null);
             while (cursor.moveToNext()){
                 values.clear();
-                for (int i = 0; i < cursor.getColumnCount(); i++){
-                    values.put(cursor.getColumnName(i),cursor.getString(i));
-                }
+                DatabaseUtils.cursorRowToContentValues(cursor, values);
 
                 Record r = _recordsTable.getRecordFromValues(values);
                 if (r.search(searchterm) || searchterm.isEmpty()) {
@@ -386,9 +381,7 @@ public class ZotDroidDB extends SQLiteOpenHelper {
             Cursor cursor = _db.rawQuery("select count(*) from \"" + _recordsTable.get_table_name() + "\";", null);
             while (cursor.moveToNext() ){
                 values.clear();
-                for (int i = 0; i < cursor.getColumnCount(); i++){
-                    values.put(cursor.getColumnName(i),cursor.getString(i));
-                }
+                DatabaseUtils.cursorRowToContentValues(cursor, values);
                 Record r = _recordsTable.getRecordFromValues(values);
                 if (r.search(searchterm) || searchterm.isEmpty()) { tt+=1; };
             }

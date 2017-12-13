@@ -276,7 +276,7 @@ public class MainActivity extends AppCompatActivity
                 }
 
                 for (Attachment attachment : record.get_attachments()) {
-                    tl.add("Attachment:" + attachment.get_file_name());
+                    tl.add("Attachment " + attachment.get_zotero_key() + ':' + attachment.get_file_name());
                 }
 
                 _main_list_sub_items.put(tt, tl);

@@ -118,9 +118,9 @@ public class Util {
      * @param activity
      * @return
      */
-    public static boolean fileExists(String filename, Activity activity){
+    public static boolean fileExists(String zotero_key, String filename, Activity activity){
         String dir = getDownloadDirectory(activity);
-        return  path_exists(dir + filename);
+        return  path_exists(dir + '/' + zotero_key + '/' + filename);
     }
 
 }

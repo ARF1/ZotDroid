@@ -112,8 +112,9 @@ public class ZotDroidListAdapter extends BaseExpandableListAdapter {
         textViewItem.setText(text);
 
         if (text.contains("Attachment")) {
+            String zotero_key = text.substring(Constants.ZOTERO_KEY_POS, Constants.ZOTERO_KEY_POS + Constants.ZOTERO_KEY_LEN);
             String filename = text.substring(Constants.ATTACHMENT_FILENAME_POS);
-            if (Util.fileExists(filename, _activity)) {
+            if (Util.fileExists(zotero_key, filename, _activity)) {
                 ImageView imgViewChild = (ImageView) convertView.findViewById(R.id.main_list_icon_download);
                 String uri = "@android:drawable/presence_online";
                 int imageResource = _context.getResources().getIdentifier(uri, null, _context.getPackageName());

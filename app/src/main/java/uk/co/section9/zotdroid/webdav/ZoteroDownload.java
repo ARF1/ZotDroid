@@ -142,6 +142,7 @@ public class ZoteroDownload {
             Log.i(TAG, filename + ", " + url.toString());
             String basic_auth = getB64Auth(username, password);
 
+            File file = new File(file_path, final_filename);
             HttpsURLConnection urlConnection = null;
             try {
                 urlConnection = (HttpsURLConnection) url.openConnection();
@@ -149,8 +150,8 @@ public class ZoteroDownload {
 
                 try {
                     // https://stackoverflow.com/questions/7887078/android-saving-file-to-external-storage#7887114
-                    File file = new File(file_path + final_filename);
                     if (file.exists()) file.delete();
+                    file.getParentFile().mkdirs();
 
                     // Now do the reading but save to a file
                     byte[] bytes = new byte[1024]; // read in 1024 chunks
@@ -182,31 +183,36 @@ public class ZoteroDownload {
                     buf.close();
 
                     // return the full path so we can open it
-                    result = file_path + final_filename;
+                    result = file.getAbsolutePath();
                     callback.onWebDavComplete(true, result);
 
                 } catch (IOException e) {
-                    result = cleanup(e, file_path + final_filename);
+                    result = cleanup(e, file);
                 }catch (Exception e) {
-                    result = cleanup(e, file_path + final_filename);
+                    result = cleanup(e, file);
                 } finally {
                     urlConnection.disconnect();
                 }
             } catch ( FileNotFoundException e){
-                result = cleanup(e,file_path + final_filename);
+                result = cleanup(e, file);
             } catch (IOException e) {
-                result = cleanup(e,file_path + final_filename);
+                result = cleanup(e, file);
             }
 
             return result;
         }
 
-        private String cleanup(Exception e, String path){
+        private String cleanup(Exception e, File file){
             //InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
             // TODO - do something with the error streams at some point
             e.printStackTrace();
-            File file = new File(path);
             if (file.exists()) { file.delete(); }
+
+            File fileDir = file.getParentFile();
+            if (fileDir.exists() && fileDir.listFiles().length == 0) {
+                // Directory with Zotero key is empty and no longer needed
+                fileDir.delete();
+            }
             return "WebDav download error. " + e.getMessage();
         }
 
@@ -259,6 +265,7 @@ public class ZoteroDownload {
                 return result;
             }
 
+            File file = new File(file_path, final_filename);
             HttpsURLConnection urlConnection = null;
             try {
 
@@ -268,8 +275,8 @@ public class ZoteroDownload {
 
                 try {
                     // https://stackoverflow.com/questions/7887078/android-saving-file-to-external-storage#7887114
-                    File file = new File(file_path + final_filename);
                     if (file.exists()) file.delete();
+                    file.getParentFile().mkdirs();
 
                     // Now do the reading but save to a file
                     byte[] bytes = new byte[1024]; // read in 1024 chunks
@@ -297,31 +304,36 @@ public class ZoteroDownload {
                     buf.close();
 
                     // return the full path so we can open it
-                    result = file_path + final_filename;
+                    result = file.getAbsolutePath();
                     callback.onWebDavComplete(true, result);
 
                 } catch (IOException e) {
-                    result = cleanup(e,file_path + final_filename);
+                    result = cleanup(e, file);
                 } catch (Exception e) {
-                    result = cleanup(e,file_path + final_filename);
+                    result = cleanup(e, file);
                 } finally {
                     urlConnection.disconnect();
                 }
             } catch ( FileNotFoundException e){
-                result = cleanup(e,file_path + final_filename);
+                result = cleanup(e, file);
             } catch (IOException e) {
-                result = cleanup(e,file_path + final_filename);
+                result = cleanup(e, file);
             }
 
             return result;
         }
 
-        private String cleanup(Exception e, String path){
+        private String cleanup(Exception e, File file){
             //InputStream in = new BufferedInputStream(urlConnection.getErrorStream());
             // TODO - do something with the error streams at some point
             e.printStackTrace();
-            File file = new File(path);
             if (file.exists()) { file.delete(); }
+
+            File fileDir = file.getParentFile();
+            if (fileDir.exists() && fileDir.listFiles().length == 0) {
+                // Directory with Zotero key is empty and no longer needed
+                fileDir.delete();
+            }
             return "Attachment download error. " + e.getMessage();
         }
 

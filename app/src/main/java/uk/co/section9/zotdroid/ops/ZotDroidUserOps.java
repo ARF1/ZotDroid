@@ -112,11 +112,11 @@ public class ZotDroidUserOps extends ZotDroidOps implements ZoteroWebDavCallback
             SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(_activity);
 
             // If the file already exists, then we dont need to download, just return
-            File file = new File(Util.getDownloadDirectory(_activity) + za.get_file_name());
+            File file = new File(Util.getDownloadDirectory(_activity) + za.get_storage_path());
 
             if (file.exists()) {
                 OpsDav op = new OpsDav(za);
-                op.onWebDavComplete(true, Util.getDownloadDirectory(_activity) + za.get_file_name());
+                op.onWebDavComplete(true, Util.getDownloadDirectory(_activity) + za.get_storage_path());
             } else {
                 Boolean usewebdav = settings.getBoolean("settings_use_webdav_storage", false);
 
@@ -125,10 +125,10 @@ public class ZotDroidUserOps extends ZotDroidOps implements ZoteroWebDavCallback
                     String password = settings.getString("settings_webdav_password", "password");
                     String server_address = settings.getString("settings_webdav_address", "address");
                     _zotero_download.downloadAttachment(za.get_zotero_key() + ".zip", Util.getDownloadDirectory(_activity),
-                            za.get_file_name(), username, password, server_address, new OpsDav(za));
+                            za.get_storage_path(), username, password, server_address, new OpsDav(za));
                 } else {
                     _zotero_download.downloadAttachmentZotero(Util.getDownloadDirectory(_activity),
-                            za.get_file_name(), za.get_zotero_key(), new OpsDav(za));
+                            za.get_storage_path(), za.get_zotero_key(), new OpsDav(za));
                 }
             }
         }

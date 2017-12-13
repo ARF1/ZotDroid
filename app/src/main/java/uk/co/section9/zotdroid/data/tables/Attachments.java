@@ -26,7 +26,7 @@ public class Attachments extends BaseData {
 
     public void createTable(SQLiteDatabase db) {
         String CREATE_TABLE_ATTACHMENTS = "CREATE TABLE \"" +TABLE_NAME + "\" ( \"file_type\" VARCHAR, \"file_name\" TEXT," +
-                "\"zotero_key\" VARCHAR PRIMARY KEY, \"parent\" VARCHAR, \"version\" VARCHAR)";
+                "\"zotero_key\" VARCHAR PRIMARY KEY, \"parent\" VARCHAR, \"version\" VARCHAR, \"storageModTime\" INT, \"storageHash\" TEXT)";
         db.execSQL(CREATE_TABLE_ATTACHMENTS);
     }
 
@@ -41,16 +41,20 @@ public class Attachments extends BaseData {
         values.put("file_name", attachment.get_file_name());
         values.put("parent", attachment.get_parent());
         values.put("version", attachment.get_version());
+        values.put("storageModTime", attachment.get_storage_mod_time());
+        values.put("storageHash", attachment.get_storage_hash());
         return values;
     }
 
     public static Attachment getAttachmentFromValues(ContentValues values) {
         Attachment attachment = new Attachment();
-        attachment.set_zotero_key((String)values.get("zotero_key"));
-        attachment.set_file_type((String)values.get("file_type"));
-        attachment.set_file_name((String)values.get("file_name"));
-        attachment.set_parent((String)values.get("parent"));
-        attachment.set_version((String)values.get("version"));
+        attachment.set_zotero_key(values.getAsString("zotero_key"));
+        attachment.set_file_type(values.getAsString("file_type"));
+        attachment.set_file_name(values.getAsString("file_name"));
+        attachment.set_parent(values.getAsString("parent"));
+        attachment.set_version(values.getAsString("version"));
+        attachment.set_storage_mod_time(values.getAsLong("storageModTime"));
+        attachment.set_storage_hash(values.getAsString("storageHash"));
         return attachment;
     }
 
@@ -66,12 +70,8 @@ public class Attachments extends BaseData {
     }
 
     public void updateAttachment(Attachment attachment, SQLiteDatabase db) {
-        db.execSQL("UPDATE " + get_table_name() +
-                " SET file_type=\"" + attachment.get_file_type() + "\", " +
-                "file_name=\"" + attachment.get_file_name() + "\", " +
-                "parent=\"" + attachment.get_parent() + "\", " +
-                "version=\"" + attachment.get_version() + "\" " +
-                "WHERE zotero_key=\"" + attachment.get_zotero_key() + "\";");
+        ContentValues values = getValues(attachment);
+        db.update(get_table_name(), values, "zotero_key=?", new String[] {attachment.get_zotero_key()});
     }
 
     public Boolean attachmentExists(Attachment a, SQLiteDatabase db){
@@ -79,7 +79,7 @@ public class Attachments extends BaseData {
     }
 
     public void deleteAttachment(Attachment a, SQLiteDatabase db){
-        db.execSQL("DELETE FROM " + get_table_name() + " WHERE zotero_key=\"" + a.get_zotero_key() + "\";");
+        db.delete(get_table_name(), "zotero_key=?", new String[] {a.get_zotero_key()});
     }
 
     public void writeAttachment (Attachment attachment, SQLiteDatabase db) {

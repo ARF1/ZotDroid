@@ -13,7 +13,9 @@ public class Attachment {
     protected String _parent;
     protected String _file_type;
     protected String _version;
-
+    protected Long _storage_mod_time;
+    protected String _storage_hash;
+    
     public String get_version() { return _version; }
 
     public void set_version(String version) { _version = version; }
@@ -24,6 +26,10 @@ public class Attachment {
 
     public void set_file_name(String _file_name) {
         this._file_name = _file_name;
+    }
+
+    public String get_storage_path() {
+        return _zotero_key + '/' + _file_name;
     }
 
     public String get_zotero_key() {
@@ -50,12 +56,30 @@ public class Attachment {
         this._file_type = _file_type;
     }
 
+    public Long get_storage_mod_time() {
+        return _storage_mod_time;
+    }
+    
+    public void set_storage_mod_time(Long storage_mod_time) {
+        this._storage_mod_time = storage_mod_time;
+    }
+    
+    public String get_storage_hash() {
+        return _storage_hash;
+    }
+    
+    public void set_storage_hash(String storage_hash) {
+        this._storage_hash = storage_hash;
+    }
+    
     public void copy(Attachment att){
         _file_name = att._file_name;
         _zotero_key = att._zotero_key;
         _parent = att._parent;
         _file_type = att._file_type;
         _version = att._version;
+        _storage_mod_time = att._storage_mod_time;
+        _storage_hash = att._storage_hash;
     }
 
     public Attachment() {

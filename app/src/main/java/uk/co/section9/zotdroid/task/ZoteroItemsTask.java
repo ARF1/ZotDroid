@@ -201,6 +201,16 @@ public class ZoteroItemsTask extends ZoteroGet {
         } catch (JSONException e){
         }
 
+        try {
+            attachment.set_storage_mod_time(jobj.getLong("mtime"));
+        } catch (JSONException e){
+        }
+
+        try {
+            attachment.set_storage_hash(jobj.getString("md5"));
+        } catch (JSONException e){
+        }
+
         return attachment;
     }
 

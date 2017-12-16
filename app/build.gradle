@@ -47,6 +47,7 @@ dependencies {
     compile group: 'oauth.signpost', name: 'signpost-commonshttp3', version: '1.2.1.1+'
     compile group: 'oauth.signpost', name: 'signpost-core', version: '1.2.1.2+'
     compile group: 'oauth.signpost', name: 'signpost-jetty6', version: '1.2.1.2+'
+    compile group: 'org.pdfparse', name: 'pdfparse-lib', version: '1.0+'
     compile 'com.android.support:appcompat-v7:26.+'
     compile 'com.android.support:design:26.+'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'

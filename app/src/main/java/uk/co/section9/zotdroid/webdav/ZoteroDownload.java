@@ -183,15 +183,9 @@ public class ZoteroDownload {
                     zin.close();
                     buf.close();
 
-                    // set the last modified time from the database to known if a file was modified locally
-                    // note: mtime in Zotero is in seconds not ms as usual
-                    Log.i(TAG, "file.exists(): " + String.valueOf(file.exists()));
-                    Log.i(TAG, "file.canWrite(): " + String.valueOf(file.canWrite()));
-                    Log.i(TAG, "get_storage_mod_time() * 1000: " + storage_mod_time);
-                    Log.i(TAG, "file.lastModified(): " + String.valueOf(file.lastModified()));
-                    boolean ret = file.setLastModified(Long.parseLong(storage_mod_time));
-                    Log.i(TAG, "ret: " + String.valueOf(ret));
-                    Log.i(TAG, "file.lastModified(): " + String.valueOf(file.lastModified()));
+                    // set the last modified time from the database
+                    // note: this does not work on many android systems
+                    boolean sucessfully_set = file.setLastModified(Long.parseLong(storage_mod_time));
 
                         // return the full path so we can open it
                     result = file.getAbsolutePath();
@@ -267,7 +261,8 @@ public class ZoteroDownload {
             URL url = null;
             String file_path = address[1];
             String final_filename = address[2];
-
+            String storage_mod_time = address[3];
+            
             try {
                 url = new URL(address[0]);
             } catch (MalformedURLException e) {
@@ -314,7 +309,11 @@ public class ZoteroDownload {
                     out.close();
                     buf.close();
 
-                    // return the full path so we can open it
+                    // set the last modified time from the database
+                    // note: this does not work on many android systems
+                    boolean sucessfully_set = file.setLastModified(Long.parseLong(storage_mod_time));
+                    
+                                        // return the full path so we can open it
                     result = file.getAbsolutePath();
                     callback.onWebDavComplete(true, result);
 

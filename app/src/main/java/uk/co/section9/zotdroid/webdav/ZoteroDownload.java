@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.zip.ZipInputStream;
 import javax.net.ssl.HttpsURLConnection;
 
-import org.pdfparse.PDFDocument;
+import org.pdfparse.model.PDFDocument;
 
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
 

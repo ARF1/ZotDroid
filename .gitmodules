@@ -1,3 +1,7 @@
 [submodule "app/libs/signpost"]
 	path = app/libs/signpost
 	url = https://github.com/mttkay/signpost.git
+
+[submodule "app/libs/pdfparse"]
+	path = app/libs/pdfparse
+	url = https://github.com/agolinko/pdfparse.git

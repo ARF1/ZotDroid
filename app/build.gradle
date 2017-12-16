@@ -35,11 +35,7 @@ android {
 }
 
 repositories {
-    flatDir {
-        dirs 'libs/signpost/signpost-jetty6/target', 
-             'libs/signpost/signpost-commonshttp3/target/', 
-             'libs/signpost/signpost-core/target'
-    }
+    flatDir {dirs 'libs'}
 }
 
 dependencies {

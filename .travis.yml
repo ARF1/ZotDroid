@@ -11,10 +11,20 @@ install:
   - echo yes | sdkmanager "extras;m2repository;com;android;support;constraint;constraint-layout;1.0.2"
 
 before_script:
+  - shopt -s globstar
   # build `signpost` library
   - cd app/libs/signpost
   - mvn package
   - cd ../../..
+  - cp app/libs/signpost/**/*.jar app/libs/
+  # build `pdfparse` library
+  - cd app/libs/pdfparse
+  - mvn package -Dmaven.test.skip=true
+  - cd ../../..
+  - cp app/libs/pdfparse/**/*.jar app/libs/
+  # clean test jars and list the available library files
+  - rm -f app/libs/*-tests.jar
+  - ls app/libs/
   # # launch the android emulator and wait for it to finish booting
   # - echo no | android create avd --force -n test -t android-19 --abi armeabi-v7a
   # - emulator -avd test -no-audio -no-window &

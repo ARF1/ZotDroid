@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.zip.ZipInputStream;
 import javax.net.ssl.HttpsURLConnection;
 
+import org.pdfparse.PDFDocument;
+
 import uk.co.section9.zotdroid.auth.ZoteroBroker;
 
 /**
@@ -187,7 +189,14 @@ public class ZoteroDownload {
                     // note: this does not work on many android systems
                     boolean sucessfully_set = file.setLastModified(Long.parseLong(storage_mod_time));
 
-                        // return the full path so we can open it
+                    PDFDocument document = new PDFDocument(file);
+                    Log.i(TAG, "storage_mod_time: " + storage_mod_time);
+                    Log.i(TAG, "Modification date: " + document.getDocumentInfo().getCreationDate());
+                    Log.i(TAG, "Modification date2: " + String.valueOf(document.getDocumentInfo().getCreationDate().getTimeInMillis()));
+                    Log.i(TAG, "Modification date2: " + String.valueOf(document.getDocumentInfo().getCreationDate().getTimeInMillis()/1000));
+                    document.close();
+
+                    // return the full path so we can open it
                     result = file.getAbsolutePath();
                     callback.onWebDavComplete(true, result);
 
@@ -417,11 +426,11 @@ public class ZoteroDownload {
      * @param itemkey
      * @param callback
      */
-    public void downloadAttachmentZotero(String file_path, String final_filename, String itemkey, ZoteroWebDavCallback callback){
+    public void downloadAttachmentZotero(String file_path, String final_filename, String itemkey, String storage_mod_time, ZoteroWebDavCallback callback){
         // Get the credentials we need for this
         _request = new ZoteroRequest(callback);
         String server_address = API_BASE + "/users/" + ZoteroBroker.USER_ID + "/items/" + itemkey + "/file";
-        _request.execute(server_address, file_path, final_filename);
+        _request.execute(server_address, file_path, final_filename, storage_mod_time);
     }
 
 }
